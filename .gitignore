@@ -1,0 +1,10 @@
+# Tipos gerados pelo engine do Claude Code ao carregar o mod; regeneram sozinhos.
+.claude-plugin/types/
+
+# Cópias de segurança de antes do git; o histórico do git as substitui.
+projeto/backups/
+
+# Prints locais de teste.
+Captura de tela*.png
+
+node_modules/

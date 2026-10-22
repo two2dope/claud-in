@@ -1,0 +1,1 @@
+{ "name": "claudin", "version": "0.1.0", "author": { "name": "© 2026 two2Dope" }, "homepage": "https://github.com/two2dope/claud-in", "repository": "https://github.com/two2dope/claud-in", "description": "Claudin, mascote permanente acima do prompt: balões de pensamento reagem ao que o Claude está fazendo.", "types": "./types/index.d.ts" }

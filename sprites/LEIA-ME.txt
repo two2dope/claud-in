@@ -1,0 +1,3 @@
+Coloque aqui os sprites do Claudin, um arquivo por pose (.svg ou .png, PNG até ~90 KB):
+  idle  think  read  code  run  search  ok  err
+Ex.: sprites/code.png. Pose sem arquivo usa o desenho padrão. Salve e o mod recarrega.
