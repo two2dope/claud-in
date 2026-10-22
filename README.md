@@ -30,6 +30,12 @@ Três princípios guiam o desenho:
 
 O Claudin é uma ferramenta de apoio pessoal. Não é tratamento e não substitui acompanhamento profissional.
 
+## Caranguejos com cérebro
+
+O banner é uma homenagem ao manifesto de mesmo nome, assinado por Fred Zero Quatro em Recife, em 1992, um dos textos fundadores do Mangue Beat, o movimento de Chico Science & Nação Zumbi. O manifesto vê o mangue como uma base fértil e põe uma antena parabólica enfiada na lama como imagem da ligação entre o que é local e o que circula pelo mundo.
+
+O Claudin toma emprestadas as duas imagens: um caranguejo que pensa, andando de lado entre muitas abas, e uma parabólica na lama que traz o sinal. O texto do manifesto não é reproduzido aqui. Ele está na [Wikisource](https://pt.wikisource.org/wiki/Caranguejos_com_c%C3%A9rebro), sob licença CC BY-SA 4.0.
+
 ## O que ele faz
 
 As imagens abaixo são animadas e foram desenhadas a partir do próprio código do mod (`assets/build-assets.mjs`). Não são capturas de tela.
@@ -134,6 +140,24 @@ Para refazer o banner: `node assets/build-banner.mjs`. Para refazer as ilustraç
 | `tests/claudin.test.tsx` | Testes do `claude plugin test` |
 | `projeto/` | Dossiê do projeto: brief, direção visual, plano e o log de cada etapa |
 | `assets/` | Banner, ilustrações animadas e os scripts que os geram |
+
+## Como ele cresceu
+
+Todo caranguejo cresce largando o casco, e o Claudin cresceu do mesmo jeito: por mudas.
+
+<p align="center">
+  <img src="assets/muda.svg" alt="Cinco cascos do Claudin, do mais apagado ao atual, rotulados com as fases do projeto" width="100%">
+</p>
+
+| Casco | Quando | O que mudou |
+|---|---|---|
+| Faixa e balões | 2026-10-19 | O mascote nasce acima do prompt e as linhas de ferramenta saem do chat |
+| Modos e alertas | 2026-10-19 | Café, cigarro e meditar, mais os avisos de falha, demora, risco e fim de turno |
+| Caixa de ferramentas | 2026-10-19 | Menu paginado, atalhos de prompt, ações rápidas e o canivete de comandos `/` |
+| Tempo e agenda | 2026-10-19 | Timers, pomodoro, prazos, lembretes recorrentes e a saudação do dia |
+| `/claudin` e GitHub | 2026-10-22 | O comando que traz o mascote de volta, os tipos corrigidos e o repositório |
+
+Antes de existir git, cada mudança grande deixou uma cópia de segurança: 14 cascos ao todo. Daqui em diante o histórico mora nos commits.
 
 ## Limitações conhecidas
 

@@ -144,3 +144,8 @@ Decisões: subtítulo do banner aguarda escolha do usuário.
 Status: README ganhou a seção "Por que ele existe" (assistente cognitivo para uma cabeça com TDAH, dificuldade por dificuldade, e os três princípios). Identidade do banner em exploração: três direções (caranguejo com cérebro, anda de lado, a muda) em rascunho fora do repositório, aguardando escolha. Subtítulo do banner segue o antigo.
 Riscos: o README público passa a citar o TDAH do autor; decisão do usuário, reversível.
 Decisões: o texto fala do TDAH como característica do jeito de pensar, não como defeito, e deixa claro que não é tratamento.
+
+## 2026-10-22 (banner "Caranguejos com cérebro")
+Status: direção de identidade escolhida por Thomáz: A + B, com a linha menor "Mil abas abertas não são bagunça. São caminho.", e C como seção do README. Banner refeito (`assets/build-banner.mjs`): título "Caranguejos com cérebro.", caranguejo andando de lado com rastro, cérebro vetorial animado nas antenas (duas metades, giros, brilho que muda de cor, pulsos de sinapse) e uma parabólica enfiada na lama transmitindo ondas psicodélicas, inspirada no manifesto Mangue Beat (Fred Zero Quatro, 1992). README ganhou "Caranguejos com cérebro" (homenagem, sem reproduzir o texto, com link e licença da Wikisource) e "Como ele cresceu", com `assets/muda.svg`.
+Riscos: o banner usa SMIL e filtros SVG; renderizam em navegadores e no GitHub, mas não em todo leitor de imagem. A parte "cérebro e parabólica" é vetorial, fora da grade de pixels do mascote, de propósito.
+Decisões: cores psicodélicas só no cérebro e no sinal; o resto do banner segue grafite e coral.

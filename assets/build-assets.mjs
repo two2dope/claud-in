@@ -253,6 +253,39 @@ const out = name => join(dirname(fileURLToPath(import.meta.url)), name)
   writeFileSync(out('caixa.svg'), frame(W, H, body, 'A caixa de ferramentas do Claudin', 'Quatro abas em ciclo: prompts, comandos, tempo e agenda.'))
 }
 
+// 5. A muda: o caranguejo cresce largando o casco; cada fase do projeto é um casco deixado para trás.
+{
+  const W = 1280
+  const H = 360
+  const stages = [
+    ['faixa e balões', 6],
+    ['modos e alertas', 7],
+    ['caixa de ferramentas', 8],
+    ['tempo e agenda', 9],
+    ['/claudin e GitHub', 11],
+  ]
+  const cell = 232
+  const x0 = (W - cell * stages.length) / 2
+  const dur = 12
+  let body = text(64, 64, 'Todo caranguejo cresce largando o casco', 26, PAPER)
+  stages.forEach(([label, s], i) => {
+    const cx = x0 + i * cell + cell / 2
+    const w = 16 * s
+    const h = 12 * s
+    const last = i === stages.length - 1
+    const op = last ? 1 : 0.22 + i * 0.16
+    const tIn = ((i + 1) / (stages.length + 1)).toFixed(3)
+    const fade = `<animate attributeName="opacity" values="0;0;${op};${op};0" keyTimes="0;${(Number(tIn) - 0.06).toFixed(3)};${tIn};0.92;1" dur="${dur}s" repeatCount="indefinite"/>`
+    const sx = cx - w / 2
+    const sy = 258 - h
+    body += `<g opacity="0">${fade}<g transform="translate(${sx} ${sy}) scale(${s})" shape-rendering="crispEdges">${sprite(last ? 'ok' : 'idle', 'normal', 'center')}</g>`
+    if (!last) body += `<g transform="translate(${sx} ${sy}) scale(${s})" fill="none" stroke="${DIM}" stroke-width="${1.2 / s}" shape-rendering="crispEdges"><rect x="3.5" y="3.5" width="9" height="4"/><rect x="2.5" y="4.5" width="11" height="2"/></g>`
+    body += `${text(cx, 292, label, 16, last ? PAPER : SOFT, 'text-anchor="middle"')}</g>`
+  })
+  body += rect(64, 266, W - 128, 3, LINE)
+  writeFileSync(out('muda.svg'), frame(W, H, body, 'A muda do Claudin', 'Cinco fases do projeto como cascos deixados para trás, do mais antigo e apagado ao Claudin atual.'))
+}
+
 console.log('ok')
 
 export { sprite, mascot, frame, text, rect, px, CORAL, INK, PAPER, DIM, SOFT, LINE, PANEL, MONO }
