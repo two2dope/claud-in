@@ -254,3 +254,5 @@ const out = name => join(dirname(fileURLToPath(import.meta.url)), name)
 }
 
 console.log('ok')
+
+export { sprite, mascot, frame, text, rect, px, CORAL, INK, PAPER, DIM, SOFT, LINE, PANEL, MONO }

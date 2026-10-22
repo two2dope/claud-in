@@ -139,3 +139,8 @@ Decisões: `/claudin` entra como correção de brecha dentro do M3. Ficam fora d
 Status: README ganhou quatro ilustrações animadas em `assets/` (poses, modos, balões com as falas reais do mod e caixa de ferramentas), geradas por `assets/build-assets.mjs` a partir do sprite do mod. Não são capturas de tela. Repositório público fechado a alterações externas: limite de interação "só colaboradores" (vale até 2027-04-22), regra na `main` contra apagar a branch e contra force push, wiki e projetos desligados.
 Riscos: o sprite do script é um port de `sprite()` em `hooks/register.tsx`; se o desenho mudar lá, precisa mudar no script. O limite de interação expira em seis meses e precisa ser renovado. Forks continuam permitidos pelo GitHub em repositório público, mas não podem abrir PR nem issue enquanto o limite valer.
 Decisões: subtítulo do banner aguarda escolha do usuário.
+
+## 2026-10-22 (propósito e identidade)
+Status: README ganhou a seção "Por que ele existe" (assistente cognitivo para uma cabeça com TDAH, dificuldade por dificuldade, e os três princípios). Identidade do banner em exploração: três direções (caranguejo com cérebro, anda de lado, a muda) em rascunho fora do repositório, aguardando escolha. Subtítulo do banner segue o antigo.
+Riscos: o README público passa a citar o TDAH do autor; decisão do usuário, reversível.
+Decisões: o texto fala do TDAH como característica do jeito de pensar, não como defeito, e deixa claro que não é tratamento.

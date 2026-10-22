@@ -8,6 +8,28 @@ Claudin é um mod do Claude Code Desktop: um mascote em pixel-art que vive acima
 
 O tom é o de um assistente sóbrio que avisa, não o de um bichinho que pede atenção.
 
+## Por que ele existe
+
+O Claudin nasceu como assistente cognitivo de uso real, feito por uma cabeça com TDAH e para ela. Quem pensa rápido e em muitas direções costuma perder o fio de três coisas: o tempo que passou, o que ficou aberto e o que vem depois. Ele fica ao lado do trabalho para segurar essas três.
+
+Cada recurso responde a uma dificuldade concreta:
+
+| Dificuldade | Como o Claudin ajuda |
+|---|---|
+| Perder a noção do tempo | Timers, pomodoro e um aviso quando uma tarefa passa de 30 segundos |
+| Muita coisa aberta ao mesmo tempo | A atividade de fundo sai do chat e vira um balão curto, num lugar só |
+| Esquecer prazos e compromissos | Prazos com contagem em dias, lembretes recorrentes e a saudação do dia |
+| Não saber o que fazer a seguir | Resumo no fim do turno e a próxima ação sugerida |
+| Ruído e interrupção | Os modos cigarro e meditar só falam de erro e risco |
+| Agir no impulso | Aviso antes de um comando que pode apagar ou sobrescrever coisas |
+
+Três princípios guiam o desenho:
+- **Quem decide é você.** Uma ação sugerida só preenche o prompt. O Claudin não envia nada sozinho nem gasta tokens por conta própria.
+- **Aviso, não cobrança.** O tom é curto e sóbrio, sem culpa e sem insistência.
+- **Atenção a menos, não a mais.** Ele tira coisas da frente em vez de pôr mais uma notificação na tela.
+
+O Claudin é uma ferramenta de apoio pessoal. Não é tratamento e não substitui acompanhamento profissional.
+
 ## O que ele faz
 
 As imagens abaixo são animadas e foram desenhadas a partir do próprio código do mod (`assets/build-assets.mjs`). Não são capturas de tela.
