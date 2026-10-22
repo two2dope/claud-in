@@ -10,7 +10,13 @@ O tom é o de um assistente sóbrio que avisa, não o de um bichinho que pede at
 
 ## O que ele faz
 
+As imagens abaixo são animadas e foram desenhadas a partir do próprio código do mod (`assets/build-assets.mjs`). Não são capturas de tela.
+
 **Reage ao trabalho do Claude.** O Claudin muda de pose conforme o que acontece: parado, pensando, lendo, codando, rodando um comando, buscando, concluído, erro e alerta. O texto vive no balão, e a borda muda de cor com a gravidade (sucesso, atenção, erro).
+
+<p align="center">
+  <img src="assets/poses.svg" alt="As nove poses do Claudin: parado, pensando, lendo, codando, rodando, buscando, pronto, erro e alerta" width="100%">
+</p>
 
 **Tira o ruído do chat.** As linhas de ferramenta e o "Em execução" saem da conversa e ficam no balão e no histórico do Claudin. O botão `ver tools` traz tudo de volta quando você quiser conferir.
 
@@ -22,7 +28,15 @@ O tom é o de um assistente sóbrio que avisa, não o de um bichinho que pede at
 
 Uma ação sugerida só preenche o prompt. Quem decide enviar é você, então o Claudin não gasta nenhum token por conta própria.
 
+<p align="center">
+  <img src="assets/baloes.svg" alt="Ciclo de quatro balões: tarefa longa, falha com o botão investigar, comando de risco e resumo do fim do turno" width="100%">
+</p>
+
 **Caixa de ferramentas.** Um clique abre um menu paginado, com busca:
+
+<p align="center">
+  <img src="assets/caixa.svg" alt="Ilustração da caixa de ferramentas com as abas Prompts, Comandos, Tempo e Agenda em ciclo" width="100%">
+</p>
 
 | Aba | O que tem |
 |---|---|
@@ -36,6 +50,10 @@ Uma ação sugerida só preenche o prompt. Quem decide enviar é você, então o
 **Tempo e agenda.** Timers, prazos e lembretes são gravados entre sessões. A saudação do dia resume o que vence hoje e o que venceu.
 
 **Modos.** O ciclo fica em Ajustes.
+
+<p align="center">
+  <img src="assets/modos.svg" alt="Os cinco modos: normal, café, cigarro, meditar e thug life" width="100%">
+</p>
 
 | Modo | Comportamento |
 |---|---|
@@ -85,7 +103,7 @@ npx --yes -p typescript tsc -p . --noEmit
 
 O `tsc` usa tipos que o próprio Claude Code gera em `.claude-plugin/types/` na primeira vez que carrega o mod. Sem essa pasta, carregue o mod uma vez antes de checar os tipos.
 
-Para refazer o banner: `node assets/build-banner.mjs`.
+Para refazer o banner: `node assets/build-banner.mjs`. Para refazer as ilustrações: `node assets/build-assets.mjs`.
 
 | Caminho | Conteúdo |
 |---|---|
@@ -93,7 +111,7 @@ Para refazer o banner: `node assets/build-banner.mjs`.
 | `types/index.d.ts` | O contrato do estado do mod |
 | `tests/claudin.test.tsx` | Testes do `claude plugin test` |
 | `projeto/` | Dossiê do projeto: brief, direção visual, plano e o log de cada etapa |
-| `assets/` | Banner e o script que o gera |
+| `assets/` | Banner, ilustrações animadas e os scripts que os geram |
 
 ## Limitações conhecidas
 
