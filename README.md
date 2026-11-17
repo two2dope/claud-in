@@ -60,6 +60,8 @@ Uma ação sugerida só preenche o prompt. Quem decide enviar é você, então o
   <img src="assets/baloes.svg" alt="Ciclo de quatro balões: tarefa longa, falha com o botão investigar, comando de risco e resumo do fim do turno" width="100%">
 </p>
 
+**Acompanha a frota de agentes.** Quando o Claude dispara subagentes, o Claudin avisa em um balão curto ("Subagente Explore em campo: mapear hooks") e mantém uma linha discreta com o resumo ("3 agentes rodando"). Chamadas de ferramenta de subagente não viram balão. Um agente que termina bem é silencioso e entra na contagem do fim do turno; um que falha vira balão de erro com o botão `investigar`. Nos modos cigarro e meditar, só a falha aparece. Tudo isso é leitura: o Claudin não dispara nem para agentes e não gasta token.
+
 **Caixa de ferramentas.** Um clique abre um menu paginado, com busca:
 
 <p align="center">
@@ -74,6 +76,7 @@ Uma ação sugerida só preenche o prompt. Quem decide enviar é você, então o
 | Ajustes | Modo, tamanho, ver ou ocultar tools, histórico, saudação do dia, afagar, painel lateral |
 | Tempo | Timers e pomodoro, com pausar, reiniciar e cancelar |
 | Agenda | Prazos com contagem em dias e lembretes recorrentes |
+| Frota | Só aparece com subagentes: estado, tipo, tarefa, tempo e ferramentas de cada um (até seis; o resto vira `+N agentes`) |
 
 **Tempo e agenda.** Timers, prazos e lembretes são gravados entre sessões. A saudação do dia resume o que vence hoje e o que venceu.
 
@@ -166,10 +169,15 @@ Antes de existir git, cada mudança grande deixou uma cópia de segurança: 14 c
 - Os lembretes só disparam com o app aberto. A saudação do dia lista o que venceu enquanto ele estava fechado.
 - A ação `abrir pasta` usa o `explorer.exe`, então funciona só no Windows.
 - Sprites em PNG ainda não foram testados no desktop; SVG é a aposta segura.
+- A frota usa `agent.spawn`, `tool.call` e `turn.complete` com `agentId`, e `$.agent.list()`. O engine larga o agente da lista menos de 1 s depois de ele terminar, então o desfecho vem do `turn.complete`. Foi medido em sessão `claude -p`; o comportamento no app desktop ainda precisa de conferência com prints (ver `projeto/08-log.md`).
 
 ## Status
 
 Em uso real desde 2026-10-19, com revisão de riscos marcada para 2026-10-26. O histórico de decisões, riscos e testes está em [`projeto/08-log.md`](projeto/08-log.md).
+
+## Créditos
+
+A ideia de mostrar a frota de agentes em tempo real vem do [legends-claude](https://github.com/leolegends/legends-claude), de leolegends (MIT), que desenha uma barra com um palco animado para cada agente. A conciliação das linhas com a lista do engine (`hooks/frota.ts`) é adaptada do `hooks/agents.ts` dele. O Claudin escolheu outro caminho, o de menos atenção: balões curtos e uma linha de resumo, sem palco.
 
 ---
 

@@ -1,7 +1,9 @@
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
-import type { Action, Mode, ModeKind, Mood, Say, TurnStats, Walk } from '../types'
+import type { Action, FleetRow, Mode, ModeKind, Mood, Say, TurnStats, Walk } from '../types'
+import { tabGap } from './abas'
+import { FLEET_MAX_ROWS, clip, failSay, finish, liveCount, orderRows, reconcile, revive, rowLine, shouldSaySpawn, spawnSay, summaryLine, upsert } from './frota'
 
 const say = atom({ plugin: 'claudin', key: 'say' } as const, {
   mood: 'idle',
@@ -41,7 +43,8 @@ const timers = atom({ plugin: 'claudin', key: 'timers' } as const, [] as Timer[]
 const tick = atom({ plugin: 'claudin', key: 'tick' } as const, 0)
 const boxCat = atom({ plugin: 'claudin', key: 'boxCat' } as const, 'prompts')
 const CATS = ['prompts', 'acoes', 'comandos', 'ajustes', 'tempo', 'prazos']
-const CAT_LABEL: Record<string, string> = { prompts: 'Prompts', acoes: 'Ações', comandos: 'Comandos', ajustes: 'Ajustes', tempo: 'Tempo', prazos: 'Agenda' }
+const FLEET_CAT = 'frota' // a aba só aparece enquanto há agentes, para não alargar o menu à toa
+const CAT_LABEL: Record<string, string> = { prompts: 'Prompts', acoes: 'Ações', comandos: 'Comandos', ajustes: 'Ajustes', tempo: 'Tempo', prazos: 'Agenda', frota: 'Frota' }
 const SHORTCUTS: { label: string; text: string }[] = [
   { label: 'resumir', text: 'Resuma em poucas linhas o que você fez até agora.' },
   { label: 'explicar erro', text: 'Explique o último erro que apareceu e proponha o próximo passo.' },
@@ -55,7 +58,8 @@ const PANE_RANGE = 14
 const extraShortcuts = atom({ plugin: 'claudin', key: 'extraShortcuts' } as const, [] as Action[])
 const lastCmd = atom({ plugin: 'claudin', key: 'lastCmd' } as const, '')
 const lastFile = atom({ plugin: 'claudin', key: 'lastFile' } as const, '')
-const turn = atom({ plugin: 'claudin', key: 'turn' } as const, { files: [], cmds: 0, errors: 0 } as TurnStats)
+const turn = atom({ plugin: 'claudin', key: 'turn' } as const, { files: [], cmds: 0, errors: 0, agents: 0 } as TurnStats)
+const fleet = atom({ plugin: 'claudin', key: 'fleet' } as const, [] as FleetRow[])
 
 // Comandos que merecem um aviso antes de rodar. Lista curta; não substitui as permissões do app.
 const RISKY = /\brm\s+(-[a-z]*r|-[a-z]*f)|git\s+push\b.*(--force|\s-f\b)|git\s+reset\s+--hard|git\s+clean\s+-[a-z]*f|drop\s+(table|database)|remove-item\b.*-recurse|\bdel\s+\/[sq]|\bformat\s+[a-z]:|mkfs|:\(\)\s*\{/i
@@ -222,11 +226,49 @@ async function placeClaudin($: any, side: boolean): Promise<'faixa' | 'lateral'>
   return 'faixa'
 }
 
-// Volta a ficar parado depois de um tempo sem novidade.
+// Frota de subagentes. As linhas vêm dos eventos (rápidos) e são conferidas com $.agent.list() a cada tique.
+// Uma falha é dita uma única vez por agente (`told`); um agente interrompido pela pessoa não é falha a dizer.
+const told = new Set<string>()
+let lastSpawnSayAt = -Infinity
+
+async function commitFleet($: any, fn: (rows: FleetRow[]) => FleetRow[]) {
+  await update($, fleet, (rows: FleetRow[]) => fn(rows))
+  const rows = await read($, fleet)
+  for (const r of rows) {
+    if (r.state !== 'failed' || told.has(r.id)) continue
+    told.add(r.id)
+    const f = failSay(r)
+    await speak($, 'err', f.text, f.action)
+  }
+  for (const id of told) if (!rows.some(r => r.id === id)) told.delete(id)
+}
+
+async function syncFleet($: any) {
+  try {
+    let listed: any[] | null = null
+    try {
+      listed = await $.agent.list()
+    } catch {
+      listed = null // sem lista (sem sessão ligada, por exemplo): só a idade das linhas manda
+    }
+    const now = await $.clock.now()
+    await commitFleet($, rows => reconcile(rows, listed, now))
+  } catch {
+    // um erro da frota nunca pode parar o resto do tique do Claudin
+  }
+}
+
+// Volta a ficar parado depois de um tempo sem novidade. Com agente vivo, espera mais um intervalo:
+// o Claudin só descansa quando a frota esvazia.
 function settle($: any, seq: number, ms: number) {
   return $.clock.after(ms, async () => {
     const s = await read($, say)
-    if (s.seq === seq) await update($, say, (x: Say): Say => ({ ...x, mood: 'idle', text: 'Aguardando.', seq: x.seq + 1 }))
+    if (s.seq !== seq) return
+    if (liveCount(await read($, fleet)) > 0) {
+      settle($, seq, ms)
+      return
+    }
+    await update($, say, (x: Say): Say => ({ ...x, mood: 'idle', text: 'Aguardando.', seq: x.seq + 1 }))
   })
 }
 
@@ -234,6 +276,7 @@ function settle($: any, seq: number, ms: number) {
 async function stroll($: any) {
   await checkTimers($)
   await checkReminders($)
+  await syncFleet($)
   const m = await read($, mode)
   if (m.kind === 'cigarro' && (await $.clock.now()) >= m.until) {
     await update($, mode, () => ({ kind: 'normal', until: 0 }))
@@ -620,6 +663,10 @@ async function draw($: any, e: any, next: any) {
   const rems = await read($, reminders)
   const ddq = await read($, ddText)
   const nowDl = dls.length > 0 ? await $.clock.now() : 0
+  const fleetRows = await read($, fleet)
+  const nowF = fleetRows.length > 0 ? await $.clock.now() : 0
+  const fleetLine = summaryLine(fleetRows, nowF)
+  const cats = fleetRows.length > 0 ? [...CATS, FLEET_CAT] : CATS
   const nowT = activeTimers.length > 0 ? (await read($, tick)) || (await $.clock.now()) : 0
   const extras = await read($, extraShortcuts)
   const cmd = await read($, lastCmd)
@@ -654,7 +701,7 @@ async function draw($: any, e: any, next: any) {
   }
   const fill = (text: string) => () => $.prompt.fill({ text, mode: 'replace' })
 
-  type Item = { key: string; label: string; onPress: (p: any) => void; sep?: boolean; starred?: boolean; onStar?: () => void; onDelete?: () => void }
+  type Item = { key: string; label: string; onPress: (p: any) => void; sep?: boolean; text?: boolean; starred?: boolean; onStar?: () => void; onDelete?: () => void }
   const items: Item[] =
     cat === 'prompts'
       ? [...SHORTCUTS, ...extras].map((x, i) => ({ key: `sc${i}`, label: x.label, onPress: fill(x.text) }))
@@ -754,10 +801,17 @@ async function draw($: any, e: any, next: any) {
                         onDelete: () => removeReminder($, r.id),
                       })),
                   ]
-                : []
+                : cat === FLEET_CAT
+                  ? (() => {
+                      const ordered = orderRows(fleetRows)
+                      const shown: Item[] = ordered.slice(0, FLEET_MAX_ROWS).map(r => ({ key: `ag-${r.id}`, label: rowLine(r, nowF), text: true, onPress: () => {} }))
+                      const more = ordered.length - FLEET_MAX_ROWS
+                      return more > 0 ? [...shown, { key: 'ag-more', label: `+${more} agentes`, text: true, onPress: () => {} }] : shown
+                    })()
+                  : []
 
   const placeholder =
-    cat === 'comandos' && items.length === 0 ? 'Nenhum comando encontrado.' : cat === 'prazos' && items.length === 0 ? 'Vazia. Prazo: 05/11 título. Lembrete: 09:00 título.' : ''
+    cat === 'comandos' && items.length === 0 ? 'Nenhum comando encontrado.' : cat === 'prazos' && items.length === 0 ? 'Vazia. Prazo: 05/11 título. Lembrete: 09:00 título.' : cat === FLEET_CAT && items.length === 0 ? 'Nenhum agente por aqui.' : ''
 
   // Menu em estilo mIRC: barra de menus em texto, divisória e lista vertical paginada, uma coluna.
   const size_ = cat === 'comandos' || cat === 'prazos' ? PAGE_CMD : PAGE
@@ -768,8 +822,8 @@ async function draw($: any, e: any, next: any) {
   const body = (
     <Box flexDirection="column" alignItems="flex-start" width="100%">
       <Text dimColor>🧰 Caixa de ferramentas</Text>
-      <Box flexDirection="row" columnGap={1}>
-        {CATS.map(c => (
+      <Box flexDirection="row" columnGap={tabGap(cats.map(c => CAT_LABEL[c] ?? c), TOOLBOX_W - 4)}>
+        {cats.map(c => (
           <Button key={`cat-${c}`} plain label={c === cat ? `▸${CAT_LABEL[c] ?? c}` : ` ${CAT_LABEL[c] ?? c}`} onPress={pick(c)} />
         ))}
       </Box>
@@ -802,6 +856,8 @@ async function draw($: any, e: any, next: any) {
       {rows.map(x =>
         x.sep ? (
           <Text key={x.key} dimColor>{line}</Text>
+        ) : x.text ? (
+          <Text key={x.key}>{`  ${x.label}`}</Text>
         ) : x.onStar ? (
           <Box key={x.key} flexDirection="row" columnGap={1}>
             <Button key={`${x.key}-star`} plain label={x.starred ? '★' : '☆'} onPress={x.onStar} />
@@ -853,6 +909,7 @@ async function draw($: any, e: any, next: any) {
                 {/pomodoro/i.test(s.text) && s.mood === 'alert' ? tomato : null}
                 <Text dimColor={s.mood === 'idle'} color={s.mood === 'err' ? 'error' : s.mood === 'alert' ? 'warning' : undefined}>{s.text}</Text>
               </Box>
+              {fleetLine ? <Text key="fleet-line" dimColor>{`◆ ${fleetLine}`}</Text> : null}
               {first ? timerRow(first, 'bt') : null}
               {act ? (
                 <Button
@@ -889,12 +946,52 @@ async function hideRow($: any, e: any, next: any) {
 
 export const register: Register = on => {
   on('prompt.submit', async ($, e, next) => {
-    await update($, turn, () => ({ files: [], cmds: 0, errors: 0 }))
+    await update($, turn, () => ({ files: [], cmds: 0, errors: 0, agents: 0 }))
     await speak($, 'think', 'Analisando.')
     return next(e)
   })
 
+  // Um subagente nasce: a linha entra na frota e, no máximo uma vez a cada SPAWN_SAY_MS, o balão avisa.
+  on('agent.spawn', async ($, e: any, next) => {
+    const result: any = await next(e)
+    try {
+      if (result?.agentId) {
+        const now = await $.clock.now()
+        await update($, turn, (s: TurnStats) => ({ ...s, agents: s.agents + 1 }))
+        await commitFleet($, rows =>
+          upsert(rows, result.agentId, now, r => ({
+            ...revive(r, now),
+            type: clip(e.subagentType || r.type, 40),
+            description: clip(e.description || r.description, 120),
+            model: result.model ?? r.model,
+          })),
+        )
+        told.delete(result.agentId) // um agente retomado que falhar de novo é anunciado de novo
+        if (shouldSaySpawn(lastSpawnSayAt, now)) {
+          lastSpawnSayAt = now
+          const rows = await read($, fleet)
+          const row = rows.find(r => r.id === result.agentId)
+          if (row) await speak($, 'think', spawnSay(row, liveCount(rows)))
+        }
+      }
+    } catch {
+      // o Claudin nunca fica entre o Claude e o subagente
+    }
+    return result
+  })
+
   on('tool.call', async ($, e: any, next) => {
+    if (e.agentId) {
+      // Ferramenta de subagente só atualiza a linha dele: sem balão, sem lastCmd, sem contagem do turno principal.
+      try {
+        const now = await $.clock.now()
+        told.delete(e.agentId)
+        await commitFleet($, rows => upsert(rows, e.agentId, now, r => ({ ...revive(r, now), tools: r.tools + 1, lastTool: String(e.tool) })))
+      } catch {
+        // idem
+      }
+      return next(e)
+    }
     const t = e.tool as string
     const line: [Mood, string] =
       t === 'Read' ? ['read', `Lendo ${base(e.file_path)}.`]
@@ -914,6 +1011,7 @@ export const register: Register = on => {
     if (t === 'Bash' && typeof e.command === 'string') await update($, lastCmd, () => e.command)
     if ((t === 'Edit' || t === 'Write') && e.file_path) await update($, lastFile, () => e.file_path)
     await update($, turn, (s: TurnStats) => ({
+      ...s,
       files: (t === 'Edit' || t === 'Write') && e.file_path && !s.files.includes(e.file_path) ? [...s.files, e.file_path] : s.files,
       cmds: t === 'Bash' ? s.cmds + 1 : s.cmds,
       errors: s.errors,
@@ -939,12 +1037,24 @@ export const register: Register = on => {
   })
 
   on('turn.complete', async ($, e: any, next) => {
+    if (e.agentId) {
+      // Fim do turno de um subagente: desfecho na frota, sem o resumo do turno principal.
+      try {
+        const now = await $.clock.now()
+        if (e.reason === 'aborted') told.add(e.agentId)
+        await commitFleet($, rows => finish(rows, e.agentId, e.reason === 'answer' ? 'done' : 'failed', now))
+      } catch {
+        // idem
+      }
+      return next(e)
+    }
     const ok = e.reason === 'answer'
     const st = await read($, turn)
     const parts = [
       st.files.length ? `${st.files.length} arquivo${st.files.length > 1 ? 's' : ''} editado${st.files.length > 1 ? 's' : ''}` : '',
       st.cmds ? `${st.cmds} comando${st.cmds > 1 ? 's' : ''}` : '',
       st.errors ? `${st.errors} falha${st.errors > 1 ? 's' : ''}` : '',
+      st.agents ? `${st.agents} agente${st.agents > 1 ? 's' : ''}` : '',
     ].filter(Boolean)
     const summary = parts.length ? `Pronto: ${parts.join(', ')}.` : 'Pronto. Nada a reportar.'
     const next1: Action | null =
@@ -1010,6 +1120,7 @@ export const register: Register = on => {
     await loadReminders($)
     await greetToday($, false)
     await loadCommands($)
+    await syncFleet($)
     $.clock.every(1500, () => stroll($))
     return next(e)
   })
