@@ -58,3 +58,41 @@ export const reconcile = (rows: readonly FleetRow[], listed: readonly AgentInfo[
 }
 
 export const liveCount = (rows: readonly FleetRow[]): number => rows.filter(isLive).length
+
+export const SPAWN_SAY_MS = 2_000 // no máximo uma fala de subida a cada tanto, mesmo com vinte agentes de uma vez
+
+const short = (s: string, n = 38) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
+
+const span = (ms: number) => {
+  const s = Math.max(0, Math.floor(ms / 1000))
+  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m${String(s % 60).padStart(2, '0')}s`
+}
+
+// A linha de resumo da frota: vazia sem agente vivo; um agente é nomeado; dois ou mais viram contagem.
+export const summaryLine = (rows: readonly FleetRow[], now: number): string => {
+  const live = rows.filter(isLive)
+  if (!live.length) return ''
+  const failed = rows.filter(r => r.state === 'failed' && r.endedAt !== undefined && now - r.endedAt <= LINGER_MS).length
+  const main = live.length === 1 ? `1 agente: ${live[0].type || 'subagente'} ${span(now - live[0].startedAt)}` : `${live.length} agentes rodando`
+  return failed ? `${main} · ${failed} falhou` : main
+}
+
+export const spawnSay = (row: FleetRow, live: number): string => {
+  if (live >= 2) return `${live} agentes em campo.`
+  const who = row.type ? `Subagente ${row.type}` : 'Subagente'
+  return row.description ? `${who} em campo: ${short(row.description)}.` : `${who} em campo.`
+}
+
+export const failSay = (row: FleetRow): { text: string; action: { label: string; text: string } } => {
+  const who = row.type ? `Agente ${row.type}` : 'Agente'
+  const task = row.description ? ` na tarefa "${row.description}"` : ''
+  return {
+    text: row.description ? `${who} falhou: ${short(row.description)}.` : `${who} falhou.`,
+    action: {
+      label: 'investigar',
+      text: `O subagente${row.type ? ` ${row.type}` : ''} falhou${task}. Explique a causa provável e proponha o próximo passo.`,
+    },
+  }
+}
+
+export const shouldSaySpawn = (lastSayAt: number, now: number): boolean => now - lastSayAt >= SPAWN_SAY_MS
