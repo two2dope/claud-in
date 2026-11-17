@@ -253,11 +253,17 @@ async function syncFleet($: any) {
   await commitFleet($, rows => reconcile(rows, listed, now))
 }
 
-// Volta a ficar parado depois de um tempo sem novidade.
+// Volta a ficar parado depois de um tempo sem novidade. Com agente vivo, espera mais um intervalo:
+// o Claudin só descansa quando a frota esvazia.
 function settle($: any, seq: number, ms: number) {
   return $.clock.after(ms, async () => {
     const s = await read($, say)
-    if (s.seq === seq) await update($, say, (x: Say): Say => ({ ...x, mood: 'idle', text: 'Aguardando.', seq: x.seq + 1 }))
+    if (s.seq !== seq) return
+    if (liveCount(await read($, fleet)) > 0) {
+      settle($, seq, ms)
+      return
+    }
+    await update($, say, (x: Say): Say => ({ ...x, mood: 'idle', text: 'Aguardando.', seq: x.seq + 1 }))
   })
 }
 
