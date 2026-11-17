@@ -347,3 +347,67 @@ test('a lista do engine corrige a frota a cada tique: failed vira falha uma úni
   expect(await ui.find({ type: 'Text', text: /Agente Explore falhou: mapear hooks/ })).toBeDefined()
   await ui.unmount()
 })
+
+const GIDS = (on: any) => {
+  on('agent.spawn', (_: any, e: any) => ({ agentId: `g${e.description}`, model: 'haiku' }))
+  on('turn.complete', () => ({ text: '' }))
+}
+
+test('a linha de resumo da frota aparece com agentes vivos e some sem eles', async ($: any, on: any) => {
+  mock.clock(on, { now: 900_000 })
+  ids(on)
+  let ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /◆/ })).toBeUndefined()
+  await ui.unmount()
+  await $.agent.spawn(SPAWN('mapear hooks'))
+  for (const surface of ['terminal', 'desktop'] as const) {
+    ui = await $.ui.mount({ plugin: 'claudin', surface, ...BAND })
+    expect(await ui.find({ type: 'Text', text: /◆ 1 agente: Explore/ })).toBeDefined()
+    await ui.unmount()
+  }
+})
+
+test('a aba Frota só existe com agentes e lista cada um por id', async ($: any, on: any) => {
+  mock.clock(on, { now: 1_000_000 })
+  ids(on)
+  on('tool.call', () => ({ result: {} }))
+  let ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'tb' })
+  expect(await ui.find({ key: 'cat-frota' })).toBeUndefined()
+  await ui.unmount()
+  await $.agent.spawn(SPAWN('mapear hooks'))
+  await $.tool.call({ tool: 'Read', file_path: 'x.ts', agentId: 'a1' })
+  ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND }) // a caixa continua aberta
+  await ui.press({ key: 'cat-frota' })
+  expect(await ui.find({ type: 'Text', text: /● Explore · mapear hooks · 0s · 1 tool/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('com oito agentes a aba lista seis e resume o resto', async ($: any, on: any) => {
+  mock.clock(on, { now: 1_100_000 })
+  GIDS(on)
+  for (const n of ['1', '2', '3', '4', '5', '6', '7', '8']) await $.agent.spawn(SPAWN(n))
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'tb' })
+  await ui.press({ key: 'cat-frota' })
+  expect(await ui.find({ type: 'Text', text: /Explore · 4 · 0s/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Explore · 5 · 0s/ })).toBeUndefined()
+  await ui.press({ key: 'next' })
+  expect(await ui.find({ type: 'Text', text: /Explore · 6 · 0s/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Explore · 7 · 0s/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /\+2 agentes/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('o resumo do fim de turno conta os agentes que subiram no turno', async ($: any, on: any) => {
+  mock.clock(on, { now: 1_200_000 })
+  GIDS(on)
+  on('prompt.submit', () => ({ text: 'oi' }))
+  await $.prompt.submit({ text: 'oi' })
+  await $.agent.spawn(SPAWN('1'))
+  await $.agent.spawn(SPAWN('2'))
+  await $.turn.complete({ answer: '', reason: 'answer', durationMs: 1, isAborted: false, turnId: 'main' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /Pronto: 2 agentes\./ })).toBeDefined()
+  await ui.unmount()
+})

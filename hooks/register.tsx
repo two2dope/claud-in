@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Action, FleetRow, Mode, ModeKind, Mood, Say, TurnStats, Walk } from '../types'
-import { failSay, finish, liveCount, reconcile, shouldSaySpawn, spawnSay, upsert } from './frota'
+import { FLEET_MAX_ROWS, failSay, finish, liveCount, orderRows, reconcile, rowLine, shouldSaySpawn, spawnSay, summaryLine, upsert } from './frota'
 
 const say = atom({ plugin: 'claudin', key: 'say' } as const, {
   mood: 'idle',
@@ -42,7 +42,8 @@ const timers = atom({ plugin: 'claudin', key: 'timers' } as const, [] as Timer[]
 const tick = atom({ plugin: 'claudin', key: 'tick' } as const, 0)
 const boxCat = atom({ plugin: 'claudin', key: 'boxCat' } as const, 'prompts')
 const CATS = ['prompts', 'acoes', 'comandos', 'ajustes', 'tempo', 'prazos']
-const CAT_LABEL: Record<string, string> = { prompts: 'Prompts', acoes: 'Ações', comandos: 'Comandos', ajustes: 'Ajustes', tempo: 'Tempo', prazos: 'Agenda' }
+const FLEET_CAT = 'frota' // a aba só aparece enquanto há agentes, para não alargar o menu à toa
+const CAT_LABEL: Record<string, string> = { prompts: 'Prompts', acoes: 'Ações', comandos: 'Comandos', ajustes: 'Ajustes', tempo: 'Tempo', prazos: 'Agenda', frota: 'Frota' }
 const SHORTCUTS: { label: string; text: string }[] = [
   { label: 'resumir', text: 'Resuma em poucas linhas o que você fez até agora.' },
   { label: 'explicar erro', text: 'Explique o último erro que apareceu e proponha o próximo passo.' },
@@ -56,7 +57,7 @@ const PANE_RANGE = 14
 const extraShortcuts = atom({ plugin: 'claudin', key: 'extraShortcuts' } as const, [] as Action[])
 const lastCmd = atom({ plugin: 'claudin', key: 'lastCmd' } as const, '')
 const lastFile = atom({ plugin: 'claudin', key: 'lastFile' } as const, '')
-const turn = atom({ plugin: 'claudin', key: 'turn' } as const, { files: [], cmds: 0, errors: 0 } as TurnStats)
+const turn = atom({ plugin: 'claudin', key: 'turn' } as const, { files: [], cmds: 0, errors: 0, agents: 0 } as TurnStats)
 const fleet = atom({ plugin: 'claudin', key: 'fleet' } as const, [] as FleetRow[])
 
 // Comandos que merecem um aviso antes de rodar. Lista curta; não substitui as permissões do app.
@@ -651,6 +652,10 @@ async function draw($: any, e: any, next: any) {
   const rems = await read($, reminders)
   const ddq = await read($, ddText)
   const nowDl = dls.length > 0 ? await $.clock.now() : 0
+  const fleetRows = await read($, fleet)
+  const nowF = fleetRows.length > 0 ? await $.clock.now() : 0
+  const fleetLine = summaryLine(fleetRows, nowF)
+  const cats = fleetRows.length > 0 ? [...CATS, FLEET_CAT] : CATS
   const nowT = activeTimers.length > 0 ? (await read($, tick)) || (await $.clock.now()) : 0
   const extras = await read($, extraShortcuts)
   const cmd = await read($, lastCmd)
@@ -685,7 +690,7 @@ async function draw($: any, e: any, next: any) {
   }
   const fill = (text: string) => () => $.prompt.fill({ text, mode: 'replace' })
 
-  type Item = { key: string; label: string; onPress: (p: any) => void; sep?: boolean; starred?: boolean; onStar?: () => void; onDelete?: () => void }
+  type Item = { key: string; label: string; onPress: (p: any) => void; sep?: boolean; text?: boolean; starred?: boolean; onStar?: () => void; onDelete?: () => void }
   const items: Item[] =
     cat === 'prompts'
       ? [...SHORTCUTS, ...extras].map((x, i) => ({ key: `sc${i}`, label: x.label, onPress: fill(x.text) }))
@@ -785,10 +790,17 @@ async function draw($: any, e: any, next: any) {
                         onDelete: () => removeReminder($, r.id),
                       })),
                   ]
-                : []
+                : cat === FLEET_CAT
+                  ? (() => {
+                      const ordered = orderRows(fleetRows)
+                      const shown: Item[] = ordered.slice(0, FLEET_MAX_ROWS).map(r => ({ key: `ag-${r.id}`, label: rowLine(r, nowF), text: true, onPress: () => {} }))
+                      const more = ordered.length - FLEET_MAX_ROWS
+                      return more > 0 ? [...shown, { key: 'ag-more', label: `+${more} agentes`, text: true, onPress: () => {} }] : shown
+                    })()
+                  : []
 
   const placeholder =
-    cat === 'comandos' && items.length === 0 ? 'Nenhum comando encontrado.' : cat === 'prazos' && items.length === 0 ? 'Vazia. Prazo: 05/11 título. Lembrete: 09:00 título.' : ''
+    cat === 'comandos' && items.length === 0 ? 'Nenhum comando encontrado.' : cat === 'prazos' && items.length === 0 ? 'Vazia. Prazo: 05/11 título. Lembrete: 09:00 título.' : cat === FLEET_CAT && items.length === 0 ? 'Nenhum agente por aqui.' : ''
 
   // Menu em estilo mIRC: barra de menus em texto, divisória e lista vertical paginada, uma coluna.
   const size_ = cat === 'comandos' || cat === 'prazos' ? PAGE_CMD : PAGE
@@ -800,7 +812,7 @@ async function draw($: any, e: any, next: any) {
     <Box flexDirection="column" alignItems="flex-start" width="100%">
       <Text dimColor>🧰 Caixa de ferramentas</Text>
       <Box flexDirection="row" columnGap={1}>
-        {CATS.map(c => (
+        {cats.map(c => (
           <Button key={`cat-${c}`} plain label={c === cat ? `▸${CAT_LABEL[c] ?? c}` : ` ${CAT_LABEL[c] ?? c}`} onPress={pick(c)} />
         ))}
       </Box>
@@ -833,6 +845,8 @@ async function draw($: any, e: any, next: any) {
       {rows.map(x =>
         x.sep ? (
           <Text key={x.key} dimColor>{line}</Text>
+        ) : x.text ? (
+          <Text key={x.key}>{`  ${x.label}`}</Text>
         ) : x.onStar ? (
           <Box key={x.key} flexDirection="row" columnGap={1}>
             <Button key={`${x.key}-star`} plain label={x.starred ? '★' : '☆'} onPress={x.onStar} />
@@ -884,6 +898,7 @@ async function draw($: any, e: any, next: any) {
                 {/pomodoro/i.test(s.text) && s.mood === 'alert' ? tomato : null}
                 <Text dimColor={s.mood === 'idle'} color={s.mood === 'err' ? 'error' : s.mood === 'alert' ? 'warning' : undefined}>{s.text}</Text>
               </Box>
+              {fleetLine ? <Text key="fleet-line" dimColor>{`◆ ${fleetLine}`}</Text> : null}
               {first ? timerRow(first, 'bt') : null}
               {act ? (
                 <Button
@@ -920,7 +935,7 @@ async function hideRow($: any, e: any, next: any) {
 
 export const register: Register = on => {
   on('prompt.submit', async ($, e, next) => {
-    await update($, turn, () => ({ files: [], cmds: 0, errors: 0 }))
+    await update($, turn, () => ({ files: [], cmds: 0, errors: 0, agents: 0 }))
     await speak($, 'think', 'Analisando.')
     return next(e)
   })
@@ -931,6 +946,7 @@ export const register: Register = on => {
     try {
       if (result?.agentId) {
         const now = await $.clock.now()
+        await update($, turn, (s: TurnStats) => ({ ...s, agents: s.agents + 1 }))
         await commitFleet($, rows =>
           upsert(rows, result.agentId, now, r => ({
             ...r, type: e.subagentType || r.type, description: e.description || r.description, model: result.model ?? r.model, seenAt: now,
@@ -979,6 +995,7 @@ export const register: Register = on => {
     if (t === 'Bash' && typeof e.command === 'string') await update($, lastCmd, () => e.command)
     if ((t === 'Edit' || t === 'Write') && e.file_path) await update($, lastFile, () => e.file_path)
     await update($, turn, (s: TurnStats) => ({
+      ...s,
       files: (t === 'Edit' || t === 'Write') && e.file_path && !s.files.includes(e.file_path) ? [...s.files, e.file_path] : s.files,
       cmds: t === 'Bash' ? s.cmds + 1 : s.cmds,
       errors: s.errors,
@@ -1021,6 +1038,7 @@ export const register: Register = on => {
       st.files.length ? `${st.files.length} arquivo${st.files.length > 1 ? 's' : ''} editado${st.files.length > 1 ? 's' : ''}` : '',
       st.cmds ? `${st.cmds} comando${st.cmds > 1 ? 's' : ''}` : '',
       st.errors ? `${st.errors} falha${st.errors > 1 ? 's' : ''}` : '',
+      st.agents ? `${st.agents} agente${st.agents > 1 ? 's' : ''}` : '',
     ].filter(Boolean)
     const summary = parts.length ? `Pronto: ${parts.join(', ')}.` : 'Pronto. Nada a reportar.'
     const next1: Action | null =

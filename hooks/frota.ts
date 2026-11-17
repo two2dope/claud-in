@@ -96,3 +96,20 @@ export const failSay = (row: FleetRow): { text: string; action: { label: string;
 }
 
 export const shouldSaySpawn = (lastSayAt: number, now: number): boolean => now - lastSayAt >= SPAWN_SAY_MS
+
+export const FLEET_MAX_ROWS = 6 // a aba lista até tantos agentes; o resto vira "+N agentes"
+
+const ICON: Record<FleetState, string> = { running: '●', waiting: '◌', done: '✓', failed: '✗' }
+
+// Uma linha da aba Frota: estado, tipo, tarefa, tempo (corrido se vivo, duração se terminou) e ferramentas.
+export const rowLine = (r: FleetRow, now: number): string => {
+  const elapsed = isLive(r) ? now - r.startedAt : (r.endedAt ?? now) - r.startedAt
+  const parts = [r.type || 'agente', ...(r.description ? [short(r.description, 24)] : []), span(elapsed), ...(r.tools ? [`${r.tools} ${r.tools === 1 ? 'tool' : 'tools'}`] : [])]
+  return `${ICON[r.state]} ${parts.join(' · ')}`
+}
+
+// Vivos primeiro (do mais antigo ao mais novo), depois os terminados, do mais recente ao mais antigo.
+export const orderRows = (rows: readonly FleetRow[]): FleetRow[] => [
+  ...rows.filter(isLive).sort((a, b) => a.startedAt - b.startedAt),
+  ...rows.filter(r => !isLive(r)).sort((a, b) => (b.endedAt ?? 0) - (a.endedAt ?? 0)),
+]

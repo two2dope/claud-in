@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 import type { AgentInfo } from 'claude-code'
 
-import { LINGER_MS, MISSING_GRACE_MS, SPAWN_SAY_MS, failSay, finish, liveCount, reconcile, shouldSaySpawn, spawnSay, summaryLine, upsert } from './frota'
+import { FLEET_MAX_ROWS, LINGER_MS, MISSING_GRACE_MS, SPAWN_SAY_MS, failSay, finish, liveCount, orderRows, reconcile, rowLine, shouldSaySpawn, spawnSay, summaryLine, upsert } from './frota'
 import type { FleetRow } from '../types'
 
 const NOW = 1_000_000
@@ -147,5 +147,38 @@ describe('shouldSaySpawn', () => {
     expect(SPAWN_SAY_MS).toBe(2_000)
     expect(shouldSaySpawn(1000, 2999)).toBe(false)
     expect(shouldSaySpawn(1000, 3000)).toBe(true)
+  })
+})
+
+describe('rowLine', () => {
+  test('agente vivo mostra estado, tipo, tarefa, tempo corrido e ferramentas', () => {
+    expect(rowLine(row({ startedAt: NOW - 12_000, tools: 3 }), NOW)).toBe('● Explore · mapear hooks · 12s · 3 tools')
+    expect(rowLine(row({ startedAt: NOW - 12_000, tools: 1 }), NOW)).toBe('● Explore · mapear hooks · 12s · 1 tool')
+    expect(rowLine(row({ startedAt: NOW - 12_000, tools: 0 }), NOW)).toBe('● Explore · mapear hooks · 12s')
+  })
+
+  test('agente terminado mostra a duração, não o tempo corrido', () => {
+    expect(rowLine(row({ state: 'done', startedAt: NOW - 20_000, endedAt: NOW - 15_000 }), NOW)).toBe('✓ Explore · mapear hooks · 5s')
+    expect(rowLine(row({ state: 'failed', startedAt: NOW - 20_000, endedAt: NOW - 15_000 }), NOW)).toBe('✗ Explore · mapear hooks · 5s')
+  })
+
+  test('esperando tem o próprio ícone, e tipo ou tarefa vazios são omitidos', () => {
+    expect(rowLine(row({ state: 'waiting', startedAt: NOW - 1_000 }), NOW)).toBe('◌ Explore · mapear hooks · 1s')
+    expect(rowLine(row({ type: '', description: '', startedAt: NOW - 1_000 }), NOW)).toBe('● agente · 1s')
+  })
+})
+
+describe('orderRows', () => {
+  test('vivos primeiro, depois os terminados do mais recente ao mais antigo', () => {
+    const rows = [
+      row({ id: 'old', state: 'done', endedAt: NOW - 5_000 }),
+      row({ id: 'live', startedAt: NOW - 1_000 }),
+      row({ id: 'new', state: 'failed', endedAt: NOW - 1_000 }),
+    ]
+    expect(orderRows(rows).map(r => r.id)).toEqual(['live', 'new', 'old'])
+  })
+
+  test('FLEET_MAX_ROWS é 6', () => {
+    expect(FLEET_MAX_ROWS).toBe(6)
   })
 })

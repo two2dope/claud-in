@@ -1,6 +1,6 @@
 export type Mood = 'idle' | 'think' | 'read' | 'code' | 'run' | 'search' | 'ok' | 'err' | 'alert'
 export type Action = { label: string; text: string }
-export type TurnStats = { files: string[]; cmds: number; errors: number }
+export type TurnStats = { files: string[]; cmds: number; errors: number; agents: number }
 export type ModeKind = 'normal' | 'cafe' | 'cigarro' | 'meditar' | 'thuglife'
 export type Mode = { kind: ModeKind; until: number }
 export type Walk = { x: number; dir: number }
