@@ -521,3 +521,90 @@ test('texto longo do spawn é cortado, na frase e no prompt do investigar', asyn
   expect(filled).not.toContain('x'.repeat(121))
   await ui.unmount()
 })
+
+// ── dados do usuário fora da pasta do plugin (instalação por marketplace) ───────
+// Uma atualização do plugin substitui a pasta dele; sprites, atalhos e semente de favoritos do usuário
+// moram em <config>/claudin (CLAUDE_CONFIG_DIR, ou ~/.claude) e vencem os arquivos que o plugin traz.
+const bootFs = async ($: any, on: any, files: Record<string, string>, env: Record<string, string>) => {
+  mock.store(on)
+  mock.env(on, env)
+  // Chave absoluta (C:/...) casa o caminho exato; chave relativa casa o arquivo do plugin, nunca os da pasta do usuário.
+  const hit = (p: string) => {
+    const path = p.split(String.fromCharCode(92)).join('/')
+    return Object.keys(files).find(k => (/^[A-Za-z]:\//.test(k) ? path === k : !/^(C:\/u|D:\/cfg)/.test(path) && path.endsWith(`/${k}`)))
+  }
+  on('fs.exists', (_: any, e: any) => ({ value: hit(e.path) !== undefined }))
+  on('fs.read', (_: any, e: any) => ({ value: files[hit(e.path) ?? ''] ?? '' }))
+  on('command.list', () => ({ value: [] }))
+  on('command.register', () => ({ value: { command: 'claudin' } }))
+  on('ui.status', () => ({ value: undefined }))
+  on('agent.list', () => ({ value: [] }))
+  on('session.start', (_: any, e: any) => ({ cwd: e.cwd }))
+  await $.session.start({ cwd: '.', surface: null })
+}
+const SC = (label: string) => JSON.stringify([{ label, text: `texto de ${label}` }])
+const openPrompts = async (ui: any) => {
+  await ui.press({ key: 'tb' })
+  await ui.press({ key: 'next' })
+}
+
+test('atalhos do usuário em <config>/claudin vencem o shortcuts.json do plugin', async ($: any, on: any) => {
+  mock.clock(on, { now: 2_000_000 })
+  await bootFs($, on, { 'C:/u/.claude/claudin/shortcuts.json': SC('do usuário'), 'shortcuts.json': SC('do plugin') }, { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openPrompts(ui)
+  expect((await ui.find({ key: 'sc4' }))?.props?.label).toMatch(/do usuário/)
+  await ui.unmount()
+})
+
+test('sem arquivo do usuário, vale o shortcuts.json do plugin', async ($: any, on: any) => {
+  mock.clock(on, { now: 2_100_000 })
+  await bootFs($, on, { 'shortcuts.json': SC('do plugin') }, { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openPrompts(ui)
+  expect((await ui.find({ key: 'sc4' }))?.props?.label).toMatch(/do plugin/)
+  await ui.unmount()
+})
+
+test('CLAUDE_CONFIG_DIR vence o diretório pessoal', async ($: any, on: any) => {
+  mock.clock(on, { now: 2_200_000 })
+  await bootFs(
+    $, on,
+    { 'D:/cfg/claudin/shortcuts.json': SC('da config'), 'C:/u/.claude/claudin/shortcuts.json': SC('da home') },
+    { CLAUDE_CONFIG_DIR: 'D:/cfg', USERPROFILE: 'C:/u' },
+  )
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openPrompts(ui)
+  expect((await ui.find({ key: 'sc4' }))?.props?.label).toMatch(/da config/)
+  await ui.unmount()
+})
+
+test('sem nenhuma variável de ambiente o mod segue só com o plugin', async ($: any, on: any) => {
+  mock.clock(on, { now: 2_300_000 })
+  await bootFs($, on, { 'shortcuts.json': SC('do plugin') }, {})
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openPrompts(ui)
+  expect((await ui.find({ key: 'sc4' }))?.props?.label).toMatch(/do plugin/)
+  await ui.unmount()
+})
+
+test('sprite do usuário vence o sprite do plugin', async ($: any, on: any) => {
+  mock.clock(on, { now: 2_400_000 })
+  await bootFs(
+    $, on,
+    { 'C:/u/.claude/claudin/sprites/idle.svg': '<svg id="do-usuario"/>', 'sprites/idle.svg': '<svg id="do-plugin"/>' },
+    { USERPROFILE: 'C:/u' },
+  )
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(JSON.stringify(await ui.find({ type: 'Svg' }))).toContain('do-usuario')
+  await ui.unmount()
+})
+
+test('caminho do Windows com barra invertida e barra final é normalizado', async ($: any, on: any) => {
+  mock.clock(on, { now: 2_500_000 })
+  await bootFs($, on, { 'C:/u/.claude/claudin/shortcuts.json': SC('do usuário') }, { USERPROFILE: String.fromCharCode(67, 58, 92, 117, 92) })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openPrompts(ui)
+  expect((await ui.find({ key: 'sc4' }))?.props?.label).toMatch(/do usuário/)
+  await ui.unmount()
+})
