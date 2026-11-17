@@ -2,7 +2,8 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Action, FleetRow, Mode, ModeKind, Mood, Say, TurnStats, Walk } from '../types'
-import { FLEET_MAX_ROWS, failSay, finish, liveCount, orderRows, reconcile, rowLine, shouldSaySpawn, spawnSay, summaryLine, upsert } from './frota'
+import { tabGap } from './abas'
+import { FLEET_MAX_ROWS, clip, failSay, finish, liveCount, orderRows, reconcile, revive, rowLine, shouldSaySpawn, spawnSay, summaryLine, upsert } from './frota'
 
 const say = atom({ plugin: 'claudin', key: 'say' } as const, {
   mood: 'idle',
@@ -243,14 +244,18 @@ async function commitFleet($: any, fn: (rows: FleetRow[]) => FleetRow[]) {
 }
 
 async function syncFleet($: any) {
-  let listed: any[]
   try {
-    listed = await $.agent.list()
+    let listed: any[] | null = null
+    try {
+      listed = await $.agent.list()
+    } catch {
+      listed = null // sem lista (sem sessão ligada, por exemplo): só a idade das linhas manda
+    }
+    const now = await $.clock.now()
+    await commitFleet($, rows => reconcile(rows, listed, now))
   } catch {
-    return // sem sessão ligada (fim de uma sessão -p, por exemplo): fica com o que os eventos disseram
+    // um erro da frota nunca pode parar o resto do tique do Claudin
   }
-  const now = await $.clock.now()
-  await commitFleet($, rows => reconcile(rows, listed, now))
 }
 
 // Volta a ficar parado depois de um tempo sem novidade. Com agente vivo, espera mais um intervalo:
@@ -817,7 +822,7 @@ async function draw($: any, e: any, next: any) {
   const body = (
     <Box flexDirection="column" alignItems="flex-start" width="100%">
       <Text dimColor>🧰 Caixa de ferramentas</Text>
-      <Box flexDirection="row" columnGap={1}>
+      <Box flexDirection="row" columnGap={tabGap(cats.map(c => CAT_LABEL[c] ?? c), TOOLBOX_W - 4)}>
         {cats.map(c => (
           <Button key={`cat-${c}`} plain label={c === cat ? `▸${CAT_LABEL[c] ?? c}` : ` ${CAT_LABEL[c] ?? c}`} onPress={pick(c)} />
         ))}
@@ -955,9 +960,13 @@ export const register: Register = on => {
         await update($, turn, (s: TurnStats) => ({ ...s, agents: s.agents + 1 }))
         await commitFleet($, rows =>
           upsert(rows, result.agentId, now, r => ({
-            ...r, type: e.subagentType || r.type, description: e.description || r.description, model: result.model ?? r.model, seenAt: now,
+            ...revive(r, now),
+            type: clip(e.subagentType || r.type, 40),
+            description: clip(e.description || r.description, 120),
+            model: result.model ?? r.model,
           })),
         )
+        told.delete(result.agentId) // um agente retomado que falhar de novo é anunciado de novo
         if (shouldSaySpawn(lastSpawnSayAt, now)) {
           lastSpawnSayAt = now
           const rows = await read($, fleet)
@@ -976,7 +985,8 @@ export const register: Register = on => {
       // Ferramenta de subagente só atualiza a linha dele: sem balão, sem lastCmd, sem contagem do turno principal.
       try {
         const now = await $.clock.now()
-        await commitFleet($, rows => upsert(rows, e.agentId, now, r => ({ ...r, tools: r.tools + 1, lastTool: String(e.tool), seenAt: now })))
+        told.delete(e.agentId)
+        await commitFleet($, rows => upsert(rows, e.agentId, now, r => ({ ...revive(r, now), tools: r.tools + 1, lastTool: String(e.tool) })))
       } catch {
         // idem
       }

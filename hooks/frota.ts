@@ -9,7 +9,8 @@ import type { FleetRow, FleetState } from '../types'
 // ele terminar e nunca mostrou `completed`, então quem some da lista vira `done`.
 
 export const LINGER_MS = 8_000 // um agente terminado fica esse tempo na faixa
-export const MISSING_GRACE_MS = 3_000 // uma linha viva fora da lista, e muda por esse tempo, é dada como terminada
+export const MISSING_GRACE_MS = 3_000 // uma linha viva que já foi vista na lista e sumiu dela, e muda por esse tempo, é dada como terminada
+export const STALE_MS = 600_000 // rede de segurança: linha viva que a lista nunca nomeou (workflow) e muda por esse tempo é dada como terminada
 
 const isLive = (r: FleetRow) => r.state === 'running' || r.state === 'waiting'
 
@@ -17,11 +18,20 @@ const STATE_OF: Record<AgentInfo['status'], FleetState> = {
   pending: 'running', running: 'running', waiting: 'waiting', idle: 'waiting', completed: 'done', failed: 'failed', killed: 'failed',
 }
 
-const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
+export const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
 
 const newRow = (id: string, now: number): FleetRow => ({
   id, type: '', description: '', model: null, state: 'running', startedAt: now, seenAt: now, tools: 0, lastTool: null,
 })
+
+// Tipo curto para falar e listar: sem o prefixo do plugin ("agent-skills:code-reviewer" vira "code-reviewer"), até 16 caracteres.
+export const shortType = (t: string): string => clip(t.split(':').pop() ?? t, 16)
+
+// Volta uma linha a rodando: prova de vida (um agente retomado, uma ferramenta chamada depois do fim).
+export const revive = (r: FleetRow, now: number): FleetRow => {
+  const { endedAt: _ended, ...rest } = r
+  return { ...rest, state: 'running', seenAt: now }
+}
 
 // Aplica `fn` à linha `id`, criando a linha quando ainda não existe.
 export const upsert = (rows: readonly FleetRow[], id: string, now: number, fn: (r: FleetRow) => FleetRow): FleetRow[] =>
@@ -31,29 +41,38 @@ export const upsert = (rows: readonly FleetRow[], id: string, now: number, fn: (
 export const finish = (rows: readonly FleetRow[], id: string, state: 'done' | 'failed', now: number): FleetRow[] =>
   rows.map(r => (r.id === id && isLive(r) ? { ...r, state, endedAt: now } : r))
 
-// As linhas conferidas com a lista do engine: quem terminou há tempo sai, quem a lista dá como terminado
-// termina, quem roda sem linha ganha uma e quem sumiu da lista e está mudo há tempo é dado como terminado.
-export const reconcile = (rows: readonly FleetRow[], listed: readonly AgentInfo[], now: number): FleetRow[] => {
-  const byId = new Map(listed.map(i => [i.id, i]))
+// As linhas conferidas com a lista do engine (`null` quando a lista falhou: só a idade manda). Quem terminou
+// há tempo sai; quem a lista dá como terminado termina; quem roda sem linha ganha uma; quem já foi visto na
+// lista e sumiu dela vira terminado após a tolerância curta; quem a lista nunca nomeou (workflow) só
+// termina pelo turn.complete ou pela rede de segurança STALE_MS.
+export const reconcile = (rows: readonly FleetRow[], listed: readonly AgentInfo[] | null, now: number): FleetRow[] => {
+  const byId = new Map((listed ?? []).map(i => [i.id, i]))
   const kept = rows
     .filter(r => r.endedAt === undefined || now - r.endedAt <= LINGER_MS)
     .map(r => {
       if (!isLive(r)) return r
       const info = byId.get(r.id)
-      if (!info) return now - r.seenAt > MISSING_GRACE_MS ? { ...r, state: 'done' as const, endedAt: now } : r
-      const state = STATE_OF[info.status]
+      if (!info) {
+        const lost = listed !== null && r.listed ? now - r.seenAt > MISSING_GRACE_MS : now - r.seenAt > STALE_MS
+        return lost ? { ...r, state: 'done' as const, endedAt: now } : r
+      }
+      const state = STATE_OF[info.status] ?? 'running'
       return {
         ...r,
         state,
         seenAt: now,
+        listed: true,
         type: r.type || clip(info.type, 40),
         description: r.description || clip(info.description, 120),
         ...(state === 'done' || state === 'failed' ? { endedAt: now } : {}),
       }
     })
-  const adopted = listed
-    .filter(i => (i.status === 'running' || i.status === 'pending') && !rows.some(r => r.id === i.id))
-    .map(i => ({ ...newRow(i.id, now), type: clip(i.type, 40), description: clip(i.description, 120) }))
+  const adopted =
+    listed === null
+      ? []
+      : listed
+          .filter(i => (i.status === 'running' || i.status === 'pending') && !rows.some(r => r.id === i.id))
+          .map(i => ({ ...newRow(i.id, now), listed: true, type: clip(i.type, 40), description: clip(i.description, 120) }))
   return [...kept, ...adopted]
 }
 
@@ -73,18 +92,18 @@ export const summaryLine = (rows: readonly FleetRow[], now: number): string => {
   const live = rows.filter(isLive)
   if (!live.length) return ''
   const failed = rows.filter(r => r.state === 'failed' && r.endedAt !== undefined && now - r.endedAt <= LINGER_MS).length
-  const main = live.length === 1 ? `1 agente: ${live[0].type || 'subagente'} ${span(now - live[0].startedAt)}` : `${live.length} agentes rodando`
+  const main = live.length === 1 ? `1 agente: ${shortType(live[0].type) || 'subagente'} ${span(now - live[0].startedAt)}` : `${live.length} agentes rodando`
   return failed ? `${main} · ${failed} falhou` : main
 }
 
 export const spawnSay = (row: FleetRow, live: number): string => {
   if (live >= 2) return `${live} agentes em campo.`
-  const who = row.type ? `Subagente ${row.type}` : 'Subagente'
+  const who = row.type ? `Subagente ${shortType(row.type)}` : 'Subagente'
   return row.description ? `${who} em campo: ${short(row.description)}.` : `${who} em campo.`
 }
 
 export const failSay = (row: FleetRow): { text: string; action: { label: string; text: string } } => {
-  const who = row.type ? `Agente ${row.type}` : 'Agente'
+  const who = row.type ? `Agente ${shortType(row.type)}` : 'Agente'
   const task = row.description ? ` na tarefa "${row.description}"` : ''
   return {
     text: row.description ? `${who} falhou: ${short(row.description)}.` : `${who} falhou.`,
@@ -104,7 +123,7 @@ const ICON: Record<FleetState, string> = { running: '●', waiting: '◌', done:
 // Uma linha da aba Frota: estado, tipo, tarefa, tempo (corrido se vivo, duração se terminou) e ferramentas.
 export const rowLine = (r: FleetRow, now: number): string => {
   const elapsed = isLive(r) ? now - r.startedAt : (r.endedAt ?? now) - r.startedAt
-  const parts = [r.type || 'agente', ...(r.description ? [short(r.description, 24)] : []), span(elapsed), ...(r.tools ? [`${r.tools} ${r.tools === 1 ? 'tool' : 'tools'}`] : [])]
+  const parts = [shortType(r.type) || 'agente', ...(r.description ? [short(r.description, 24)] : []), span(elapsed), ...(r.tools ? [`${r.tools} ${r.tools === 1 ? 'tool' : 'tools'}`] : [])]
   return `${ICON[r.state]} ${parts.join(' · ')}`
 }
 

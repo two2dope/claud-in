@@ -6,7 +6,7 @@ export type Mode = { kind: ModeKind; until: number }
 export type Walk = { x: number; dir: number }
 export type Say = { mood: Mood; text: string; seq: number }
 export type FleetState = 'running' | 'waiting' | 'done' | 'failed'
-export type FleetRow = { id: string; type: string; description: string; model: string | null; state: FleetState; startedAt: number; seenAt: number; endedAt?: number; tools: number; lastTool: string | null }
+export type FleetRow = { id: string; type: string; description: string; model: string | null; state: FleetState; startedAt: number; seenAt: number; endedAt?: number; listed?: boolean; tools: number; lastTool: string | null }
 
 declare module 'claude-code' {
   interface PluginState {

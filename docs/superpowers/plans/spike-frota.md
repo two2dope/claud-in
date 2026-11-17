@@ -14,6 +14,6 @@ Versão do CLI: 2.1.312. Não cobre o app desktop nem um agente que falha.
 ## Consequências para o plano
 
 - O desfecho de um agente (feito ou falhou) vem de `turn.complete` com `agentId` (`reason === 'answer'` é feito; qualquer outro, falhou), não do `status` da lista.
-- Linha viva que **some** da lista sem `turn.complete` conhecido vira `done` (o engine já a largou); `STALE_MS` fica só como rede de segurança.
+- Linha viva que **já foi vista** na lista e **some** dela sem `turn.complete` vira `done` após `MISSING_GRACE_MS`. Linha que a lista **nunca nomeou** (agente de workflow) só termina por `turn.complete` ou por `STALE_MS` (revisão final).
 - `status: 'failed' | 'killed'` da lista continua mapeado para `failed`, caso apareça.
 - Agente com falha real não foi reproduzido neste spike; a validação no app (Task 7) cobre isso.

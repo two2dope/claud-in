@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 import type { AgentInfo } from 'claude-code'
 
-import { FLEET_MAX_ROWS, LINGER_MS, MISSING_GRACE_MS, SPAWN_SAY_MS, failSay, finish, liveCount, orderRows, reconcile, rowLine, shouldSaySpawn, spawnSay, summaryLine, upsert } from './frota'
+import { FLEET_MAX_ROWS, LINGER_MS, MISSING_GRACE_MS, SPAWN_SAY_MS, STALE_MS, failSay, finish, liveCount, orderRows, reconcile, revive, rowLine, shortType, shouldSaySpawn, spawnSay, summaryLine, upsert } from './frota'
 import type { FleetRow } from '../types'
 
 const NOW = 1_000_000
@@ -52,10 +52,10 @@ describe('reconcile', () => {
     expect(r.state).toBe('running')
   })
 
-  test('linha viva que sumiu da lista vira done só depois da tolerância', () => {
-    const cedo = reconcile([row({ seenAt: NOW - MISSING_GRACE_MS })], [], NOW)
+  test('linha viva já vista na lista que sumiu dela vira done só depois da tolerância', () => {
+    const cedo = reconcile([row({ listed: true, seenAt: NOW - MISSING_GRACE_MS })], [], NOW)
     expect(cedo[0].state).toBe('running')
-    const tarde = reconcile([row({ seenAt: NOW - MISSING_GRACE_MS - 1 })], [], NOW)
+    const tarde = reconcile([row({ listed: true, seenAt: NOW - MISSING_GRACE_MS - 1 })], [], NOW)
     expect(tarde[0]).toMatchObject({ state: 'done', endedAt: NOW })
   })
 
@@ -180,5 +180,67 @@ describe('orderRows', () => {
 
   test('FLEET_MAX_ROWS é 6', () => {
     expect(FLEET_MAX_ROWS).toBe(6)
+  })
+})
+
+describe('agentes que a lista nunca nomeia (workflow)', () => {
+  test('linha nunca vista na lista não vira done pela tolerância curta', () => {
+    const [r] = reconcile([row({ seenAt: NOW - MISSING_GRACE_MS - 1 })], [], NOW)
+    expect(r.state).toBe('running')
+  })
+
+  test('linha nunca vista na lista termina só depois de STALE_MS', () => {
+    expect(reconcile([row({ seenAt: NOW - STALE_MS })], [], NOW)[0].state).toBe('running')
+    expect(reconcile([row({ seenAt: NOW - STALE_MS - 1 })], [], NOW)[0]).toMatchObject({ state: 'done', endedAt: NOW })
+  })
+
+  test('quem aparece na lista fica marcado como visto e passa à tolerância curta', () => {
+    const [seen] = reconcile([row()], [info()], NOW)
+    expect(seen.listed).toBe(true)
+    const [gone] = reconcile([seen], [], NOW + MISSING_GRACE_MS + 1)
+    expect(gone.state).toBe('done')
+  })
+
+  test('revive volta a linha a rodando e limpa endedAt', () => {
+    const r = revive(row({ state: 'done', endedAt: NOW - 100 }), NOW)
+    expect(r.state).toBe('running')
+    expect(r.seenAt).toBe(NOW)
+    expect('endedAt' in r).toBe(false)
+  })
+})
+
+describe('lista com defeito', () => {
+  test('sem lista (null) só a idade manda: terminada sai, viva muda por STALE_MS termina', () => {
+    const old = row({ id: 'old', state: 'done', endedAt: NOW - LINGER_MS - 1 })
+    const stale = row({ id: 'stale', seenAt: NOW - STALE_MS - 1 })
+    const fresh = row({ id: 'fresh', seenAt: NOW - 1_000 })
+    const out = reconcile([old, stale, fresh], null, NOW)
+    expect(out.map(r => [r.id, r.state])).toEqual([['stale', 'done'], ['fresh', 'running']])
+  })
+
+  test('sem lista não adota agente nenhum', () => {
+    expect(reconcile([], null, NOW)).toEqual([])
+  })
+
+  test('status desconhecido da lista conta como rodando', () => {
+    const [r] = reconcile([row()], [info({ status: 'inesperado' as any })], NOW)
+    expect(r.state).toBe('running')
+  })
+})
+
+describe('shortType', () => {
+  test('tira o prefixo do plugin e limita a 16 caracteres', () => {
+    expect(shortType('Explore')).toBe('Explore')
+    expect(shortType('')).toBe('')
+    expect(shortType('agent-skills:web-performance-auditor')).toBe('web-performance…')
+  })
+
+  test('as frases usam o tipo curto, e a ação investigar leva o tipo inteiro', () => {
+    const long = row({ type: 'agent-skills:web-performance-auditor' })
+    expect(spawnSay(long, 1)).toBe('Subagente web-performance… em campo: mapear hooks.')
+    expect(failSay(long).text).toBe('Agente web-performance… falhou: mapear hooks.')
+    expect(failSay(long).action.text).toContain('agent-skills:web-performance-auditor')
+    expect(summaryLine([long], NOW)).toContain('web-performance…')
+    expect(rowLine(long, NOW)).toContain('web-performance…')
   })
 })

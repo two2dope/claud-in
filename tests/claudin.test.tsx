@@ -449,3 +449,75 @@ test('em modo cigarro a subida fica calada e a falha aparece', async ($: any, on
   expect(await ui.find({ type: 'Text', text: /Agente Explore falhou/ })).toBeDefined()
   await ui.unmount()
 })
+
+// ── correções da revisão final ─────────────────────────────────────────────────
+const boot = async ($: any, on: any, list: () => unknown) => {
+  mock.store(on)
+  on('agent.list', list)
+  on('fs.exists', () => ({ value: false }))
+  on('command.list', () => ({ value: [] }))
+  on('command.register', () => ({ value: { command: 'claudin' } }))
+  on('ui.status', () => ({ value: undefined }))
+  on('session.start', (_: any, e: any) => ({ cwd: e.cwd }))
+  await $.session.start({ cwd: '.', surface: null })
+}
+
+test('agente que a lista nunca nomeia segue vivo até o turn.complete', async ($: any, on: any) => {
+  const clock = mock.clock(on, { now: 1_500_000 })
+  ids(on)
+  await boot($, on, () => ({ value: [] }))
+  await $.agent.spawn(SPAWN('mapear hooks'))
+  await clock.advance(6_000)
+  let ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /◆ 1 agente/ })).toBeDefined()
+  await ui.unmount()
+  await $.turn.complete(DONE('a1', 'answer'))
+  ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /◆/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('agente que reaparece (retomado) volta a rodando', async ($: any, on: any) => {
+  mock.clock(on, { now: 1_600_000 })
+  ids(on)
+  on('tool.call', () => ({ result: {} }))
+  await $.agent.spawn(SPAWN('mapear hooks'))
+  await $.turn.complete(DONE('a1', 'answer'))
+  await $.tool.call({ tool: 'Read', file_path: 'x.ts', agentId: 'a1' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /◆ 1 agente: Explore/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('com a lista falhando, a linha terminada ainda sai pela idade', async ($: any, on: any) => {
+  const clock = mock.clock(on, { now: 1_700_000 })
+  ids(on)
+  await boot($, on, () => {
+    throw new Error('no session is bound')
+  })
+  await $.agent.spawn(SPAWN('mapear hooks'))
+  await $.turn.complete(DONE('a1', 'answer'))
+  await clock.advance(10_000)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'tb' })
+  expect(await ui.find({ key: 'cat-frota' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('texto longo do spawn é cortado, na frase e no prompt do investigar', async ($: any, on: any) => {
+  mock.clock(on, { now: 1_800_000 })
+  ids(on)
+  let filled = ''
+  on('prompt.fill', (_: any, e: any) => {
+    filled = e.text
+    return { isFilled: true }
+  })
+  await $.agent.spawn(SPAWN('x'.repeat(300), 'agent-skills:web-performance-auditor'))
+  await $.turn.complete(DONE('a1', 'error'))
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /Agente web-performance… falhou: x{37}…\./ })).toBeDefined()
+  await ui.press({ key: 'act' })
+  expect(filled).toContain('x'.repeat(119) + '…')
+  expect(filled).not.toContain('x'.repeat(121))
+  await ui.unmount()
+})
