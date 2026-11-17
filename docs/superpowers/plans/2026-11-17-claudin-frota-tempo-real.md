@@ -31,7 +31,7 @@
 
 ## Review Focus
 
-- Subagente que nunca termina (some da lista do engine sem `completed`): a linha deve ser descartada após `STALE_MS = 600_000` sem novidade, não ficar para sempre em "rodando".
+- Subagente que nunca termina (some da lista do engine sem `completed`): a linha vira `done` após `MISSING_GRACE_MS = 3_000` sem aparecer na lista (o spike mostrou que o engine larga o agente da lista em menos de 1 s), não fica para sempre em "rodando".
 - Dois agentes com o mesmo `type` e `description`: as linhas são distinguidas por `id`, nunca fundidas.
 - 20 ou mais subagentes de uma vez (workflow): resumo continua numa linha ("20 agentes rodando"), balão de subida não dispara 20 vezes (no máximo um a cada `SPAWN_SAY_MS = 2_000`).
 - Agente que falha enquanto o modo é `meditar`/`cigarro`: o erro ainda aparece; término normal não.
@@ -53,7 +53,7 @@ Nada é codificado antes de confirmar o que a API entrega. É a única tarefa ma
 
 - [ ] **Step 1: Instrumentar temporariamente** `agent.spawn` e `tool.call` para registrar `agentId` no atom `log` (aparece no histórico do Claudin).
 - [ ] **Step 2: Rodar `claude --plugin-dir .` e disparar** uma tarefa que use 2 subagentes em paralelo (por exemplo dois `Explore`) e um que falhe (`Agent` com prompt que peça abrir arquivo inexistente).
-- [ ] **Step 3: Anotar em `spike-frota.md` as respostas:** (a) `tool.call` de dentro do subagente chega ao hook do mod, com `e.agentId` preenchido? (b) `agent.spawn` devolve `agentId` e `model` em `next(e)`? (c) `$.agent.list()` mostra `status: 'completed'` e `'failed'` a tempo, e por quantos segundos o agente continua na lista? (d) `turn.complete` dispara por subagente, com `e.agentId`?
+- [ ] **Step 3: Anotar em `spike-frota.md` as respostas:** (a) `tool.call` de dentro do subagente chega ao hook do mod, com `e.agentId` preenchido? (b) `agent.spawn` devolve `agentId` e `model` em `next(e)`? (c) `$.agent.list()` mostra `status: 'completed'` e `'failed'` a tempo, e por quantos segundos o agente continua na lista? (Resultado: não mostra; ver `spike-frota.md`.) (d) `turn.complete` dispara por subagente, com `e.agentId`?
 - [ ] **Step 4: Reverter a instrumentação** (`git checkout hooks/register.tsx`) e commitar só o `spike-frota.md`.
 
 ```bash
@@ -76,7 +76,8 @@ git commit -m "docs: resultado do spike de eventos de subagente"
 - Produces, em `hooks/frota.ts`:
   - `type FleetState = 'running' | 'waiting' | 'done' | 'failed'`
   - `type FleetRow = { id: string; type: string; description: string; model: string | null; state: FleetState; startedAt: number; seenAt: number; endedAt?: number; tools: number; lastTool: string | null }`
-  - `const LINGER_MS = 8_000`, `const STALE_MS = 600_000`
+  - `const LINGER_MS = 8_000`, `const MISSING_GRACE_MS = 3_000`
+  - `finish(rows: readonly FleetRow[], id: string, state: 'done' | 'failed', now: number): FleetRow[]` (desfecho vindo de `turn.complete` com `agentId`)
   - `upsert(rows: readonly FleetRow[], id: string, now: number, fn: (r: FleetRow) => FleetRow): FleetRow[]`
   - `reconcile(rows: readonly FleetRow[], listed: readonly AgentInfo[], now: number): FleetRow[]` (importa `AgentInfo` de `'claude-code'`)
   - `liveCount(rows: readonly FleetRow[]): number`
@@ -89,7 +90,7 @@ git commit -m "docs: resultado do spike de eventos de subagente"
   - `reconcile marca failed para failed e killed`.
   - `reconcile adota agente running que a lista conhece e não tem linha`.
   - `reconcile descarta linha terminada há mais de LINGER_MS`.
-  - `reconcile descarta linha viva fora da lista e muda há mais de STALE_MS` e `mantém` quando `now - seenAt <= STALE_MS`.
+  - `reconcile marca done a linha viva fora da lista só depois de MISSING_GRACE_MS`; `finish` marca o desfecho de linha viva e não reescreve linha terminada.
   - `liveCount conta só running e waiting`.
 - [ ] **Step 2: Rodar e ver falhar:** `claude plugin test .` ⇒ FAIL (módulo `./frota` não existe).
 - [ ] **Step 3: Implementar `hooks/frota.ts`** com as assinaturas acima. Mapa de status do engine: `pending, running → running`; `waiting, idle → waiting`; `completed → done`; `failed, killed → failed`. Adaptar a lógica de `reconcileRows` do legends-claude (crédito em comentário). Texto livre de `type`/`description` cortado em 40/120 caracteres.
