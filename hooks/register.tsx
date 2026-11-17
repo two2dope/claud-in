@@ -1,7 +1,8 @@
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
-import type { Action, Mode, ModeKind, Mood, Say, TurnStats, Walk } from '../types'
+import type { Action, FleetRow, Mode, ModeKind, Mood, Say, TurnStats, Walk } from '../types'
+import { failSay, finish, liveCount, reconcile, shouldSaySpawn, spawnSay, upsert } from './frota'
 
 const say = atom({ plugin: 'claudin', key: 'say' } as const, {
   mood: 'idle',
@@ -56,6 +57,7 @@ const extraShortcuts = atom({ plugin: 'claudin', key: 'extraShortcuts' } as cons
 const lastCmd = atom({ plugin: 'claudin', key: 'lastCmd' } as const, '')
 const lastFile = atom({ plugin: 'claudin', key: 'lastFile' } as const, '')
 const turn = atom({ plugin: 'claudin', key: 'turn' } as const, { files: [], cmds: 0, errors: 0 } as TurnStats)
+const fleet = atom({ plugin: 'claudin', key: 'fleet' } as const, [] as FleetRow[])
 
 // Comandos que merecem um aviso antes de rodar. Lista curta; não substitui as permissões do app.
 const RISKY = /\brm\s+(-[a-z]*r|-[a-z]*f)|git\s+push\b.*(--force|\s-f\b)|git\s+reset\s+--hard|git\s+clean\s+-[a-z]*f|drop\s+(table|database)|remove-item\b.*-recurse|\bdel\s+\/[sq]|\bformat\s+[a-z]:|mkfs|:\(\)\s*\{/i
@@ -222,6 +224,34 @@ async function placeClaudin($: any, side: boolean): Promise<'faixa' | 'lateral'>
   return 'faixa'
 }
 
+// Frota de subagentes. As linhas vêm dos eventos (rápidos) e são conferidas com $.agent.list() a cada tique.
+// Uma falha é dita uma única vez por agente (`told`); um agente interrompido pela pessoa não é falha a dizer.
+const told = new Set<string>()
+let lastSpawnSayAt = -Infinity
+
+async function commitFleet($: any, fn: (rows: FleetRow[]) => FleetRow[]) {
+  await update($, fleet, (rows: FleetRow[]) => fn(rows))
+  const rows = await read($, fleet)
+  for (const r of rows) {
+    if (r.state !== 'failed' || told.has(r.id)) continue
+    told.add(r.id)
+    const f = failSay(r)
+    await speak($, 'err', f.text, f.action)
+  }
+  for (const id of told) if (!rows.some(r => r.id === id)) told.delete(id)
+}
+
+async function syncFleet($: any) {
+  let listed: any[]
+  try {
+    listed = await $.agent.list()
+  } catch {
+    return // sem sessão ligada (fim de uma sessão -p, por exemplo): fica com o que os eventos disseram
+  }
+  const now = await $.clock.now()
+  await commitFleet($, rows => reconcile(rows, listed, now))
+}
+
 // Volta a ficar parado depois de um tempo sem novidade.
 function settle($: any, seq: number, ms: number) {
   return $.clock.after(ms, async () => {
@@ -234,6 +264,7 @@ function settle($: any, seq: number, ms: number) {
 async function stroll($: any) {
   await checkTimers($)
   await checkReminders($)
+  await syncFleet($)
   const m = await read($, mode)
   if (m.kind === 'cigarro' && (await $.clock.now()) >= m.until) {
     await update($, mode, () => ({ kind: 'normal', until: 0 }))
@@ -894,7 +925,41 @@ export const register: Register = on => {
     return next(e)
   })
 
+  // Um subagente nasce: a linha entra na frota e, no máximo uma vez a cada SPAWN_SAY_MS, o balão avisa.
+  on('agent.spawn', async ($, e: any, next) => {
+    const result: any = await next(e)
+    try {
+      if (result?.agentId) {
+        const now = await $.clock.now()
+        await commitFleet($, rows =>
+          upsert(rows, result.agentId, now, r => ({
+            ...r, type: e.subagentType || r.type, description: e.description || r.description, model: result.model ?? r.model, seenAt: now,
+          })),
+        )
+        if (shouldSaySpawn(lastSpawnSayAt, now)) {
+          lastSpawnSayAt = now
+          const rows = await read($, fleet)
+          const row = rows.find(r => r.id === result.agentId)
+          if (row) await speak($, 'think', spawnSay(row, liveCount(rows)))
+        }
+      }
+    } catch {
+      // o Claudin nunca fica entre o Claude e o subagente
+    }
+    return result
+  })
+
   on('tool.call', async ($, e: any, next) => {
+    if (e.agentId) {
+      // Ferramenta de subagente só atualiza a linha dele: sem balão, sem lastCmd, sem contagem do turno principal.
+      try {
+        const now = await $.clock.now()
+        await commitFleet($, rows => upsert(rows, e.agentId, now, r => ({ ...r, tools: r.tools + 1, lastTool: String(e.tool), seenAt: now })))
+      } catch {
+        // idem
+      }
+      return next(e)
+    }
     const t = e.tool as string
     const line: [Mood, string] =
       t === 'Read' ? ['read', `Lendo ${base(e.file_path)}.`]
@@ -939,6 +1004,17 @@ export const register: Register = on => {
   })
 
   on('turn.complete', async ($, e: any, next) => {
+    if (e.agentId) {
+      // Fim do turno de um subagente: desfecho na frota, sem o resumo do turno principal.
+      try {
+        const now = await $.clock.now()
+        if (e.reason === 'aborted') told.add(e.agentId)
+        await commitFleet($, rows => finish(rows, e.agentId, e.reason === 'answer' ? 'done' : 'failed', now))
+      } catch {
+        // idem
+      }
+      return next(e)
+    }
     const ok = e.reason === 'answer'
     const st = await read($, turn)
     const parts = [
@@ -1010,6 +1086,7 @@ export const register: Register = on => {
     await loadReminders($)
     await greetToday($, false)
     await loadCommands($)
+    await syncFleet($)
     $.clock.every(1500, () => stroll($))
     return next(e)
   })
