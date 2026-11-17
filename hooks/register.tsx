@@ -572,28 +572,55 @@ const fmtLeft = (ms: number) => {
 }
 
 // Lê sprites/<pose>.svg|png da pasta do mod; PNG vira <image> dentro de um SVG.
+// Onde moram os dados do usuário: fora da pasta do plugin, que uma atualização substitui. É <config>/claudin,
+// com <config> = CLAUDE_CONFIG_DIR ou, sem ele, ~/.claude. Arquivo ali vence o que o plugin traz.
+const trimEnd = (p: string) => p.split(String.fromCharCode(92)).join('/').replace(/\/+$/, '')
+async function userDir($: any): Promise<string | null> {
+  try {
+    const cfg = await $.env.get('CLAUDE_CONFIG_DIR')
+    if (cfg) return `${trimEnd(cfg)}/claudin`
+    const home = (await $.env.get('USERPROFILE')) ?? (await $.env.get('HOME'))
+    return home ? `${trimEnd(home)}/.claude/claudin` : null
+  } catch {
+    return null
+  }
+}
+async function dataRoots($: any): Promise<string[]> {
+  const user = await userDir($)
+  return user ? [user, $.plugin.root] : [$.plugin.root]
+}
+
 async function loadSprites($: any) {
   const found: Record<string, string> = {}
+  const roots = await dataRoots($)
   for (const m of MOODS) {
-    for (const ext of ['svg', 'png']) {
-      const path = `${$.plugin.root}/sprites/${m}.${ext}`
-      if (!(await $.fs.exists(path))) continue
-      if (ext === 'svg') {
-        found[m] = await $.fs.read(path)
-      } else {
-        const { base64 } = await $.fs.read(path, { as: 'bytes' })
-        found[m] = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 48"><image href="data:image/png;base64,${base64}" width="64" height="48" preserveAspectRatio="xMidYMid meet" style="image-rendering:pixelated"/></svg>`
+    done: for (const root of roots) {
+      for (const ext of ['svg', 'png']) {
+        const path = `${root}/sprites/${m}.${ext}`
+        if (!(await $.fs.exists(path))) continue
+        if (ext === 'svg') {
+          found[m] = await $.fs.read(path)
+        } else {
+          const { base64 } = await $.fs.read(path, { as: 'bytes' })
+          found[m] = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 48"><image href="data:image/png;base64,${base64}" width="64" height="48" preserveAspectRatio="xMidYMid meet" style="image-rendering:pixelated"/></svg>`
+        }
+        break done
       }
-      break
     }
   }
   await update($, sprites, () => found)
 }
 
-// Atalhos do usuário: shortcuts.json na pasta do mod, lista de { label, text }.
+// Atalhos do usuário: shortcuts.json, lista de { label, text }. O da pasta do usuário vence o do plugin.
 async function loadShortcuts($: any) {
-  const path = `${$.plugin.root}/shortcuts.json`
-  if (!(await $.fs.exists(path))) return
+  let path: string | undefined
+  for (const root of await dataRoots($)) {
+    if (await $.fs.exists(`${root}/shortcuts.json`)) {
+      path = `${root}/shortcuts.json`
+      break
+    }
+  }
+  if (!path) return
   try {
     const list = JSON.parse(await $.fs.read(path))
     const ok = Array.isArray(list) ? list.filter((x: any) => typeof x?.label === 'string' && typeof x?.text === 'string') : []
@@ -615,8 +642,14 @@ async function loadFavs($: any) {
   const raw = await $.store.get('favs')
   let list: string[] = Array.isArray(raw) ? raw.filter((x: unknown) => typeof x === 'string') : []
   if (!(await $.store.get('favsSeeded'))) {
-    const path = `${$.plugin.root}/favorites-seed.json`
-    if (await $.fs.exists(path)) {
+    let path: string | undefined
+    for (const root of await dataRoots($)) {
+      if (await $.fs.exists(`${root}/favorites-seed.json`)) {
+        path = `${root}/favorites-seed.json`
+        break
+      }
+    }
+    if (path) {
       try {
         const seed = JSON.parse(await $.fs.read(path))
         if (Array.isArray(seed)) list = [...list, ...seed.filter((x: unknown) => typeof x === 'string' && !list.includes(x))]

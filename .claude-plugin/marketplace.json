@@ -1,0 +1,16 @@
+{
+  "name": "claud-in",
+  "owner": {
+    "name": "two2Dope"
+  },
+  "metadata": {
+    "description": "Claudin, o mascote em pixel-art do Claude Code Desktop, distribuído como mod de plugin."
+  },
+  "plugins": [
+    {
+      "name": "claudin",
+      "source": "./",
+      "description": "Claudin, mascote em pixel-art acima do prompt do Claude Code: balões curtos mostram o que o Claude está fazendo, acompanha a frota de subagentes, guarda timers, prazos e lembretes e traz uma caixa de ferramentas."
+    }
+  ]
+}

@@ -109,20 +109,37 @@ Se você fechar o painel lateral pelo X da janela, a faixa acima do prompt volta
 
 ## Instalação
 
-Pré-requisito: Claude Code Desktop com suporte a mods de plugin.
+Pré-requisito: Claude Code com suporte a mods de plugin.
+
+Pelo marketplace do repositório, que é o caminho recomendado:
+
+```bash
+claude plugin marketplace add two2dope/claud-in
+claude plugin install claudin@claud-in
+```
+
+Na versão 2.1.275 ou mais nova do Claude Code, a linha única `/plugin install claudin --marketplace two2dope/claud-in` faz o mesmo. No app desktop, onde `/plugin` não roda, use o **+** ao lado do prompt, depois **Plugins**, **Add marketplace** com `two2dope/claud-in` e **Add plugin**.
+
+Para atualizar, rode `claude plugin update claudin` e reinicie a sessão. A atualização só acontece quando o `version` do `plugin.json` sobe, então cada release tem uma versão nova. Para remover, `claude plugin uninstall claudin`.
+
+Se você carregava o Claudin por `CLAUDE_CODE_PLUGIN_DIRS`, tire essa linha do bloco `env` do `~/.claude/settings.json`. Um caminho que não existe mais aparece na lista de plugins como `Path not found`.
+
+Para desenvolver, carregue a pasta clonada direto, sem marketplace:
 
 ```bash
 git clone https://github.com/two2dope/claud-in.git
 claude --plugin-dir ./claud-in
 ```
 
-Para carregar em toda sessão nova, aponte a variável `CLAUDE_CODE_PLUGIN_DIRS` para a pasta clonada, no bloco `env` do seu `~/.claude/settings.json`.
-
 ## Personalização
 
-- **Sprites próprios:** coloque um arquivo por pose em `sprites/` (`.svg` ou `.png`, PNG até cerca de 90 KB). As poses são `idle`, `think`, `read`, `code`, `run`, `search`, `ok`, `err`. Pose sem arquivo usa o desenho padrão. Salvou, o mod recarrega.
-- **Atalhos de prompt:** edite `shortcuts.json`, uma lista de `{ "label", "text" }`.
-- **Favoritos iniciais:** `favorites-seed.json` entra na primeira vez; depois os favoritos ficam no armazenamento do próprio mod.
+Os seus arquivos moram em `<config>/claudin/`, em que `<config>` é a pasta definida em `CLAUDE_CONFIG_DIR` ou, sem ela, `~/.claude`. Essa pasta fica fora do plugin, então uma atualização não apaga nada. Um arquivo ali vence o de mesmo nome que o plugin traz. Depois de mexer, rode `/reload-plugins`.
+
+- **Sprites próprios:** `<config>/claudin/sprites/`, um arquivo por pose (`.svg` ou `.png`, PNG até cerca de 90 KB). As poses são `idle`, `think`, `read`, `code`, `run`, `search`, `ok`, `err`. Pose sem arquivo usa o desenho padrão.
+- **Atalhos de prompt:** `<config>/claudin/shortcuts.json`, uma lista de `{ "label", "text" }`.
+- **Favoritos iniciais:** `<config>/claudin/favorites-seed.json` entra na primeira vez; depois os favoritos ficam no armazenamento do próprio mod.
+
+Quem carrega o plugin por `--plugin-dir` também pode pôr esses arquivos na pasta clonada (`sprites/`, `shortcuts.json`, `favorites-seed.json`); eles valem quando não há versão sua na pasta de config.
 
 ## Desenvolvimento
 
