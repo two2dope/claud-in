@@ -1,6 +1,7 @@
 Sprites do Claudin.
 
-Poses soltas (um arquivo por pose, .svg ou .png, PNG até ~90 KB, 64x48), valem para o desenho padrão:
+Poses soltas (um arquivo por pose, .svg ou .png, até ~90 KB, 64x48), valem para o desenho padrão.
+Prefira SVG: o app desktop nao desenha PNG embutido. python scripts/png-para-svg.py <pasta> converte pixel art PNG em SVG (o mod carrega .svg antes de .png):
   idle  think  read  code  run  search  ok  err  alert
   Ex.: sprites/code.png. Pose sem arquivo usa o desenho padrão.
 
