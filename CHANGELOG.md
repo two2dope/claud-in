@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.3 — 2026-11-19
+
+- **As zonas do QG agora respondem ao clique.** Na 0.7.2 cada zona era uma camada do tamanho da imagem, e a de cima cobria as outras e engolia o clique. Agora elas ficam lado a lado numa camada só.
+- **Sem marcação em repouso.** As zonas não têm borda nem rótulo: só acendem com um brilho quente e mostram o nome do objeto quando o ponteiro passa por cima.
+- **Interruptor da luz.** A lanterna à esquerda dos monitores acende e apaga a luz da sala: à noite, apagada, a sala fica no escuro com só as telas brilhando; de dia, escurece um pouco. A escolha fica guardada.
+- **Painel nos monitores.** As telas da parede mostram o modelo, a ocupação da janela de contexto, os tokens, o custo da sessão em dólares, os limites de 5 horas e 7 dias (quando a conta informa), os agentes vivos e os comandos do turno. Durante um turno, um cursor pisca na tela do contexto. Nada disso gasta token: vem de `$.session.usage()` e `$.session.model()`.
+- **Zona do servidor ajustada** ao rack.
+- **Caixa de ferramentas no estilo da ilustração.** No painel lateral, as abas viram fichas com o nome (a aberta em coral) e cada item ganha uma linha com fundo que clareia sob o ponteiro. Na linha do prompt, que é estreita, ela continua com os ícones.
+- **Conhecido:** o esforço (effort) do modelo não aparece nos monitores, porque só chega a cada passo do modelo e ler esse fluxo pesaria em todo turno; nada disso foi conferido no desktop; sem LICENSE.
+
 ## 0.7.2 — 2026-11-19
 
 - **Zonas clicáveis no lugar dos pinos.** Os objetos do QG viraram áreas de clique sobre a própria imagem: livros e pastas (Cola), monitores (frota), cofre (Cofre), calendário (Agenda), servidor (Ações, com a janela de contexto) e relógio (Tempo). Ao passar o ponteiro, a borda da zona acende e o nome do objeto aparece; o clique abre a aba.

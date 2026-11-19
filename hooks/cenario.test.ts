@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { QG_ART } from './cenario-arte'
-import { QG_LIMIT, SPOTS, STATIONS, composeQg, pct, pomodoroOf, skyAt, stationCol, withOutline } from './cenario'
+import { QG_LIMIT, MONITORS, SPOTS, kTokens, modelShort, panelSvg, STATIONS, composeQg, pct, pomodoroOf, skyAt, stationCol, withOutline } from './cenario'
 
 const HORA = (h: number, m = 0) => h * 60 + m
 
@@ -22,8 +22,8 @@ describe('QG: a arte', () => {
 })
 
 describe('QG: pontos clicáveis e bancadas', () => {
-  test('seis zonas, cada uma com a aba que abre, dentro da imagem', () => {
-    expect(SPOTS.map(s => [s.id, s.tab])).toEqual([['cola', 'comandos'], ['frota', 'frota'], ['cofre', 'cofre'], ['agenda', 'prazos'], ['servidor', 'acoes'], ['tempo', 'tempo']])
+  test('sete zonas, cada uma com a aba que abre, dentro da imagem', () => {
+    expect(SPOTS.map(s => [s.id, s.tab])).toEqual([['cola', 'comandos'], ['luz', ''], ['frota', 'frota'], ['cofre', 'cofre'], ['agenda', 'prazos'], ['servidor', 'acoes'], ['tempo', 'tempo']])
     for (const s of SPOTS) {
       expect(s.x0).toBeGreaterThanOrEqual(0)
       expect(s.x1).toBeLessThanOrEqual(1)
@@ -194,5 +194,41 @@ describe('QG: contorno dos personagens', () => {
     expect(withOutline('')).toBe('')
     expect(withOutline('<svg></svg>')).toBe('<svg></svg>')
     expect(withOutline(withOutline(svg))).toBe(withOutline(svg))
+  })
+})
+
+describe('QG: zonas sem sobreposição e painel dos monitores', () => {
+  test('em ordem de x, uma zona termina antes da próxima começar', () => {
+    const z = [...SPOTS].sort((a, b) => a.x0 - b.x0)
+    for (let i = 1; i < z.length; i++) expect(z[i]!.x0).toBeGreaterThanOrEqual(z[i - 1]!.x1)
+  })
+
+  test('o nome do modelo fica curto', () => {
+    expect(modelShort('claude-opus-5-5')).toBe('OPUS 5.5')
+    expect(modelShort('claude-sonnet-4-20250514')).toBe('SONNET 4')
+    expect(modelShort('claude-haiku-5-5')).toBe('HAIKU 5.5')
+    expect(modelShort(undefined)).toBe('')
+  })
+
+  test('tokens em k e M', () => {
+    expect(kTokens(950)).toBe('950')
+    expect(kTokens(142_300)).toBe('142k')
+    expect(kTokens(1_200_000)).toBe('1.2M')
+  })
+
+  test('o painel escreve só o que tem, dentro das telas, e pisca trabalhando', () => {
+    const vazio = panelSvg({})
+    expect(vazio).not.toContain('<text')
+    const cheio = panelSvg({ model: 'claude-opus-5-5', ctx: 42, tokens: 84_000, window: 200_000, usd: 1.75, limit5h: 30, limit7d: 12, agents: 2, tools: 7 }, true)
+    for (const t of ['OPUS', '5.5', 'CTX', '42%', '84k', '1.75', '5H', '7D', 'AGT', 'CMD']) expect(cheio).toContain(`>${t}<`)
+    expect(cheio).toContain('<animate')
+    expect(MONITORS.every(([x0, y0, x1, y1]) => x0 < x1 && y0 < y1 && x1 <= 1 && y1 <= 1)).toBe(true)
+  })
+
+  test('luz apagada à noite: sem brilho das lanternas', () => {
+    const base = QG_ART.svg
+    const noite = { w: QG_ART.w, h: QG_ART.h, minutes: HORA(22), pomo: null }
+    expect(composeQg(base, noite)).toContain('url(#warm)')
+    expect(composeQg(base, { ...noite, lightsOff: true })).not.toContain('url(#warm)')
   })
 })
