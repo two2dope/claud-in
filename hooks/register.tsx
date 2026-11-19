@@ -31,9 +31,9 @@ type Cmd = { name: string; description: string }
 const BORDER: Record<string, string> = { err: 'error', alert: 'warning', ok: 'success' }
 const sizeIdx = atom({ plugin: 'claudin', key: 'sizeIdx' } as const, 0)
 const SIZES: { w: number; h: number; label: string }[] = [
-  { w: 44, h: 33, label: 'médio' },
-  { w: 30, h: 22, label: 'pequeno' },
-  { w: 64, h: 48, label: 'grande' },
+  { w: 64, h: 48, label: 'médio' },
+  { w: 44, h: 33, label: 'pequeno' },
+  { w: 84, h: 63, label: 'grande' },
 ]
 const boxOpen = atom({ plugin: 'claudin', key: 'boxOpen' } as const, false)
 const boxPage = atom({ plugin: 'claudin', key: 'boxPage' } as const, 0)
@@ -53,6 +53,9 @@ const boxCat = atom({ plugin: 'claudin', key: 'boxCat' } as const, 'prompts')
 const CATS = ['prompts', 'acoes', 'comandos', 'ajustes', 'tempo', 'prazos']
 const FLEET_CAT = 'frota' // a aba só aparece enquanto há agentes, para não alargar o menu à toa
 const COFRE_CAT = 'cofre' // a aba só aparece com o cofre ligado
+const SOBRE_CAT = 'sobre' // aba escondida: só a placa de madeira do QG abre
+const REPO_URL = 'https://github.com/two2dope/claud-in'
+const VERSION = '0.7.4' // igual ao plugin.json (um teste confere)
 const CAT_LABEL: Record<string, string> = { prompts: 'Prompts', acoes: 'Ações', comandos: 'Comandos', ajustes: 'Ajustes', tempo: 'Tempo', prazos: 'Agenda', frota: 'Frota', cofre: 'Cofre' }
 const SHORTCUTS: { label: string; text: string }[] = [
   { label: 'resumir', text: 'Resuma em poucas linhas o que você fez até agora.' },
@@ -69,7 +72,7 @@ const ROW_HOVER = '#303030'
 // para o clique pegar em todo o retângulo do objeto e não só numa letra.
 // As zonas em ordem da esquerda para a direita (a camada as põe lado a lado).
 const ZONES = [...SPOTS].sort((a, b) => a.x0 - b.x0)
-const ZONE_FILL = Array.from({ length: 14 }, () => ' '.repeat(48)).join('\n')
+const ZONE_ROWS = 16 // linhas de botão empilhadas; a zona corta as que sobram
 const PAGE = 4
 const PAGE_CMD = 3
 const PANE_RANGE = 14
@@ -99,6 +102,8 @@ const ctxPreset = atom({ plugin: 'claudin', key: 'ctxPreset' } as const, DEFAULT
 const cenario = atom({ plugin: 'claudin', key: 'cenario' } as const, false)
 // Interruptor da lanterna do QG: true apaga a luz da sala (guardado em $.store).
 const lightsOff = atom({ plugin: 'claudin', key: 'lightsOff' } as const, false)
+// O que os monitores mostram, lido do engine nos eventos (início, envio, fim de turno) e não a cada desenho.
+const panelInfo = atom({ plugin: 'claudin', key: 'panelInfo' } as const, null as Panel | null)
 // Skins: o padrão é a Mangue. 'classico' é o Claudin chapado de antes (e o único que usa os sprites soltos do usuário).
 // Pastas sprites/<skin>/<pose>.svg do usuário viram skins de arte própria. A escolha fica em $.store.
 const DEFAULT_SKIN = 'mangue'
@@ -704,7 +709,7 @@ async function cycleCtxPreset($: any) {
 }
 
 async function loadCenario($: any) {
-  const saved = await $.store.get('cenario')
+  const saved = await prefGet($, 'cenario')
   await update($, cenario, () => saved === true)
   const off = await $.store.get('lightsOff')
   await update($, lightsOff, () => off === true)
@@ -718,8 +723,17 @@ async function toggleLights($: any) {
 }
 
 // O que os monitores do QG mostram: modelo, contexto, tokens, custo e limites. Nada aqui pode barrar o desenho.
-async function readPanel($: any, agents: number, cmds: number): Promise<Panel> {
-  const p: Panel = { agents, tools: cmds }
+async function refreshPanel($: any) {
+  try {
+    const p = await readPanel($)
+    await update($, panelInfo, () => p)
+  } catch {
+    // sem painel
+  }
+}
+
+async function readPanel($: any): Promise<Panel> {
+  const p: Panel = {}
   try {
     p.model = await $.session.model()
   } catch {
@@ -745,14 +759,15 @@ async function readPanel($: any, agents: number, cmds: number): Promise<Panel> {
 // O QG só aparece no painel lateral: na linha do prompt ele e a caixa aberta empurram a conversa para cima.
 // Na linha do prompt, o 📡 liga o QG e leva o Claudin para o painel; no painel, ele liga e desliga.
 async function toggleCenario($: any, inPane: boolean) {
+  await refreshPanel($)
   if (!inPane) {
-    await $.store.set('cenario', true)
+    await prefSet($, 'cenario', true)
     await update($, cenario, () => true)
     if ((await placeClaudin($, true)) !== 'lateral') await speak($, 'idle', 'O QG mora no painel lateral, e não consegui abrir o painel agora.')
     return
   }
   const next = !(await read($, cenario))
-  await $.store.set('cenario', next)
+  await prefSet($, 'cenario', next)
   await update($, cenario, () => next)
 }
 
@@ -761,6 +776,13 @@ async function openSpot($: any, id: string) {
   const spot = SPOTS.find(s => s.id === id)
   if (!spot) return
   if (spot.id === 'luz') return toggleLights($)
+  if (spot.id === 'sobre') {
+    await update($, boxPage, () => 0)
+    await update($, boxCat, () => SOBRE_CAT)
+    await update($, colaOpen, () => false)
+    await update($, boxOpen, () => true)
+    return
+  }
   if (spot.id === 'frota' && (await read($, fleet)).length === 0) return speak($, 'idle', 'Nenhum agente por aqui. Os monitores acendem quando a frota trabalha.')
   if (spot.id === 'cofre' && !(await read($, cofre))) return speak($, 'idle', 'O cofre não está ligado: falta o cofre.json em <config>/claudin.')
   await update($, boxPage, () => 0)
@@ -905,10 +927,44 @@ async function loadMinis($: any) {
   await update($, fleetMap, () => map)
 }
 
+// Preferência guardada por sessão (`chave@id`) e também como padrão para sessões novas. Assim cada sessão volta com o
+// seu Claudin (a cor que a pessoa escolheu para se situar) e uma sessão nova começa com a última escolha.
+async function sessionKey($: any, key: string): Promise<string | null> {
+  try {
+    const id = await $.session.id()
+    return typeof id === 'string' && id ? `${key}@${id}` : null
+  } catch {
+    return null
+  }
+}
+
+async function prefGet($: any, key: string): Promise<unknown> {
+  const sk = await sessionKey($, key)
+  const own = sk ? await $.store.get(sk) : undefined
+  return own !== undefined && own !== null ? own : await $.store.get(key)
+}
+
+async function prefSet($: any, key: string, value: unknown) {
+  const sk = await sessionKey($, key)
+  if (sk) await $.store.set(sk, value)
+  await $.store.set(key, value)
+}
+
+async function loadSize($: any) {
+  const saved = await prefGet($, 'sizeIdx')
+  if (typeof saved === 'number' && saved >= 0 && saved < SIZES.length) await update($, sizeIdx, () => saved)
+}
+
+async function cycleSize($: any) {
+  const next = ((await read($, sizeIdx)) + 1) % SIZES.length
+  await prefSet($, 'sizeIdx', next)
+  await update($, sizeIdx, () => next)
+}
+
 async function loadSkin($: any) {
   const names = await listSkins($)
   await update($, skinNames, () => names)
-  const saved = await $.store.get('skin')
+  const saved = await prefGet($, 'skin')
   const hasOwnSprites = Object.keys(await read($, sprites)).length > 0
   const chosen = typeof saved === 'string' && names.includes(saved) ? saved : hasOwnSprites ? CLASSIC_SKIN : DEFAULT_SKIN
   await update($, skin, () => chosen)
@@ -918,7 +974,7 @@ async function loadSkin($: any) {
 async function cycleSkin($: any) {
   const all = await read($, skinNames)
   const next = all[(all.indexOf(await read($, skin)) + 1) % all.length] ?? DEFAULT_SKIN
-  await $.store.set('skin', next)
+  await prefSet($, 'skin', next)
   await update($, skin, () => next)
   await loadSkinArt($, next)
 }
@@ -1028,12 +1084,12 @@ async function draw($: any, e: any, next: any) {
   const nowF = fleetRows.length > 0 ? await $.clock.now() : 0
   const fleetLine = summaryLine(fleetRows, nowF)
   const cats = [...CATS, ...(fleetRows.length > 0 ? [FLEET_CAT] : []), ...(cofreRoot ? [COFRE_CAT] : [])]
-  const cat = cats.includes(catRaw) ? catRaw : 'prompts' // aba que sumiu (frota vazia, cofre desligado) não prende a caixa
+  const cat = cats.includes(catRaw) || catRaw === SOBRE_CAT ? catRaw : 'prompts' // aba que sumiu (frota vazia, cofre desligado) não prende a caixa
   const nowT = activeTimers.length > 0 ? (await read($, tick)) || (await $.clock.now()) : 0
   const extras = await read($, extraShortcuts)
   const cmd = await read($, lastCmd)
   const file = await read($, lastFile)
-  const { Box, Text, Button, Svg, Input } = $.ui.resolve(e) as any
+  const { Box, Text, Button, Svg, Input, Link } = $.ui.resolve(e) as any
   const cols = typeof e.props?.bodyColumns === 'number' ? e.props.bodyColumns : 100
   const reserved = open ? TOOLBOX_W + 2 : 14
   const range = isPane ? PANE_RANGE : Math.max(0, cols - reserved - 32)
@@ -1073,7 +1129,7 @@ async function draw($: any, e: any, next: any) {
   }
   const fill = (text: string) => () => $.prompt.fill({ text, mode: 'replace' })
 
-  type Item = { key: string; label: string; onPress: (p: any) => void; sep?: boolean; text?: boolean; starred?: boolean; onStar?: () => void; onDelete?: () => void }
+  type Item = { key: string; label: string; onPress: (p: any) => void; sep?: boolean; text?: boolean; href?: string; starred?: boolean; onStar?: () => void; onDelete?: () => void }
   const colaItems: Item[] =
     colaShown && colaV?.readable
       ? flattenCola(withClaudin({ groups: colaV.groups, scripts: colaV.scripts }), colaG, colaQ).map((r): Item => {
@@ -1141,7 +1197,7 @@ async function draw($: any, e: any, next: any) {
         : cat === 'ajustes'
           ? [
               { key: 'mode', label: `modo: ${MODE_LABEL[m.kind as ModeKind]}`, onPress: () => setMode($, MODES[(MODES.indexOf(m.kind as ModeKind) + 1) % MODES.length] ?? 'normal') },
-              { key: 'size', label: `tamanho: ${size.label}`, onPress: () => update($, sizeIdx, (v: number) => (v + 1) % SIZES.length) },
+              { key: 'size', label: `tamanho: ${size.label}`, onPress: () => cycleSize($) },
               { key: 'skin', label: `skin: ${skinLabel(skinSel)}`, onPress: () => cycleSkin($) },
               { key: 'sep1', label: '', sep: true, onPress: () => {} },
               { key: 'quiet', label: quiet ? 'ver tools' : 'ocultar tools', onPress: () => update($, isQuiet, (v: boolean) => !v) },
@@ -1230,7 +1286,16 @@ async function draw($: any, e: any, next: any) {
                       const more = ordered.length - FLEET_MAX_ROWS
                       return more > 0 ? [...shown, { key: 'ag-more', label: `+${more} agentes`, text: true, onPress: () => {} }] : shown
                     })()
-                  : []
+                  : cat === SOBRE_CAT
+                    ? [
+                        { key: 'sb-v', label: `Claudin ${VERSION} · caranguejo com cérebro`, text: true, onPress: () => {} },
+                        { key: 'sb-o', label: 'Mascote do Claude Code, feito no mangue de Recife em espírito.', text: true, onPress: () => {} },
+                        { key: 'sb-git', label: 'repositório no GitHub', href: REPO_URL, onPress: () => {} },
+                        { key: 'sb-hero', label: 'página do projeto (README)', href: `${REPO_URL}#readme`, onPress: () => {} },
+                        { key: 'sb-rel', label: 'novidades (releases)', href: `${REPO_URL}/releases`, onPress: () => {} },
+                        { key: 'sb-leg', label: 'legends-claude, o projeto irmão', href: 'https://github.com/leolegends/legends-claude', onPress: () => {} },
+                      ]
+                    : []
 
   const placeholder =
     cat === 'comandos' && colaShown && items.length === 0 ? (colaV && !colaV.readable ? 'catálogo ilegível' : colaQ ? 'Nenhuma skill encontrada.' : 'Catálogo vazio.') : cat === 'comandos' && items.length === 0 ? 'Nenhum comando encontrado.' : cat === 'prazos' && items.length === 0 ? 'Vazia. Ex.: 05/11 prazo · 09:00 lembrete' : cat === FLEET_CAT && items.length === 0 ? 'Nenhum agente por aqui.' : cat === COFRE_CAT && items.length === 0 ? 'Sem Wiki/_hot.md ainda.' : ''
@@ -1250,7 +1315,7 @@ async function draw($: any, e: any, next: any) {
         <Box flexDirection="row" flexWrap="wrap" columnGap={1} rowGap={1} marginTop={1} marginBottom={1}>
           {cats.map(c => (
             <Box key={`chip-${c}`} backgroundColor={c === cat ? CORAL : CHIP_BG} paddingX={1}>
-              <Button key={`cat-${c}`} plain label={CAT_LABEL[c] ?? c} onPress={pick(c)} />
+              <Button key={`cat-${c}`} plain label={tabLabel(c, CAT_LABEL[c] ?? c, c === cat).replace('▸', '').trim()} onPress={pick(c)} />
             </Box>
           ))}
         </Box>
@@ -1315,6 +1380,10 @@ async function draw($: any, e: any, next: any) {
       {rows.map(x =>
         x.sep ? (
           <Text key={x.key} dimColor>{line}</Text>
+        ) : x.href && Link ? (
+          <Box key={x.key} paddingX={chips ? 1 : 0}>
+            <Link href={x.href} label={`↗ ${x.label}`} />
+          </Box>
         ) : x.text ? (
           <Text key={x.key}>{`  ${x.label}`}</Text>
         ) : x.onStar ? (
@@ -1396,7 +1465,7 @@ async function draw($: any, e: any, next: any) {
   if (sceneOn) {
     const nowQ = await $.clock.now()
     const clock = new Date(nowQ)
-    const panel = await readPanel($, fleetRows.length, (await read($, turn)).cmds)
+    const panel = { ...((await read($, panelInfo)) ?? {}), agents: fleetRows.length, tools: (await read($, turn)).cmds }
     const art = composeQg(QG_ART.svg, {
       w: QG_ART.w,
       h: QG_ART.h,
@@ -1417,12 +1486,13 @@ async function draw($: any, e: any, next: any) {
             <Box key={`qg-gap-${sp.id}`} width={pct(sp.x0 - (i > 0 ? ZONES[i - 1]!.x1 : 0))} />,
             <Box key={`qg-col-${sp.id}`} flexDirection="column" width={pct(sp.x1 - sp.x0)}>
               <Box key={`qg-top-${sp.id}`} height={pct(sp.y0)} />
-              <Box key={`zone-${sp.id}`} position="relative" height={pct(sp.y1 - sp.y0)} overflow="hidden" hover={{ backgroundColor: '#ffd27a38' }}>
-                <Button key={`spot-${sp.id}`} plain onPress={() => openSpot($, sp.id)}>
-                  <Text>{ZONE_FILL}</Text>
-                </Button>
-                <Box position="absolute" top={0} left={0} display="none" hover={{ display: 'flex' }} backgroundColor="#1a0f08">
-                  <Text color="#ffd27a">{sp.id === 'luz' ? (lightsOffNow ? 'Acender' : 'Apagar') : sp.name}</Text>
+              <Box key={`zone-${sp.id}`} position="relative" flexDirection="column" height={pct(sp.y1 - sp.y0)} overflow="hidden" hover={{ backgroundColor: '#ffd27a38' }}>
+                {/* Um botão só desenha uma linha: várias linhas de um espaço, empilhadas, cobrem o objeto inteiro. */}
+                {Array.from({ length: ZONE_ROWS }, (_, r) => (
+                  <Button key={r === 0 ? `spot-${sp.id}` : `spot-${sp.id}-${r}`} plain label={'\u00a0'} onPress={() => openSpot($, sp.id)} />
+                ))}
+                <Box position="absolute" top={0} left={0} display="none" hover={{ display: 'flex' }}>
+                  <Text>{sp.id === 'luz' && lightsOffNow ? '🌙' : sp.pin}</Text>
                 </Box>
               </Box>
             </Box>,
@@ -1684,6 +1754,7 @@ export const register: Register = on => {
     } catch {
       // idem
     }
+    await refreshPanel($)
     return next(e)
   })
 
@@ -1729,8 +1800,10 @@ export const register: Register = on => {
     if (await read($, isSide)) await placeClaudin($, true)
     await loadSprites($)
     await loadSkin($)
+    await loadSize($)
     await loadCtxPreset($)
     await loadCenario($)
+    await refreshPanel($)
     await loadMinis($)
     await loadShortcuts($)
     await loadCofre($)

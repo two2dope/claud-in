@@ -7,16 +7,17 @@ export const QG_LIMIT = 131072 // caracteres que o Svg do mod aceita
 
 // Zona clicável: o retângulo do objeto na imagem (fração da largura e da altura), a aba que abre e o nome curto
 // que aparece no destaque quando o ponteiro passa por cima.
-export type Spot = { id: 'cola' | 'luz' | 'frota' | 'cofre' | 'agenda' | 'tempo' | 'servidor'; tab: string; label: string; name: string; x0: number; y0: number; x1: number; y1: number }
+export type Spot = { id: 'sobre' | 'cola' | 'luz' | 'frota' | 'cofre' | 'agenda' | 'tempo' | 'servidor'; tab: string; label: string; name: string; pin: string; x0: number; y0: number; x1: number; y1: number }
 
 export const SPOTS: Spot[] = [
-  { id: 'cola', tab: 'comandos', label: 'Livros e pastas de skills: a Cola da oficina', name: 'Cola', x0: 0.16, y0: 0.113, x1: 0.27, y1: 0.279 },
-  { id: 'luz', tab: '', label: 'Lanterna: acende e apaga a luz da sala', name: 'Luz', x0: 0.285, y0: 0.02, x1: 0.318, y1: 0.3 },
-  { id: 'frota', tab: 'frota', label: 'Monitores: a frota de agentes', name: 'Frota', x0: 0.33, y0: 0.14, x1: 0.534, y1: 0.72 },
-  { id: 'cofre', tab: 'cofre', label: 'Cofre: o cofre de contexto', name: 'Cofre', x0: 0.554, y0: 0.321, x1: 0.613, y1: 0.596 },
-  { id: 'agenda', tab: 'prazos', label: 'Calendário: a Agenda', name: 'Agenda', x0: 0.629, y0: 0.324, x1: 0.706, y1: 0.572 },
-  { id: 'servidor', tab: 'acoes', label: 'Servidor: ações e janela de contexto', name: 'Ações', x0: 0.727, y0: 0.24, x1: 0.792, y1: 0.92 },
-  { id: 'tempo', tab: 'tempo', label: 'Relógio: o pomodoro', name: 'Tempo', x0: 0.82, y0: 0.097, x1: 0.863, y1: 0.303 },
+  { id: 'sobre', tab: 'sobre', label: 'Placa de madeira: sobre o Claudin', name: 'Sobre', pin: 'ℹ️', x0: 0.1, y0: 0.12, x1: 0.158, y1: 0.62 },
+  { id: 'cola', tab: 'comandos', label: 'Livros e pastas de skills: a Cola da oficina', name: 'Cola', pin: '📚', x0: 0.16, y0: 0.113, x1: 0.27, y1: 0.279 },
+  { id: 'luz', tab: '', label: 'Lanterna: acende e apaga a luz da sala', name: 'Luz', pin: '💡', x0: 0.285, y0: 0.02, x1: 0.318, y1: 0.3 },
+  { id: 'frota', tab: 'frota', label: 'Monitores: a frota de agentes', name: 'Frota', pin: '🦀', x0: 0.33, y0: 0.14, x1: 0.534, y1: 0.72 },
+  { id: 'cofre', tab: 'cofre', label: 'Cofre: o cofre de contexto', name: 'Cofre', pin: '🔐', x0: 0.554, y0: 0.321, x1: 0.613, y1: 0.596 },
+  { id: 'agenda', tab: 'prazos', label: 'Calendário: a Agenda', name: 'Agenda', pin: '📅', x0: 0.629, y0: 0.324, x1: 0.706, y1: 0.572 },
+  { id: 'servidor', tab: 'acoes', label: 'Servidor: ações e janela de contexto', name: 'Ações', pin: '⚡', x0: 0.727, y0: 0.24, x1: 0.792, y1: 0.92 },
+  { id: 'tempo', tab: 'tempo', label: 'Relógio: o pomodoro', name: 'Tempo', pin: '⏱', x0: 0.82, y0: 0.097, x1: 0.863, y1: 0.303 },
 ]
 
 // Porcentagens CSS de uma zona, para o desktop pôr o retângulo clicável sobre o objeto.
@@ -152,48 +153,108 @@ export function modelShort(id: string | undefined): string {
 
 export const kTokens = (n: number): string => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(Math.round(n)))
 
-// Uma tela: rótulo pequeno em cima, valor embaixo; e, se houver, uma barra de 0 a 1 no rodapé.
-function screen(i: number, w: number, h: number, label: string, value: string, bar?: number, hot = false): string {
-  const r = MONITORS[i]
-  if (!r) return ''
-  const [x0, y0, x1, y1] = r
-  const x = ((x0 + x1) / 2) * w
-  const top = y0 * h
-  const sh = (y1 - y0) * h
-  const sw = (x1 - x0) * w
-  const ink = hot ? '#ffcf7a' : '#b8ffc4'
-  let out = `<rect x="${(x0 * w).toFixed(1)}" y="${top.toFixed(1)}" width="${sw.toFixed(1)}" height="${sh.toFixed(1)}" fill="#06210f" opacity=".72"/>`
-  out += `<text x="${x.toFixed(1)}" y="${(top + sh * 0.36).toFixed(1)}" font-size="${(sh * 0.26).toFixed(2)}" fill="#5fd08a" text-anchor="middle" font-family="monospace" font-weight="700">${label}</text>`
-  out += `<text x="${x.toFixed(1)}" y="${(top + sh * 0.76).toFixed(1)}" font-size="${(sh * 0.34).toFixed(2)}" fill="${ink}" text-anchor="middle" font-family="monospace" font-weight="700">${value}</text>`
-  if (typeof bar === 'number' && Number.isFinite(bar)) {
-    const b = Math.max(0, Math.min(1, bar))
-    const bx = x0 * w + sw * 0.12
-    out += `<rect x="${bx.toFixed(1)}" y="${(top + sh * 0.86).toFixed(1)}" width="${(sw * 0.76 * b).toFixed(2)}" height="${(sh * 0.07).toFixed(2)}" fill="${ink}"/>`
-  }
-  return out
+// A tela do painel: as duas telas grandes de cima, juntas (fração x0, y0, x1, y1).
+export const DISPLAY: [number, number, number, number] = [0.38, 0.152, 0.482, 0.32]
+const PAGE_S = 4 // segundos de cada página
+
+// As páginas do painel, só com o que existe: [linha de cima, linha de baixo, barra de 0 a 1 ou nada, quente].
+export function panelPages(p: Panel): [string, string, number | undefined, boolean][] {
+  const pages: [string, string, number | undefined, boolean][] = []
+  const model = modelShort(p.model)
+  const ctx = typeof p.ctx === 'number' ? `CTX ${p.ctx}%` : ''
+  if (model || ctx) pages.push([model || 'CLAUDE', ctx, typeof p.ctx === 'number' ? p.ctx / 100 : undefined, (p.ctx ?? 0) >= 70])
+  if (typeof p.tokens === 'number' || typeof p.usd === 'number')
+    pages.push([typeof p.tokens === 'number' ? `TOK ${kTokens(p.tokens)}` : '', typeof p.usd === 'number' ? `US$ ${p.usd.toFixed(2)}` : '', p.tokens && p.window ? p.tokens / p.window : undefined, false])
+  if (typeof p.limit5h === 'number' || typeof p.limit7d === 'number')
+    pages.push([typeof p.limit5h === 'number' ? `5H ${Math.round(p.limit5h)}%` : '', typeof p.limit7d === 'number' ? `7D ${Math.round(p.limit7d)}%` : '', typeof p.limit5h === 'number' ? p.limit5h / 100 : undefined, (p.limit5h ?? 0) >= 80])
+  if (typeof p.agents === 'number' || typeof p.tools === 'number') pages.push([`AGT ${p.agents ?? 0}`, `CMD ${p.tools ?? 0}`, undefined, false])
+  return pages
 }
 
-// O painel dos monitores: modelo, contexto, tokens, custo, limites, agentes e ferramentas do turno.
-// Trabalhando, um cursor pisca na tela do contexto.
+// O painel: as páginas se revezam por animação dentro do próprio SVG (sem redesenhar); sem animação fica a primeira.
+// Trabalhando, um cursor pisca no canto da tela.
 export function panelSvg(p: Panel, working = false, w = 360, h = 76): string {
   const esc = (t: string) => t.replace(/[<>&]/g, '')
-  let out = '<g class="panel" shape-rendering="auto">'
-  const model = modelShort(p.model)
-  if (model) {
-    const [name, ver] = model.split(' ')
-    out += screen(0, w, h, esc(name ?? ''), esc(ver ?? ''))
-  }
-  if (typeof p.ctx === 'number') out += screen(1, w, h, 'CTX', `${p.ctx}%`, p.ctx / 100, p.ctx >= 70)
-  if (typeof p.tokens === 'number') out += screen(2, w, h, 'TOK', kTokens(p.tokens), p.window ? p.tokens / p.window : undefined)
-  if (typeof p.usd === 'number') out += screen(3, w, h, 'US$', p.usd.toFixed(2), undefined, true)
-  if (typeof p.limit5h === 'number') out += screen(4, w, h, '5H', `${Math.round(p.limit5h)}%`, p.limit5h / 100, p.limit5h >= 80)
-  if (typeof p.limit7d === 'number') out += screen(5, w, h, '7D', `${Math.round(p.limit7d)}%`, p.limit7d / 100, p.limit7d >= 80)
-  if (typeof p.agents === 'number') out += screen(6, w, h, 'AGT', String(p.agents))
-  if (typeof p.tools === 'number') out += screen(7, w, h, 'CMD', String(p.tools))
+  const pages = panelPages(p)
+  const [x0, y0, x1, y1] = DISPLAY
+  const X = x0 * w
+  const Y = y0 * h
+  const W = (x1 - x0) * w
+  const H = (y1 - y0) * h
+  const cx = X + W / 2
+  let out = `<g class="panel" shape-rendering="auto"><rect x="${X.toFixed(1)}" y="${Y.toFixed(1)}" width="${W.toFixed(1)}" height="${H.toFixed(1)}" fill="#041a0b" opacity=".9"/>`
+  const n = pages.length
+  const total = n * PAGE_S
+  pages.forEach(([top, bottom, bar, hot], k) => {
+    const ink = hot ? '#ffcf7a' : '#c6ffd0'
+    let g = `<text x="${cx.toFixed(1)}" y="${(Y + H * 0.42).toFixed(1)}" font-size="${(H * 0.34).toFixed(2)}" fill="#7dffa0" text-anchor="middle" font-family="monospace" font-weight="700">${esc(top)}</text>`
+    g += `<text x="${cx.toFixed(1)}" y="${(Y + H * 0.8).toFixed(1)}" font-size="${(H * 0.34).toFixed(2)}" fill="${ink}" text-anchor="middle" font-family="monospace" font-weight="700">${esc(bottom)}</text>`
+    if (typeof bar === 'number' && Number.isFinite(bar)) {
+      const b = Math.max(0, Math.min(1, bar))
+      g += `<rect x="${(X + W * 0.1).toFixed(1)}" y="${(Y + H * 0.88).toFixed(1)}" width="${(W * 0.8 * b).toFixed(2)}" height="${(H * 0.06).toFixed(2)}" fill="${ink}"/>`
+    }
+    if (n <= 1) {
+      out += `<g>${g}</g>`
+      return
+    }
+    // Página k visível entre k/n e (k+1)/n do ciclo.
+    const a = (k / n).toFixed(3)
+    const b = ((k + 1) / n).toFixed(3)
+    const values = k === 0 ? '1;0;0' : '0;1;0;0'
+    const times = k === 0 ? `0;${b};1` : `0;${a};${b};1`
+    out += `<g opacity="${k === 0 ? 1 : 0}">${g}<animate attributeName="opacity" values="${values}" keyTimes="${times}" calcMode="discrete" dur="${total}s" repeatCount="indefinite"/></g>`
+  })
   if (working) {
-    const r = MONITORS[1]!
-    out += `<rect x="${(r[2] * w - 2.2).toFixed(1)}" y="${(r[1] * h + 1.2).toFixed(1)}" width="1.2" height="1.2" fill="#b8ffc4"><animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/></rect>`
+    out += `<rect x="${(X + W - 3).toFixed(1)}" y="${(Y + 1.2).toFixed(1)}" width="1.4" height="1.4" fill="#c6ffd0"><animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/></rect>`
   }
+  return out + '</g>'
+}
+
+// ── a vida do cenário: tudo animado dentro do SVG, sem custo de redesenho ──
+// Telas menores com linhas de "código" que crescem, LEDs do servidor, a lua da prateleira e bichinhos no mangue.
+const SMALL_SCREENS = MONITORS.filter(([x0, y0]) => !(x0 >= DISPLAY[0] - 0.001 && y0 <= DISPLAY[3]))
+const SERVER = [0.738, 0.3, 0.782, 0.86] // área dos LEDs no rack
+const MOON = [0.586, 0.17] // centro da lua na prateleira
+
+export function ambientSvg(w = 360, h = 76, night = false): string {
+  const f = (n: number) => n.toFixed(1)
+  let out = '<g class="vida" shape-rendering="auto">'
+  // Linhas de código nas telas pequenas.
+  SMALL_SCREENS.forEach(([x0, y0, x1, y1], i) => {
+    const X = x0 * w + 1.5
+    const W = (x1 - x0) * w - 3
+    const H = (y1 - y0) * h
+    for (let l = 0; l < 3; l++) {
+      const y = y0 * h + H * (0.28 + l * 0.22)
+      const dur = 2.2 + ((i * 3 + l * 5) % 7) * 0.45
+      out += `<rect x="${f(X)}" y="${f(y)}" height="0.9" width="0" fill="#9dffb5" opacity=".75"><animate attributeName="width" values="0;${f(W * (0.45 + ((i + l) % 3) * 0.2))};${f(W * (0.45 + ((i + l) % 3) * 0.2))};0" keyTimes="0;.6;.9;1" dur="${dur.toFixed(2)}s" repeatCount="indefinite"/></rect>`
+    }
+  })
+  // LEDs do servidor, piscando em ritmos diferentes.
+  const [sx0, sy0, sx1, sy1] = SERVER as [number, number, number, number]
+  for (let r = 0; r < 7; r++) {
+    for (let c = 0; c < 3; c++) {
+      const x = (sx0 + ((sx1 - sx0) * (c + 0.5)) / 3) * w
+      const y = (sy0 + ((sy1 - sy0) * (r + 0.5)) / 7) * h
+      const color = (r + c) % 4 === 0 ? '#ffb347' : '#5dff8a'
+      const dur = 0.6 + ((r * 7 + c * 3) % 9) * 0.23
+      out += `<rect x="${f(x)}" y="${f(y)}" width="0.9" height="0.9" fill="${color}"><animate attributeName="opacity" values="1;.15;1" dur="${dur.toFixed(2)}s" repeatCount="indefinite"/></rect>`
+    }
+  }
+  // A lua da prateleira acesa, respirando.
+  out += `<circle cx="${f(MOON[0]! * w)}" cy="${f(MOON[1]! * h)}" r="3.4" fill="#ffe9a8" opacity=".35"><animate attributeName="opacity" values=".15;.5;.15" dur="4.5s" repeatCount="indefinite"/></circle>`
+  // Bichinhos no mangue: vaga-lumes à noite, mosquitinhos de dia, passeando pelas raízes dos dois lados.
+  const bug = night ? '#fff27a' : '#3a2a18'
+  const paths = [
+    'M10 20 q8 -6 14 4 t10 8 t-12 10 t-10 -12z',
+    'M20 50 q10 -8 16 2 t-4 12 t-14 -6z',
+    'M335 18 q-8 8 -14 0 t-8 10 t12 8 t10 -18z',
+    'M345 46 q-10 6 -16 -2 t2 -10 t14 12z',
+  ]
+  paths.forEach((d, i) => {
+    const dur = 9 + i * 2.5
+    out += `<circle r="${night ? 0.9 : 0.6}" fill="${bug}"><animateMotion path="${d}" dur="${dur}s" repeatCount="indefinite"/>${night ? `<animate attributeName="opacity" values="1;.2;1" dur="${(1.4 + i * 0.3).toFixed(1)}s" repeatCount="indefinite"/>` : ''}</circle>`
+  })
   return out + '</g>'
 }
 
@@ -224,7 +285,8 @@ function lightBody(w: number, h: number, sky0: Sky, lightsOff = false): string {
 // A imagem com o véu, a luz da hora e o relógio (fatia do pomodoro ou ponteiros) dentro do mesmo SVG.
 export function composeQg(base: string, s: QgState): string {
   const veil = `<rect width="${s.w}" height="${s.h}" fill="#140b05" opacity="${VEIL}"/>`
-  const body = veil + lightBody(s.w, s.h, skyAt(s.minutes), s.lightsOff) + (s.panel ? panelSvg(s.panel, s.working, s.w, s.h) : '') + (s.pomo ? wedge(s.w, s.h, s.pomo.fraction) : hands(s.w, s.h, s.minutes))
+  const night = skyAt(s.minutes).dark >= 0.3 || !!s.lightsOff
+  const body = veil + ambientSvg(s.w, s.h, night) + lightBody(s.w, s.h, skyAt(s.minutes), s.lightsOff) + (s.panel ? panelSvg(s.panel, s.working, s.w, s.h) : '') + (s.pomo ? wedge(s.w, s.h, s.pomo.fraction) : hands(s.w, s.h, s.minutes))
   const end = base.lastIndexOf('</svg>')
   if (end < 0) return base
   const out = base.slice(0, end) + body + base.slice(end)
