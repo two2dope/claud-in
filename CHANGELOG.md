@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1 — 2026-11-19
+
+- **Corrige:** as skins e as miniaturas não apareciam no app desktop, porque o PNG embutido em SVG (`<image>`) não é desenhado ali. A arte agora é SVG de retângulos (`sprites/<skin>/<pose>.svg`, `sprites/frota/<criatura>.svg`), idêntico ao PNG pixel a pixel; o PNG fica ao lado como fonte. `scripts/png-para-svg.py` faz a conversão (e `--verificar` confere). Quem usa sprite PNG próprio deve converter com o script.
+
 ## 0.3.0 — 2026-11-19
 
 - **Skins.** Três pacotes de arte original, **Mangue**, **Maré** e **Malungo** (chapéu de palha), com as nove poses em `sprites/<skin>/<pose>.png`. O botão `skin:` em Ajustes alterna entre o desenho padrão e as skins; a escolha fica guardada entre sessões, e uma pasta sua em `<config>/claudin/sprites/<nome>/` também vira skin. Pose ausente cai para o desenho padrão. Nos modos com adereço o desenho padrão continua valendo.
