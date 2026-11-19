@@ -1,5 +1,7 @@
 import { expect, mock, test } from 'claude-code/testing'
 
+import { CORAL, palOf } from '../hooks/desenho'
+
 const BAND = {
   component: 'AbovePrompt',
   props: {
@@ -885,56 +887,60 @@ test('nota vazia não escreve nada', async ($: any, on: any) => {
   await ui.unmount()
 })
 
-// ── skins: pacote sprites/<skin>/<pose>, escolha em Ajustes e volta ao desenho padrão quando falta a pose ────
+// ── skins: o mesmo Claudin com outra paleta e luz; pastas do usuário trazem arte própria ────
 const dirs = (...names: string[]) => names.map(name => ({ name, kind: 'dir', size: 0, mtimeMs: 0, isLink: false }))
-const SKIN_FILES: Record<string, string> = {
-  'sprites/mangue/idle.svg': '<svg id="mangue-idle"/>',
-  'sprites/mangue/ok.svg': '<svg id="mangue-ok"/>',
-  'sprites/mare/idle.svg': '<svg id="mare-idle"/>',
-  'sprites/malungo/idle.svg': '<svg id="malungo-idle"/>',
-}
 const bootSkins = async ($: any, on: any, extra: Record<string, string> = {}, userDirs: string[] = [], stored: Record<string, unknown> = {}) => {
   mock.clock(on, { now: 2_600_000 })
   on('fs.list', (_: any, e: any) => {
     const path = String(e.path).split(String.fromCharCode(92)).join('/')
+    // a pasta do plugin ainda lista nomes antigos e a frota: nada disso pode virar skin repetida
     return { value: path.includes('/.claude/claudin/') ? dirs(...userDirs) : dirs('malungo', 'frota', 'mare', 'mangue') }
   })
-  await bootFs($, on, { ...SKIN_FILES, ...extra }, { USERPROFILE: 'C:/u' }, stored)
+  await bootFs($, on, extra, { USERPROFILE: 'C:/u' }, stored)
 }
 const openAjustes = async (ui: any) => {
   await ui.press({ key: 'tb' })
   await ui.press({ key: 'cat-ajustes' })
 }
 const sprite = async (ui: any) => JSON.stringify(await ui.find({ type: 'Svg' }))
+const COR = palOf(CORAL)
+const MARE = { base: '#2f9e9a', ant: '#7fd6d0' }
+const MALUNGO = { base: '#8f9bad', ant: '#cfd6e0', hat: '#d9b45b' }
 
-test('sem skin escolhida o Claudin usa o desenho padrão', async ($: any, on: any) => {
+test('sem skin escolhida o Claudin é o desenho chapado de sempre', async ($: any, on: any) => {
   await bootSkins($, on)
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
-  expect(await sprite(ui)).not.toContain('mangue-idle')
+  const svg = await sprite(ui)
+  expect(svg).toContain(CORAL)
+  expect(svg).not.toContain(COR.hi)
+  expect(svg).not.toContain(COR.shade)
   await openAjustes(ui)
   expect((await ui.find({ key: 'skin' }))?.props?.label).toMatch(/skin: padrão/)
   await ui.unmount()
 })
 
-test('o botão de skin percorre padrão, mangue, maré, malungo e volta; frota não é skin', async ($: any, on: any) => {
+test('o botão de skin percorre padrão, mangue, maré, malungo e volta, sem repetir nem listar a frota', async ($: any, on: any) => {
   await bootSkins($, on)
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
   await openAjustes(ui)
-  for (const [label, id] of [['mangue', 'mangue-idle'], ['maré', 'mare-idle'], ['malungo', 'malungo-idle']] as const) {
+  const veja = async (label: RegExp, ...partes: string[]) => {
     await ui.press({ key: 'skin' })
-    expect((await ui.find({ key: 'skin' }))?.props?.label).toMatch(new RegExp(`skin: ${label}`))
-    expect(await sprite(ui)).toContain(id)
+    expect((await ui.find({ key: 'skin' }))?.props?.label).toMatch(label)
+    const svg = await sprite(ui)
+    for (const parte of partes) expect(svg).toContain(parte)
   }
-  await ui.press({ key: 'skin' })
-  expect((await ui.find({ key: 'skin' }))?.props?.label).toMatch(/skin: padrão/)
-  expect(await sprite(ui)).not.toContain('-idle"')
+  await veja(/skin: mangue/, COR.hi, COR.shade, COR.deep)
+  await veja(/skin: maré/, MARE.base, MARE.ant)
+  await veja(/skin: malungo/, MALUNGO.base, MALUNGO.ant, MALUNGO.hat)
+  await veja(/skin: padrão/)
+  expect(await sprite(ui)).not.toContain(MALUNGO.hat)
   await ui.unmount()
 })
 
-test('a skin guardada volta na sessão seguinte; skin que sumiu volta ao padrão', async ($: any, on: any) => {
+test('a skin guardada volta na sessão seguinte', async ($: any, on: any) => {
   await bootSkins($, on, {}, [], { skin: 'mare' })
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
-  expect(await sprite(ui)).toContain('mare-idle')
+  expect(await sprite(ui)).toContain(MARE.base)
   await openAjustes(ui)
   expect((await ui.find({ key: 'skin' }))?.props?.label).toMatch(/skin: maré/)
   await ui.unmount()
@@ -948,43 +954,59 @@ test('skin guardada que não existe mais cai para o padrão', async ($: any, on:
   await ui.unmount()
 })
 
-test('pose que a skin não tem cai para o desenho padrão; a que tem usa a skin', async ($: any, on: any) => {
+test('a skin é só paleta: olhos, piscar e modos continuam os do Claudin', async ($: any, on: any) => {
   await bootSkins($, on)
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
   await openAjustes(ui)
   await ui.press({ key: 'skin' })
-  await ui.press({ key: 'next' })
-  await ui.press({ key: 'next' })
-  await ui.press({ key: 'pet' })
-  expect(await sprite(ui)).toContain('mangue-ok')
-  await ui.press({ key: 'prev' })
-  await ui.press({ key: 'prev' })
   await ui.press({ key: 'skin' })
-  await ui.press({ key: 'next' })
-  await ui.press({ key: 'next' })
-  await ui.press({ key: 'pet' })
-  expect(await sprite(ui)).not.toContain('mare-')
+  const parado = await sprite(ui)
+  expect(parado).toContain(MARE.base)
+  expect(parado).toContain('<animate') // o piscar continua
+  await ui.press({ key: 'mode' }) // café: a xícara aparece sobre a skin
+  const cafe = await sprite(ui)
+  expect(cafe).toContain(MARE.base)
+  expect(cafe).toContain('#6b4423')
   await ui.unmount()
 })
 
-test('modos com adereço (café) mantêm o desenho padrão em vez da skin', async ($: any, on: any) => {
-  await bootSkins($, on)
+test('o Malungo põe o chapéu entre as antenas e muda a exclamação de lugar', async ($: any, on: any) => {
+  await bootSkins($, on, {}, [], { skin: 'malungo' })
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
-  await openAjustes(ui)
-  await ui.press({ key: 'skin' })
-  expect(await sprite(ui)).toContain('mangue-idle')
-  await ui.press({ key: 'mode' })
-  expect(await sprite(ui)).not.toContain('mangue-idle')
+  expect(await sprite(ui)).toContain(MALUNGO.hat)
   await ui.unmount()
 })
 
-test('skin do usuário em <config>/claudin/sprites/<nome> entra na lista', async ($: any, on: any) => {
+test('skin do usuário em <config>/claudin/sprites/<nome> entra na lista, depois das do plugin', async ($: any, on: any) => {
   await bootSkins($, on, { 'C:/u/.claude/claudin/sprites/meu/idle.svg': '<svg id="meu-idle"/>' }, ['meu'])
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
   await openAjustes(ui)
   for (let i = 0; i < 4; i++) await ui.press({ key: 'skin' })
   expect((await ui.find({ key: 'skin' }))?.props?.label).toMatch(/skin: meu/)
   expect(await sprite(ui)).toContain('meu-idle')
+  await ui.unmount()
+})
+
+test('pose que a skin do usuário não tem cai para o desenho padrão', async ($: any, on: any) => {
+  await bootSkins($, on, { 'C:/u/.claude/claudin/sprites/meu/idle.svg': '<svg id="meu-idle"/>' }, ['meu'])
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openAjustes(ui)
+  for (let i = 0; i < 4; i++) await ui.press({ key: 'skin' })
+  await ui.press({ key: 'next' })
+  await ui.press({ key: 'next' })
+  await ui.press({ key: 'pet' }) // humor "ok": a skin do usuário não tem essa pose
+  const svg = await sprite(ui)
+  expect(svg).not.toContain('meu-idle')
+  expect(svg).toContain(CORAL)
+  await ui.unmount()
+})
+
+test('skin do usuário só com PNG não é carregada (o desktop não desenha PNG embutido)', async ($: any, on: any) => {
+  await bootSkins($, on, { 'C:/u/.claude/claudin/sprites/meu/idle.png': 'binario' }, ['meu'])
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openAjustes(ui)
+  for (let i = 0; i < 4; i++) await ui.press({ key: 'skin' })
+  expect(await sprite(ui)).not.toContain('<image')
   await ui.unmount()
 })
 
@@ -1129,14 +1151,5 @@ test('a miniatura diz o tipo e a quantidade no alt', async ($: any, on: any) => 
   await spawnAll($, [['p1', 'Plan'], ['p2', 'Plan']])
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
   expect(JSON.stringify(await ui.find({ key: 'mini-garca' }))).toContain('2 agentes: planejar')
-  await ui.unmount()
-})
-
-test('skin do usuário só com PNG não é carregada (o desktop não desenha PNG embutido)', async ($: any, on: any) => {
-  await bootSkins($, on, { 'C:/u/.claude/claudin/sprites/meu/idle.png': 'binario' }, ['meu'])
-  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
-  await openAjustes(ui)
-  for (let i = 0; i < 4; i++) await ui.press({ key: 'skin' })
-  expect(await sprite(ui)).not.toContain('<image')
   await ui.unmount()
 })

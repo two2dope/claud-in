@@ -81,3 +81,8 @@ Painel `projeto/skins-ar-board/ar-board-skins-arte.html`. PNGs finais em `assets
 - **Minis (M1), pernas (D2) e pipeline (D3) aprovados.** Mantém 2 pernas. Os PNGs reduzidos são a fonte da arte.
 - **Correção de ingestão (D1 e M1):** o `err` ficava fraco e o siri sem olhos porque as pupilas `#1A1A1A` caíam como fundo `#1E1E1E`. Resolvido tratando como primeiro plano tudo que não liga à borda; o X e as pupilas voltaram, sem regerar nada.
 - **Aratu refeito sem o ramo (2026-11-19):** nova imagem do Flow, reingerida em 24x24. Em aberto: o pacote de skins no código continua depois do cofre.
+
+## Virada de 2026-11-19: skins como variações do Claudin
+- Thomáz viu as skins do Flow no app (poses paradas, PNG vira SVG de retângulos) e decidiu **voltar atrás do Flow para o mascote**: "o Claudin original tem mais personalidade e movimento". Ele imaginava elevar um pouco o visual chapado, algo como o `Gemini_Generated_Image_8dsz…` (realce no alto, sombra e fio escuro embaixo).
+- **Decisão:** Mangue, Maré e Malungo viram o próprio Claudin com paleta e luz (`hooks/desenho.ts`), herdando piscar, olhar, andar e modos; o Malungo leva o chapéu de palha. A arte parada do Flow das poses saiu do pacote (continua no histórico, v0.3.0 e v0.3.1).
+- **Em aberto:** as miniaturas da frota seguem com a arte do Flow (`sprites/frota/`) e podem destoar; refazer em código no mesmo estilo está a decidir.
