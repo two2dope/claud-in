@@ -67,6 +67,10 @@ const cofre = atom({ plugin: 'claudin', key: 'cofre' } as const, null as string 
 // Prazos lidos do _hot do cofre: espelho só de leitura, sem gravar de volta (ids começam com "cofre:").
 // Vista da aba Cofre: o que o _hot diz hoje, já em texto curto. null até a primeira leitura.
 const cofreView = atom({ plugin: 'claudin', key: 'cofreView' } as const, null as CofreView | null)
+// Skins: pacote sprites/<skin>/<pose> (svg ou png). '' é o desenho padrão; a escolha fica em $.store.
+const skin = atom({ plugin: 'claudin', key: 'skin' } as const, '')
+const skinArt = atom({ plugin: 'claudin', key: 'skinArt' } as const, {} as Record<string, string>)
+const skinNames = atom({ plugin: 'claudin', key: 'skinNames' } as const, [] as string[])
 const noteText = atom({ plugin: 'claudin', key: 'noteText' } as const, '')
 const NOTE_MAX = 4000
 const cofreDeadlines = atom({ plugin: 'claudin', key: 'cofreDeadlines' } as const, [] as Deadline[])
@@ -697,6 +701,13 @@ async function loadCofre($: any) {
   await update($, cofre, () => path)
 }
 
+// Lê um sprite: SVG vale como está; PNG vira <image> dentro de um SVG de 64x48, pixelado.
+async function readSprite($: any, path: string, ext: string): Promise<string> {
+  if (ext === 'svg') return await $.fs.read(path)
+  const { base64 } = await $.fs.read(path, { as: 'bytes' })
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 48"><image href="data:image/png;base64,${base64}" width="64" height="48" preserveAspectRatio="xMidYMid meet" style="image-rendering:pixelated"/></svg>`
+}
+
 async function loadSprites($: any) {
   const found: Record<string, string> = {}
   const roots = await dataRoots($)
@@ -705,17 +716,70 @@ async function loadSprites($: any) {
       for (const ext of ['svg', 'png']) {
         const path = `${root}/sprites/${m}.${ext}`
         if (!(await $.fs.exists(path))) continue
-        if (ext === 'svg') {
-          found[m] = await $.fs.read(path)
-        } else {
-          const { base64 } = await $.fs.read(path, { as: 'bytes' })
-          found[m] = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 48"><image href="data:image/png;base64,${base64}" width="64" height="48" preserveAspectRatio="xMidYMid meet" style="image-rendering:pixelated"/></svg>`
-        }
+        found[m] = await readSprite($, path, ext)
         break done
       }
     }
   }
   await update($, sprites, () => found)
+}
+
+// Skins: cada pasta de sprites/ (do usuário ou do plugin) é uma skin; "frota" guarda as miniaturas, não é skin.
+const SKIN_BUILTIN = ['mangue', 'mare', 'malungo']
+const SKIN_RESERVED = ['frota']
+const SKIN_LABEL: Record<string, string> = { mare: 'maré' }
+const skinLabel = (name: string) => (name ? SKIN_LABEL[name] ?? name : 'padrão')
+
+async function listSkins($: any): Promise<string[]> {
+  const found = new Set<string>()
+  for (const root of await dataRoots($)) {
+    try {
+      for (const e of await $.fs.list(`${root}/sprites`)) if (e.kind === 'dir' && !SKIN_RESERVED.includes(e.name)) found.add(e.name)
+    } catch {
+      // pasta sem sprites/: nenhuma skin ali
+    }
+  }
+  return [...SKIN_BUILTIN.filter(n => found.has(n)), ...[...found].filter(n => !SKIN_BUILTIN.includes(n)).sort()]
+}
+
+// Pose que a skin não tem fica de fora e o desenho padrão cobre.
+async function loadSkinArt($: any, name: string) {
+  const found: Record<string, string> = {}
+  if (name) {
+    const roots = await dataRoots($)
+    for (const m of MOODS) {
+      done: for (const root of roots) {
+        for (const ext of ['svg', 'png']) {
+          const path = `${root}/sprites/${name}/${m}.${ext}`
+          try {
+            if (!(await $.fs.exists(path))) continue
+            found[m] = await readSprite($, path, ext)
+          } catch {
+            continue
+          }
+          break done
+        }
+      }
+    }
+  }
+  await update($, skinArt, () => found)
+}
+
+async function loadSkin($: any) {
+  const names = await listSkins($)
+  await update($, skinNames, () => names)
+  const saved = await $.store.get('skin')
+  const chosen = typeof saved === 'string' && names.includes(saved) ? saved : ''
+  await update($, skin, () => chosen)
+  await loadSkinArt($, chosen)
+}
+
+async function cycleSkin($: any) {
+  const all = ['', ...(await read($, skinNames))]
+  const next = all[(all.indexOf(await read($, skin)) + 1) % all.length] ?? ''
+  await $.store.set('skin', next)
+  await update($, skin, () => next)
+  await loadSkinArt($, next)
 }
 
 // Atalhos do usuário: shortcuts.json, lista de { label, text }. O da pasta do usuário vence o do plugin.
@@ -805,6 +869,8 @@ async function draw($: any, e: any, next: any) {
   const nowDl = dls.length > 0 ? await $.clock.now() : 0
   const cofreRoot = await read($, cofre)
   const cv = await read($, cofreView)
+  const skinSel = await read($, skin)
+  const skinSprites = await read($, skinArt)
   const noteTxt = await read($, noteText)
   const fleetRows = await read($, fleet)
   const nowF = fleetRows.length > 0 ? await $.clock.now() : 0
@@ -886,6 +952,7 @@ async function draw($: any, e: any, next: any) {
           ? [
               { key: 'mode', label: `modo: ${MODE_LABEL[m.kind as ModeKind]}`, onPress: () => setMode($, MODES[(MODES.indexOf(m.kind as ModeKind) + 1) % MODES.length] ?? 'normal') },
               { key: 'size', label: `tamanho: ${size.label}`, onPress: () => update($, sizeIdx, (v: number) => (v + 1) % SIZES.length) },
+              { key: 'skin', label: `skin: ${skinLabel(skinSel)}`, onPress: () => cycleSkin($) },
               { key: 'sep1', label: '', sep: true, onPress: () => {} },
               { key: 'quiet', label: quiet ? 'ver tools' : 'ocultar tools', onPress: () => update($, isQuiet, (v: boolean) => !v) },
               { key: 'log', label: showLog ? 'fechar histórico' : 'histórico', onPress: () => update($, isLogOpen, (v: boolean) => !v) },
@@ -1099,7 +1166,7 @@ async function draw($: any, e: any, next: any) {
         </Box>
         <Text dimColor>  ╰▾</Text>
         {Svg ? (
-          <Svg source={custom[s.mood] ?? sprite(s.mood, m.kind, lookFor(s.mood as Mood, w.dir, open))} alt="Claudin, o mascote" width={size.w} height={size.h} isInteractive />
+          <Svg source={(m.kind === 'normal' ? skinSprites[s.mood] : undefined) ?? custom[s.mood] ?? sprite(s.mood, m.kind, lookFor(s.mood as Mood, w.dir, open))} alt="Claudin, o mascote" width={size.w} height={size.h} isInteractive />
         ) : (
           <Text color={CORAL}>{glyph}</Text>
         )}
@@ -1286,6 +1353,7 @@ export const register: Register = on => {
     await $.command.register({ name: 'claudin', description: 'Traz o Claudin de volta (lateral, prompt ou ocultar)', argumentHint: '[lateral|prompt|ocultar]' })
     if (await read($, isSide)) await placeClaudin($, true)
     await loadSprites($)
+    await loadSkin($)
     await loadShortcuts($)
     await loadCofre($)
     await loadCofreDeadlines($)
