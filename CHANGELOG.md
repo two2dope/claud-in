@@ -2,7 +2,8 @@
 
 ## Não lançado
 
-- **Skins.** Três pacotes de arte original, **Mangue**, **Maré** e **Malungo** (chapéu de palha), com as nove poses em `sprites/<skin>/<pose>.png`. O botão `skin:` em Ajustes alterna entre o desenho padrão e as skins; a escolha fica guardada entre sessões, e uma pasta sua em `<config>/claudin/sprites/<nome>/` também vira skin. Pose ausente cai para o desenho padrão. Nos modos com adereço o desenho padrão continua valendo. As miniaturas da frota (`sprites/frota/`) já vêm no pacote, mas ainda não aparecem.
+- **Skins.** Três pacotes de arte original, **Mangue**, **Maré** e **Malungo** (chapéu de palha), com as nove poses em `sprites/<skin>/<pose>.png`. O botão `skin:` em Ajustes alterna entre o desenho padrão e as skins; a escolha fica guardada entre sessões, e uma pasta sua em `<config>/claudin/sprites/<nome>/` também vira skin. Pose ausente cai para o desenho padrão. Nos modos com adereço o desenho padrão continua valendo.
+- **Miniaturas da frota.** Com subagentes vivos, até duas criaturas do mangue aparecem ao lado do mascote, uma por tipo (siri = explorar, garça = planejar, guaiamum = executar, aratu = revisar, caranguejinho = o resto), com `×n` e `+N`. Somem quando a frota esvazia e ficam de fora em `meditar` e `cigarro`. `<config>/claudin/fleet-map.json` troca a criatura de um tipo.
 
 ## 0.2.1 — 2026-11-19
 

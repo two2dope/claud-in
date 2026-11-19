@@ -9,4 +9,5 @@ Skins (uma pasta por skin, com as mesmas poses):
   <config>/claudin/sprites/<nome>/                   (as suas)
   Escolha em Ajustes > skin. Pose ausente usa o desenho padrão.
 
-sprites/frota/ guarda as miniaturas da frota (siri, garca, guaiamum, aratu, caranguejinho); nao e skin.
+sprites/frota/ guarda as miniaturas da frota (siri, garca, guaiamum, aratu, caranguejinho), uma por tipo de agente; nao e skin.
+<config>/claudin/fleet-map.json troca a criatura de um tipo: { "Explore": "aratu" }.

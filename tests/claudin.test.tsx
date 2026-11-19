@@ -985,3 +985,82 @@ test('skin do usuário em <config>/claudin/sprites/<nome> entra na lista', async
   expect(await sprite(ui)).toContain('meu-idle')
   await ui.unmount()
 })
+
+// ── frota: uma miniatura por tipo de agente (criaturas do mangue), até 2, com ×n e +N ────
+const MINI_FILES: Record<string, string> = {
+  'sprites/frota/siri.svg': '<svg id="m-siri"/>',
+  'sprites/frota/garca.svg': '<svg id="m-garca"/>',
+  'sprites/frota/guaiamum.svg': '<svg id="m-guaiamum"/>',
+  'sprites/frota/aratu.svg': '<svg id="m-aratu"/>',
+  'sprites/frota/caranguejinho.svg': '<svg id="m-caranguejinho"/>',
+}
+const bootFrota = async ($: any, on: any, extra: Record<string, string> = {}) => {
+  mock.clock(on, { now: 2_700_000 })
+  on('agent.spawn', (_: any, e: any) => ({ agentId: e.description, model: 'haiku' }))
+  on('turn.complete', () => ({ text: '' }))
+  await bootFs($, on, { ...MINI_FILES, ...extra }, { USERPROFILE: 'C:/u' })
+}
+const spawnAll = async ($: any, list: [string, string][]) => {
+  for (const [desc, type] of list) await $.agent.spawn(SPAWN(desc, type))
+}
+
+test('com um agente vivo aparece a miniatura do tipo, sem contagem', async ($: any, on: any) => {
+  await bootFrota($, on)
+  await spawnAll($, [['e1', 'Explore']])
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(JSON.stringify(await ui.find({ key: 'mini-siri' }))).toContain('m-siri')
+  expect(await ui.find({ key: 'mini-garca' })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /^×/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('mostra os 2 tipos com mais agentes, ×n e +N no resto', async ($: any, on: any) => {
+  await bootFrota($, on)
+  await spawnAll($, [['p1', 'Plan'], ['e1', 'Explore'], ['e2', 'Explore'], ['g1', 'general-purpose']])
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ key: 'mini-siri' })).toBeDefined()
+  expect(await ui.find({ key: 'mini-garca' })).toBeDefined()
+  expect(await ui.find({ key: 'mini-guaiamum' })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /^×2$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^\+1$/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('sem agentes vivos não há miniaturas', async ($: any, on: any) => {
+  await bootFrota($, on)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  for (const k of ['siri', 'garca', 'guaiamum', 'aratu', 'caranguejinho']) expect(await ui.find({ key: `mini-${k}` })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('agente que termina tira a miniatura', async ($: any, on: any) => {
+  await bootFrota($, on)
+  await spawnAll($, [['e1', 'Explore']])
+  await $.turn.complete(DONE('e1', 'answer'))
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ key: 'mini-siri' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('em meditar e cigarro as miniaturas não aparecem', async ($: any, on: any) => {
+  await bootFrota($, on)
+  await spawnAll($, [['e1', 'Explore']])
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openAjustes(ui)
+  await ui.press({ key: 'mode' })
+  expect(await ui.find({ key: 'mini-siri' })).toBeDefined()
+  await ui.press({ key: 'mode' })
+  expect(await ui.find({ key: 'mini-siri' })).toBeUndefined()
+  await ui.press({ key: 'mode' })
+  expect(await ui.find({ key: 'mini-siri' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('fleet-map.json do usuário troca a criatura de um tipo', async ($: any, on: any) => {
+  await bootFrota($, on, { 'C:/u/.claude/claudin/fleet-map.json': JSON.stringify({ Explore: 'aratu' }) })
+  await spawnAll($, [['e1', 'Explore']])
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ key: 'mini-aratu' })).toBeDefined()
+  expect(await ui.find({ key: 'mini-siri' })).toBeUndefined()
+  await ui.unmount()
+})
