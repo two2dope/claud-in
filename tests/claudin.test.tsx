@@ -49,6 +49,7 @@ test('a lista de Ajustes é paginada', async ($: any) => {
   expect(await ui.find({ key: 'mode' })).toBeDefined()
   expect(await ui.find({ key: 'pet' })).toBeUndefined()
   await ui.press({ key: 'next' })
+  await ui.press({ key: 'next' })
   expect(await ui.find({ key: 'pet' })).toBeDefined()
   expect(await ui.find({ key: 'mode' })).toBeUndefined()
   await ui.unmount()
@@ -525,8 +526,8 @@ test('texto longo do spawn é cortado, na frase e no prompt do investigar', asyn
 // ── dados do usuário fora da pasta do plugin (instalação por marketplace) ───────
 // Uma atualização do plugin substitui a pasta dele; sprites, atalhos e semente de favoritos do usuário
 // moram em <config>/claudin (CLAUDE_CONFIG_DIR, ou ~/.claude) e vencem os arquivos que o plugin traz.
-const bootFs = async ($: any, on: any, files: Record<string, string>, env: Record<string, string>) => {
-  mock.store(on)
+const bootFs = async ($: any, on: any, files: Record<string, string>, env: Record<string, string>, stored: Record<string, unknown> = {}) => {
+  mock.store(on, stored)
   mock.env(on, env)
   // Chave absoluta (C:/...) casa o caminho exato; chave relativa casa o arquivo do plugin, nunca os da pasta do usuário.
   const hit = (p: string) => {
@@ -879,5 +880,187 @@ test('nota vazia não escreve nada', async ($: any, on: any) => {
   await openCofre(ui)
   await ui.input({ key: 'cf-note', text: '   ' })
   expect(Object.keys(written)).toEqual([])
+  await ui.unmount()
+})
+
+// ── skins: pacote sprites/<skin>/<pose>, escolha em Ajustes e volta ao desenho padrão quando falta a pose ────
+const dirs = (...names: string[]) => names.map(name => ({ name, kind: 'dir', size: 0, mtimeMs: 0, isLink: false }))
+const SKIN_FILES: Record<string, string> = {
+  'sprites/mangue/idle.svg': '<svg id="mangue-idle"/>',
+  'sprites/mangue/ok.svg': '<svg id="mangue-ok"/>',
+  'sprites/mare/idle.svg': '<svg id="mare-idle"/>',
+  'sprites/malungo/idle.svg': '<svg id="malungo-idle"/>',
+}
+const bootSkins = async ($: any, on: any, extra: Record<string, string> = {}, userDirs: string[] = [], stored: Record<string, unknown> = {}) => {
+  mock.clock(on, { now: 2_600_000 })
+  on('fs.list', (_: any, e: any) => {
+    const path = String(e.path).split(String.fromCharCode(92)).join('/')
+    return { value: path.includes('/.claude/claudin/') ? dirs(...userDirs) : dirs('malungo', 'frota', 'mare', 'mangue') }
+  })
+  await bootFs($, on, { ...SKIN_FILES, ...extra }, { USERPROFILE: 'C:/u' }, stored)
+}
+const openAjustes = async (ui: any) => {
+  await ui.press({ key: 'tb' })
+  await ui.press({ key: 'cat-ajustes' })
+}
+const sprite = async (ui: any) => JSON.stringify(await ui.find({ type: 'Svg' }))
+
+test('sem skin escolhida o Claudin usa o desenho padrão', async ($: any, on: any) => {
+  await bootSkins($, on)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await sprite(ui)).not.toContain('mangue-idle')
+  await openAjustes(ui)
+  expect((await ui.find({ key: 'skin' }))?.props?.label).toMatch(/skin: padrão/)
+  await ui.unmount()
+})
+
+test('o botão de skin percorre padrão, mangue, maré, malungo e volta; frota não é skin', async ($: any, on: any) => {
+  await bootSkins($, on)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openAjustes(ui)
+  for (const [label, id] of [['mangue', 'mangue-idle'], ['maré', 'mare-idle'], ['malungo', 'malungo-idle']] as const) {
+    await ui.press({ key: 'skin' })
+    expect((await ui.find({ key: 'skin' }))?.props?.label).toMatch(new RegExp(`skin: ${label}`))
+    expect(await sprite(ui)).toContain(id)
+  }
+  await ui.press({ key: 'skin' })
+  expect((await ui.find({ key: 'skin' }))?.props?.label).toMatch(/skin: padrão/)
+  expect(await sprite(ui)).not.toContain('-idle"')
+  await ui.unmount()
+})
+
+test('a skin guardada volta na sessão seguinte; skin que sumiu volta ao padrão', async ($: any, on: any) => {
+  await bootSkins($, on, {}, [], { skin: 'mare' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await sprite(ui)).toContain('mare-idle')
+  await openAjustes(ui)
+  expect((await ui.find({ key: 'skin' }))?.props?.label).toMatch(/skin: maré/)
+  await ui.unmount()
+})
+
+test('skin guardada que não existe mais cai para o padrão', async ($: any, on: any) => {
+  await bootSkins($, on, {}, [], { skin: 'apagada' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openAjustes(ui)
+  expect((await ui.find({ key: 'skin' }))?.props?.label).toMatch(/skin: padrão/)
+  await ui.unmount()
+})
+
+test('pose que a skin não tem cai para o desenho padrão; a que tem usa a skin', async ($: any, on: any) => {
+  await bootSkins($, on)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openAjustes(ui)
+  await ui.press({ key: 'skin' })
+  await ui.press({ key: 'next' })
+  await ui.press({ key: 'next' })
+  await ui.press({ key: 'pet' })
+  expect(await sprite(ui)).toContain('mangue-ok')
+  await ui.press({ key: 'prev' })
+  await ui.press({ key: 'prev' })
+  await ui.press({ key: 'skin' })
+  await ui.press({ key: 'next' })
+  await ui.press({ key: 'next' })
+  await ui.press({ key: 'pet' })
+  expect(await sprite(ui)).not.toContain('mare-')
+  await ui.unmount()
+})
+
+test('modos com adereço (café) mantêm o desenho padrão em vez da skin', async ($: any, on: any) => {
+  await bootSkins($, on)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openAjustes(ui)
+  await ui.press({ key: 'skin' })
+  expect(await sprite(ui)).toContain('mangue-idle')
+  await ui.press({ key: 'mode' })
+  expect(await sprite(ui)).not.toContain('mangue-idle')
+  await ui.unmount()
+})
+
+test('skin do usuário em <config>/claudin/sprites/<nome> entra na lista', async ($: any, on: any) => {
+  await bootSkins($, on, { 'C:/u/.claude/claudin/sprites/meu/idle.svg': '<svg id="meu-idle"/>' }, ['meu'])
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openAjustes(ui)
+  for (let i = 0; i < 4; i++) await ui.press({ key: 'skin' })
+  expect((await ui.find({ key: 'skin' }))?.props?.label).toMatch(/skin: meu/)
+  expect(await sprite(ui)).toContain('meu-idle')
+  await ui.unmount()
+})
+
+// ── frota: uma miniatura por tipo de agente (criaturas do mangue), até 2, com ×n e +N ────
+const MINI_FILES: Record<string, string> = {
+  'sprites/frota/siri.svg': '<svg id="m-siri"/>',
+  'sprites/frota/garca.svg': '<svg id="m-garca"/>',
+  'sprites/frota/guaiamum.svg': '<svg id="m-guaiamum"/>',
+  'sprites/frota/aratu.svg': '<svg id="m-aratu"/>',
+  'sprites/frota/caranguejinho.svg': '<svg id="m-caranguejinho"/>',
+}
+const bootFrota = async ($: any, on: any, extra: Record<string, string> = {}) => {
+  mock.clock(on, { now: 2_700_000 })
+  on('agent.spawn', (_: any, e: any) => ({ agentId: e.description, model: 'haiku' }))
+  on('turn.complete', () => ({ text: '' }))
+  await bootFs($, on, { ...MINI_FILES, ...extra }, { USERPROFILE: 'C:/u' })
+}
+const spawnAll = async ($: any, list: [string, string][]) => {
+  for (const [desc, type] of list) await $.agent.spawn(SPAWN(desc, type))
+}
+
+test('com um agente vivo aparece a miniatura do tipo, sem contagem', async ($: any, on: any) => {
+  await bootFrota($, on)
+  await spawnAll($, [['e1', 'Explore']])
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(JSON.stringify(await ui.find({ key: 'mini-siri' }))).toContain('m-siri')
+  expect(await ui.find({ key: 'mini-garca' })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /^×/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('mostra os 2 tipos com mais agentes, ×n e +N no resto', async ($: any, on: any) => {
+  await bootFrota($, on)
+  await spawnAll($, [['p1', 'Plan'], ['e1', 'Explore'], ['e2', 'Explore'], ['g1', 'general-purpose']])
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ key: 'mini-siri' })).toBeDefined()
+  expect(await ui.find({ key: 'mini-garca' })).toBeDefined()
+  expect(await ui.find({ key: 'mini-guaiamum' })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /^×2$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^\+1$/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('sem agentes vivos não há miniaturas', async ($: any, on: any) => {
+  await bootFrota($, on)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  for (const k of ['siri', 'garca', 'guaiamum', 'aratu', 'caranguejinho']) expect(await ui.find({ key: `mini-${k}` })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('agente que termina tira a miniatura', async ($: any, on: any) => {
+  await bootFrota($, on)
+  await spawnAll($, [['e1', 'Explore']])
+  await $.turn.complete(DONE('e1', 'answer'))
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ key: 'mini-siri' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('em meditar e cigarro as miniaturas não aparecem', async ($: any, on: any) => {
+  await bootFrota($, on)
+  await spawnAll($, [['e1', 'Explore']])
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openAjustes(ui)
+  await ui.press({ key: 'mode' })
+  expect(await ui.find({ key: 'mini-siri' })).toBeDefined()
+  await ui.press({ key: 'mode' })
+  expect(await ui.find({ key: 'mini-siri' })).toBeUndefined()
+  await ui.press({ key: 'mode' })
+  expect(await ui.find({ key: 'mini-siri' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('fleet-map.json do usuário troca a criatura de um tipo', async ($: any, on: any) => {
+  await bootFrota($, on, { 'C:/u/.claude/claudin/fleet-map.json': JSON.stringify({ Explore: 'aratu' }) })
+  await spawnAll($, [['e1', 'Explore']])
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ key: 'mini-aratu' })).toBeDefined()
+  expect(await ui.find({ key: 'mini-siri' })).toBeUndefined()
   await ui.unmount()
 })

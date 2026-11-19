@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claudin: skins, lote 1</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#1d1d1b;--mut:#625f58;--line:#d8d5cc;--acc:#1f4fd8;--ok:#0b7a43;--okbg:#e3f4ea;--no:#b3261e;--nobg:#fbe7e5;--sb:#8a5a00;--sbbg:#fff1d6;--crit:#b3261e;--rec:#8a5a00;--nice:#4a5568}
+@media (prefers-color-scheme:dark){:root{--bg:#141414;--card:#1e1e1d;--ink:#ecebe6;--mut:#a9a69d;--line:#383733;--acc:#8fb0ff;--ok:#6fdc9f;--okbg:#12301f;--no:#ff9b93;--nobg:#3a1815;--sb:#f2c26b;--sbbg:#352a10;--crit:#ff9b93;--rec:#f2c26b;--nice:#b5bdc9}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:16px}
+.fig{margin:8px 0}.fig img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff}
+h1{font-size:1.35rem;margin:.2rem 0}
+.sub{color:var(--mut);margin:0 0 12px}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line)}
+.prog{height:10px;border-radius:6px;background:var(--line);overflow:hidden;display:flex}
+.prog i{display:block;height:100%}
+.pA{background:var(--ok)}.pR{background:var(--no)}.pS{background:var(--sb)}
+.stats{display:flex;flex-wrap:wrap;gap:12px;margin:8px 0;font-size:.9rem}
+.stats b{font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+button,select,textarea{font:inherit;color:inherit}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:4px 12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:#fff}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.card{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--line);border-radius:10px;padding:12px 14px;margin:12px 0}
+.card.sA{border-left-color:var(--ok)}.card.sR{border-left-color:var(--no)}.card.sS{border-left-color:var(--sb)}
+.card.focus{box-shadow:0 0 0 2px var(--acc)}
+.head{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}
+.id{font-weight:700;font-variant-numeric:tabular-nums}
+.sev{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.sev.crit{color:var(--crit)}.sev.rec{color:var(--rec)}.sev.nice{color:var(--nice)}.sev.dec{color:var(--acc)}
+.title{font-weight:600;flex:1 1 320px}
+.meta{color:var(--mut);font-size:.85rem}
+dl{margin:8px 0;display:grid;grid-template-columns:90px 1fr;gap:4px 10px}
+dt{color:var(--mut);font-size:.85rem}dd{margin:0}
+.act{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:6px 14px;cursor:pointer;min-height:36px}
+.btn[aria-pressed="true"].a{background:var(--okbg);border-color:var(--ok);color:var(--ok);font-weight:700}
+.btn[aria-pressed="true"].r{background:var(--nobg);border-color:var(--no);color:var(--no);font-weight:700}
+.btn[aria-pressed="true"].s{background:var(--sbbg);border-color:var(--sb);color:var(--sb);font-weight:700}
+textarea{width:100%;min-height:54px;margin-top:8px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--bg)}
+.export{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin:18px 0}
+.export textarea{min-height:200px;font:13px/1.45 ui-monospace,Consolas,monospace}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn.main{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+select{border:1px solid var(--line);border-radius:8px;padding:6px;background:var(--card);min-height:36px}
+.hint{color:var(--mut);font-size:.85rem}
+.msg{min-height:1.2em;font-size:.9rem;color:var(--mut)}
+kbd{border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:.8rem;background:var(--card)}
+@media (max-width:560px){dl{grid-template-columns:1fr}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Claudin: skins, lote 1</h1>
+  <p class="sub">Direção das skins (modo e frota). Previews em SVG provisório; a arte final vai pelo Flow. Decida cada item: <b>A</b> aprovar a correção, <b>R</b> rejeitar, <b>S</b> standby. Comente o porquê, sobretudo em R e S.</p>
+
+  <div class="bar" role="region" aria-label="Progresso e filtros">
+    <div class="prog" aria-hidden="true"><i class="pA" id="bA"></i><i class="pR" id="bR"></i><i class="pS" id="bS"></i></div>
+    <div class="stats" aria-live="polite">
+      <span>Decididos <b id="nDec">0</b>/<b id="nTot">0</b></span>
+      <span>✓ Aprovados <b id="nA">0</b></span>
+      <span>✕ Rejeitados <b id="nR">0</b></span>
+      <span>◷ Standby <b id="nS">0</b></span>
+      <span>Pendentes <b id="nP">0</b></span>
+    </div>
+    <div class="chips" role="group" aria-label="Filtrar por status">
+      <button class="chip" data-f="all" aria-pressed="true">Todos</button>
+      <button class="chip" data-f="P" aria-pressed="false">Pendentes</button>
+      <button class="chip" data-f="A" aria-pressed="false">Aprovados</button>
+      <button class="chip" data-f="R" aria-pressed="false">Rejeitados</button>
+      <button class="chip" data-f="S" aria-pressed="false">Standby</button>
+    </div>
+    <div class="chips" role="group" aria-label="Filtrar por severidade">
+      <button class="chip" data-v="all" aria-pressed="true">Todas</button>
+      <button class="chip" data-v="dec" aria-pressed="false">Decisões</button>
+      <button class="chip" data-v="crit" aria-pressed="false">Críticos</button>
+      <button class="chip" data-v="rec" aria-pressed="false">Recomendações</button>
+      <button class="chip" data-v="nice" aria-pressed="false">Nice-to-have</button>
+    </div>
+    <div class="hint">Teclado: <kbd>↑</kbd><kbd>↓</kbd> navegam, <kbd>A</kbd> <kbd>R</kbd> <kbd>S</kbd> decidem, <kbd>C</kbd> foca o comentário, <kbd>Esc</kbd> sai do comentário.</div>
+  </div>
+
+  <main id="list" aria-label="Itens para decisão"></main>
+
+  <section class="export" aria-label="Exportar veredito">
+    <h2 style="margin-top:0;font-size:1.05rem">Exportar veredito</h2>
+    <div class="row">
+      <label for="fmt">Formato:</label>
+      <select id="fmt">
+        <option value="md">Markdown (para colar no chat)</option>
+        <option value="json">JSON (schema ar-board.verdict.v1)</option>
+      </select>
+      <button class="btn main" id="copy">Copiar para o chat</button>
+      <button class="btn" id="dl">Baixar arquivo</button>
+      <button class="btn" id="reset">Limpar decisões</button>
+    </div>
+    <p class="msg" id="msg" role="status"></p>
+    <textarea id="out" readonly aria-label="Prévia do veredito"></textarea>
+    <p class="hint">Depois de copiar, cole no chat e escreva <b>Terminei</b>. Se a cópia automática falhar, selecione o texto acima e copie manualmente. Decisões ficam salvas neste navegador quando o ambiente permite.</p>
+  </section>
+</div>
+
+<script>
+"use strict";
+const BATCH = "claudin-skins-lote-1-2026-11-17";
+const ITEMS = [{"id": "M1", "title": "Skin Mangue (a atual, referência)", "sev": "dec", "img": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2012%22%20shape-rendering%3D%22crispEdges%22%3E%3Crect%20width%3D%2216%22%20height%3D%2212%22%20fill%3D%22%232b2b2b%22/%3E%3Cg%20transform%3D%22translate%280%200%29%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2210%22%20height%3D%225%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2212%22%20height%3D%223%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%224%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%224%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2211%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2211%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%223%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%225%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2210%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2212%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%220%22%20y%3D%225%22%20width%3D%222%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2214%22%20y%3D%225%22%20width%3D%222%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%225%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2210%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%225.5%22%20y%3D%224.5%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%231a1a1a%22/%3E%3Crect%20x%3D%2210.5%22%20y%3D%224.5%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%231a1a1a%22/%3E%3C/g%3E%3C/svg%3E", "alt": "Caranguejo coral, a skin atual", "contexto": "Eixo MODO. É o mascote de hoje, coral, com antenas da mesma cor. Entra no painel como régua para comparar as outras.", "proposta": "Recomendo APROVAR como skin padrão (nome Mangue). Rejeite se quiser trocar o padrão."}, {"id": "M2", "title": "Skin Maré (azul-esverdeado)", "sev": "dec", "img": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2012%22%20shape-rendering%3D%22crispEdges%22%3E%3Crect%20width%3D%2216%22%20height%3D%2212%22%20fill%3D%22%232b2b2b%22/%3E%3Cg%20transform%3D%22translate%280%200%29%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2210%22%20height%3D%225%22%20fill%3D%22%232f9e9a%22/%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2212%22%20height%3D%223%22%20fill%3D%22%232f9e9a%22/%3E%3Crect%20x%3D%224%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%237fd6d0%22/%3E%3Crect%20x%3D%224%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%237fd6d0%22/%3E%3Crect%20x%3D%2211%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%237fd6d0%22/%3E%3Crect%20x%3D%2211%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%237fd6d0%22/%3E%3Crect%20x%3D%223%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%232f9e9a%22/%3E%3Crect%20x%3D%225%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%232f9e9a%22/%3E%3Crect%20x%3D%2210%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%232f9e9a%22/%3E%3Crect%20x%3D%2212%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%232f9e9a%22/%3E%3Crect%20x%3D%220%22%20y%3D%225%22%20width%3D%222%22%20height%3D%221%22%20fill%3D%22%232f9e9a%22/%3E%3Crect%20x%3D%2214%22%20y%3D%225%22%20width%3D%222%22%20height%3D%221%22%20fill%3D%22%232f9e9a%22/%3E%3Crect%20x%3D%225%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2210%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%225.5%22%20y%3D%224.5%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%231a1a1a%22/%3E%3Crect%20x%3D%2210.5%22%20y%3D%224.5%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%231a1a1a%22/%3E%3C/g%3E%3C/svg%3E", "alt": "Caranguejo teal com antenas claras", "contexto": "Eixo MODO. Paleta fria, com contraste bom no tema escuro. Combina com a ideia de maré do manguezal.", "proposta": "Candidata a skin dos modos calmos (meditar e cigarro), por ser menos quente que o coral."}, {"id": "M3", "title": "Skin Lama (marrom com antena musgo)", "sev": "dec", "img": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2012%22%20shape-rendering%3D%22crispEdges%22%3E%3Crect%20width%3D%2216%22%20height%3D%2212%22%20fill%3D%22%232b2b2b%22/%3E%3Cg%20transform%3D%22translate%280%200%29%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2210%22%20height%3D%225%22%20fill%3D%22%238b6b4a%22/%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2212%22%20height%3D%223%22%20fill%3D%22%238b6b4a%22/%3E%3Crect%20x%3D%224%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%236b8e4e%22/%3E%3Crect%20x%3D%224%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%236b8e4e%22/%3E%3Crect%20x%3D%2211%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%236b8e4e%22/%3E%3Crect%20x%3D%2211%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%236b8e4e%22/%3E%3Crect%20x%3D%223%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%238b6b4a%22/%3E%3Crect%20x%3D%225%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%238b6b4a%22/%3E%3Crect%20x%3D%2210%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%238b6b4a%22/%3E%3Crect%20x%3D%2212%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%238b6b4a%22/%3E%3Crect%20x%3D%220%22%20y%3D%225%22%20width%3D%222%22%20height%3D%221%22%20fill%3D%22%238b6b4a%22/%3E%3Crect%20x%3D%2214%22%20y%3D%225%22%20width%3D%222%22%20height%3D%221%22%20fill%3D%22%238b6b4a%22/%3E%3Crect%20x%3D%225%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2210%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%225.5%22%20y%3D%224.5%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%231a1a1a%22/%3E%3Crect%20x%3D%2210.5%22%20y%3D%224.5%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%231a1a1a%22/%3E%3C/g%3E%3C/svg%3E", "alt": "Caranguejo marrom com antenas verdes", "contexto": "Eixo MODO. Terrosa, a mais discreta das quatro. Risco: no tema escuro o marrom perde contraste com o fundo.", "proposta": "Aprove se quiser uma opção sóbria; comente se o contraste incomodar."}, {"id": "M4", "title": "Skin Parabólica (cinza com prato na cabeça)", "sev": "dec", "img": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2012%22%20shape-rendering%3D%22crispEdges%22%3E%3Crect%20width%3D%2216%22%20height%3D%2212%22%20fill%3D%22%232b2b2b%22/%3E%3Cg%20transform%3D%22translate%280%200%29%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2210%22%20height%3D%225%22%20fill%3D%22%238f9bad%22/%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2212%22%20height%3D%223%22%20fill%3D%22%238f9bad%22/%3E%3Crect%20x%3D%224%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23cfd6e0%22/%3E%3Crect%20x%3D%224%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23cfd6e0%22/%3E%3Crect%20x%3D%2211%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23cfd6e0%22/%3E%3Crect%20x%3D%2211%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23cfd6e0%22/%3E%3Crect%20x%3D%223%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%238f9bad%22/%3E%3Crect%20x%3D%225%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%238f9bad%22/%3E%3Crect%20x%3D%2210%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%238f9bad%22/%3E%3Crect%20x%3D%2212%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%238f9bad%22/%3E%3Crect%20x%3D%220%22%20y%3D%225%22%20width%3D%222%22%20height%3D%221%22%20fill%3D%22%238f9bad%22/%3E%3Crect%20x%3D%2214%22%20y%3D%225%22%20width%3D%222%22%20height%3D%221%22%20fill%3D%22%238f9bad%22/%3E%3Crect%20x%3D%225%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2210%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%225.5%22%20y%3D%224.5%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%231a1a1a%22/%3E%3Crect%20x%3D%2210.5%22%20y%3D%224.5%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%231a1a1a%22/%3E%3Crect%20x%3D%225%22%20y%3D%220%22%20width%3D%226%22%20height%3D%221%22%20fill%3D%22%23cfd6e0%22/%3E%3Crect%20x%3D%227%22%20y%3D%221%22%20width%3D%222%22%20height%3D%221%22%20fill%3D%22%23cfd6e0%22/%3E%3C/g%3E%3C/svg%3E", "alt": "Caranguejo cinza com uma antena parabólica no topo", "contexto": "Eixo MODO. Referência direta à parabólica enfiada na lama do manifesto Mangue Beat que inspira o banner. É a mais carregada de detalhe.", "proposta": "Aprove se a identidade Mangue Beat deve aparecer no mascote; rejeite se o prato pesar demais em tamanho pequeno."}, {"id": "F1", "title": "Frota: miniaturas da mesma cor (até 3)", "sev": "dec", "img": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2038%2012%22%20shape-rendering%3D%22crispEdges%22%3E%3Crect%20width%3D%2238%22%20height%3D%2212%22%20fill%3D%22%232b2b2b%22/%3E%3Cg%20transform%3D%22translate%280%200%29%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2210%22%20height%3D%225%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2212%22%20height%3D%223%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%224%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%224%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2211%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2211%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%223%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%225%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2210%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2212%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%220%22%20y%3D%225%22%20width%3D%222%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2214%22%20y%3D%225%22%20width%3D%222%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%225%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2210%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%225.5%22%20y%3D%224.5%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%231a1a1a%22/%3E%3Crect%20x%3D%2210.5%22%20y%3D%224.5%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%231a1a1a%22/%3E%3C/g%3E%3Crect%20x%3D%2218%22%20y%3D%226%22%20width%3D%224%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2217%22%20y%3D%227%22%20width%3D%226%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2218%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2221%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2219%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2220%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2225%22%20y%3D%226%22%20width%3D%224%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2224%22%20y%3D%227%22%20width%3D%226%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2225%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2228%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2226%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2227%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2232%22%20y%3D%226%22%20width%3D%224%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2231%22%20y%3D%227%22%20width%3D%226%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2232%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2235%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2233%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2234%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3C/svg%3E", "alt": "Mascote com três caranguejinhos coral ao lado", "contexto": "Eixo FROTA (S3). Um caranguejinho por agente vivo, todos iguais. Visual mais limpo, mas não dá para saber qual agente é qual.", "proposta": "Opção mais sóbria. Recomendo APROVAR se a linha de resumo e a aba Frota já bastam para identificar cada agente."}, {"id": "F2", "title": "Frota: miniaturas com cor por tipo de agente", "sev": "dec", "img": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2038%2012%22%20shape-rendering%3D%22crispEdges%22%3E%3Crect%20width%3D%2238%22%20height%3D%2212%22%20fill%3D%22%232b2b2b%22/%3E%3Cg%20transform%3D%22translate%280%200%29%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2210%22%20height%3D%225%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2212%22%20height%3D%223%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%224%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%224%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2211%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2211%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%223%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%225%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2210%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2212%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%220%22%20y%3D%225%22%20width%3D%222%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2214%22%20y%3D%225%22%20width%3D%222%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%225%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2210%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%225.5%22%20y%3D%224.5%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%231a1a1a%22/%3E%3Crect%20x%3D%2210.5%22%20y%3D%224.5%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%231a1a1a%22/%3E%3C/g%3E%3Crect%20x%3D%2218%22%20y%3D%226%22%20width%3D%224%22%20height%3D%222%22%20fill%3D%22%235b8def%22/%3E%3Crect%20x%3D%2217%22%20y%3D%227%22%20width%3D%226%22%20height%3D%221%22%20fill%3D%22%235b8def%22/%3E%3Crect%20x%3D%2218%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%235b8def%22/%3E%3Crect%20x%3D%2221%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%235b8def%22/%3E%3Crect%20x%3D%2219%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2220%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2225%22%20y%3D%226%22%20width%3D%224%22%20height%3D%222%22%20fill%3D%22%234caf7d%22/%3E%3Crect%20x%3D%2224%22%20y%3D%227%22%20width%3D%226%22%20height%3D%221%22%20fill%3D%22%234caf7d%22/%3E%3Crect%20x%3D%2225%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%234caf7d%22/%3E%3Crect%20x%3D%2228%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%234caf7d%22/%3E%3Crect%20x%3D%2226%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2227%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2232%22%20y%3D%226%22%20width%3D%224%22%20height%3D%222%22%20fill%3D%22%23e0a63a%22/%3E%3Crect%20x%3D%2231%22%20y%3D%227%22%20width%3D%226%22%20height%3D%221%22%20fill%3D%22%23e0a63a%22/%3E%3Crect%20x%3D%2232%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23e0a63a%22/%3E%3Crect%20x%3D%2235%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23e0a63a%22/%3E%3Crect%20x%3D%2233%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2234%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3C/svg%3E", "alt": "Mascote com três caranguejinhos azul, verde e âmbar", "contexto": "Eixo FROTA (S3). Cada tipo de agente ganha uma cor (por exemplo Explore azul, Plan verde, geral âmbar). Mais informação, mais atenção pedida.", "proposta": "Só aprove se a cor ajudar a você; senão, rejeite para respeitar o princípio de atenção a menos. Precisa de um mapa tipo→cor."}, {"id": "F3", "title": "Frota: 2 miniaturas e '+N' no resto", "sev": "dec", "img": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2038%2012%22%20shape-rendering%3D%22crispEdges%22%3E%3Crect%20width%3D%2238%22%20height%3D%2212%22%20fill%3D%22%232b2b2b%22/%3E%3Cg%20transform%3D%22translate%280%200%29%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2210%22%20height%3D%225%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2212%22%20height%3D%223%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%224%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%224%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2211%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2211%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%223%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%225%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2210%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2212%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%220%22%20y%3D%225%22%20width%3D%222%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2214%22%20y%3D%225%22%20width%3D%222%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%225%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2210%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%225.5%22%20y%3D%224.5%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%231a1a1a%22/%3E%3Crect%20x%3D%2210.5%22%20y%3D%224.5%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%231a1a1a%22/%3E%3C/g%3E%3Crect%20x%3D%2218%22%20y%3D%226%22%20width%3D%224%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2217%22%20y%3D%227%22%20width%3D%226%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2218%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2221%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2219%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2220%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2225%22%20y%3D%226%22%20width%3D%224%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2224%22%20y%3D%227%22%20width%3D%226%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2225%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2228%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2226%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2227%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Ctext%20x%3D%2236%22%20y%3D%2210.5%22%20font-size%3D%224%22%20fill%3D%22%23f5f4ed%22%20font-family%3D%22monospace%22%20text-anchor%3D%22end%22%3E%2B3%3C/text%3E%3C/svg%3E", "alt": "Mascote com dois caranguejinhos e o texto +3", "contexto": "Eixo FROTA (S3). Teto menor, 2 visíveis, e o excedente vira número. Escala bem com 20 agentes de um workflow.", "proposta": "Recomendo APROVAR combinado com F1: mesma cor, teto de 2 ou 3 e '+N'."}, {"id": "F4", "title": "Frota: miniaturas com ponto de estado", "sev": "dec", "img": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2038%2012%22%20shape-rendering%3D%22crispEdges%22%3E%3Crect%20width%3D%2238%22%20height%3D%2212%22%20fill%3D%22%232b2b2b%22/%3E%3Cg%20transform%3D%22translate%280%200%29%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2210%22%20height%3D%225%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2212%22%20height%3D%223%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%224%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%224%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2211%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2211%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%223%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%225%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2210%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2212%22%20y%3D%228%22%20width%3D%221%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%220%22%20y%3D%225%22%20width%3D%222%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2214%22%20y%3D%225%22%20width%3D%222%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%225%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2210%22%20y%3D%224%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%225.5%22%20y%3D%224.5%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%231a1a1a%22/%3E%3Crect%20x%3D%2210.5%22%20y%3D%224.5%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%231a1a1a%22/%3E%3C/g%3E%3Crect%20x%3D%2218%22%20y%3D%226%22%20width%3D%224%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2217%22%20y%3D%227%22%20width%3D%226%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2218%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2221%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2219%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2220%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2219%22%20y%3D%224.5%22%20width%3D%222%22%20height%3D%221.2%22%20fill%3D%22%23e0a63a%22/%3E%3Crect%20x%3D%2225%22%20y%3D%226%22%20width%3D%224%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2224%22%20y%3D%227%22%20width%3D%226%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2225%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2228%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2226%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2227%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2226%22%20y%3D%224.5%22%20width%3D%222%22%20height%3D%221.2%22%20fill%3D%22%23e0a63a%22/%3E%3Crect%20x%3D%2232%22%20y%3D%226%22%20width%3D%224%22%20height%3D%222%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2231%22%20y%3D%227%22%20width%3D%226%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2232%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2235%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23D97757%22/%3E%3Crect%20x%3D%2233%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2234%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23f5f4ed%22/%3E%3Crect%20x%3D%2233%22%20y%3D%224.5%22%20width%3D%222%22%20height%3D%221.2%22%20fill%3D%22%234caf7d%22/%3E%3C/svg%3E", "alt": "Mascote com três caranguejinhos e pontos âmbar e verde acima deles", "contexto": "Eixo FROTA (S3). Um ponto acima de cada mini: âmbar rodando, verde terminou. O verde some após 8 s, como a linha da frota hoje. Cor só como apoio, nunca sozinha.", "proposta": "Aprove se quiser ver o término sem ler texto. Rejeite se o ponto virar ruído."}, {"id": "D1", "title": "Modos calmos usam sempre a skin mais quieta", "sev": "rec", "contexto": "Regra de atenção S9 aprovada: skin só muda pose, cor e adereço. Falta decidir se meditar e cigarro forçam uma skin quieta (sem prato, sem pontos de estado, sem minis animadas).", "proposta": "Recomendo APROVAR: em meditar e cigarro a skin escolhida é desenhada na versão mínima."}, {"id": "D2", "title": "Skin por modo: variação da skin escolhida ou skin própria por modo?", "sev": "dec", "contexto": "Hoje cada modo já tem adereço (xícara, cigarro, óculos). Opção A: você escolhe UMA skin e os modos só trocam adereço. Opção B: cada modo tem a sua skin (5 conjuntos de poses).", "proposta": "Recomendo A: menos arte para gerar e fácil de explicar. Comente se quiser B."}, {"id": "D3", "title": "Arte final pelo Flow (PNG até ~90 KB, 64x48) em vez de SVG por script", "sev": "dec", "contexto": "Você pediu o seu processo do Flow. Estes previews são SVG provisório só para escolher direção. Para a arte final, o carregador aceita PNG até cerca de 90 KB por pose, desenhado em 64x48 e pixelado. A flow-assets já está instalada.", "proposta": "Aprove para eu planejar o lote do Flow (uma imagem âncora de estilo, 8 poses por skin escolhida) amanhã, curado em novo AR Board."}, {"id": "D4", "title": "Nomes: Mangue (padrão), Maré, Lama, Parabólica", "sev": "nice", "contexto": "Nomes dos pacotes, que viram as pastas sprites/<skin>/ e as opções em Ajustes.", "proposta": "Aprove para manter, ou comente outro nome."}];
+const SEVLABEL={dec:"Decisão",crit:"Crítico",rec:"Recomendação",nice:"Nice-to-have"};
+const STLABEL={A:"Aprovado",R:"Rejeitado",S:"Standby"};
+const KEY="ar-board.verdict.v1:"+BATCH;
+let state={};          // id -> {status, comment, ts}
+let fStatus="all", fSev="all", cur=0, persistOK=true;
+
+function load(){try{const r=localStorage.getItem(KEY);if(r)state=JSON.parse(r)||{};}catch(e){persistOK=false;}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){persistOK=false;}}
+function st(id){return (state[id]&&state[id].status)||"";}
+
+function el(tag,attrs,text){const n=document.createElement(tag);if(attrs)for(const k in attrs){if(k==="class")n.className=attrs[k];else n.setAttribute(k,attrs[k]);}if(text!==undefined)n.textContent=text;return n;}
+
+function visible(){return ITEMS.filter(it=>{
+  const s=st(it.id);
+  if(fSev!=="all"&&it.sev!==fSev)return false;
+  if(fStatus==="all")return true;
+  if(fStatus==="P")return !s;
+  return s===fStatus;
+});}
+
+function render(){
+  const list=document.getElementById("list");list.textContent="";
+  const vis=visible();
+  if(cur>=vis.length)cur=Math.max(0,vis.length-1);
+  if(!vis.length){list.appendChild(el("p",{class:"hint"},"Nenhum item neste filtro."));}
+  vis.forEach((it,i)=>{
+    const s=st(it.id);
+    const c=el("article",{class:"card"+(s?" s"+s:"")+(i===cur?" focus":""),tabindex:"0","data-id":it.id,"aria-label":it.id+": "+it.title});
+    const h=el("div",{class:"head"});
+    h.appendChild(el("span",{class:"id"},it.id));
+    h.appendChild(el("span",{class:"sev "+it.sev},SEVLABEL[it.sev]));
+    h.appendChild(el("span",{class:"title"},it.title));
+    if(s)h.appendChild(el("span",{class:"meta"},(s==="A"?"✓ ":s==="R"?"✕ ":"◷ ")+STLABEL[s]));
+    c.appendChild(h);
+    if(it.lenses||it.lines)c.appendChild(el("div",{class:"meta"},[it.lenses?"Lentes: "+it.lenses:"",it.lines?"Linhas: "+it.lines:""].filter(Boolean).join(" · ")));
+    if(it.img){const f=el("figure",{class:"fig"});const im=el("img",{src:it.img,alt:it.alt||it.title,loading:"lazy"});f.appendChild(im);c.appendChild(f);}
+    const dl=el("dl");
+    [["Contexto",it.impact||it.contexto],["Proposta",it.fix||it.proposta]].forEach(([k,v])=>{if(v){dl.appendChild(el("dt",null,k));dl.appendChild(el("dd",null,v));}});
+    if(dl.childNodes.length)c.appendChild(dl);
+    const act=el("div",{class:"act",role:"group","aria-label":"Decisão para "+it.id});
+    [["A","a","✓ Aprovar (A)"],["R","r","✕ Rejeitar (R)"],["S","s","◷ Standby (S)"]].forEach(([k,cls,lab])=>{
+      const b=el("button",{class:"btn "+cls,type:"button","aria-pressed":String(s===k),"data-act":k},lab);
+      b.addEventListener("click",()=>decide(it.id,k));
+      act.appendChild(b);
+    });
+    c.appendChild(act);
+    const ta=el("textarea",{placeholder:"Comentário: por que? (obrigatório em R e S ao exportar)","aria-label":"Comentário para "+it.id,"data-cid":it.id});
+    ta.value=(state[it.id]&&state[it.id].comment)||"";
+    ta.addEventListener("input",()=>{state[it.id]=Object.assign({status:"",comment:"",ts:""},state[it.id],{comment:ta.value,ts:new Date().toISOString()});save();updateStats();buildOut();});
+    ta.addEventListener("keydown",e=>{if(e.key==="Escape"){e.stopPropagation();c.focus();}});
+    c.appendChild(ta);
+    c.addEventListener("focusin",()=>{cur=i;document.querySelectorAll(".card").forEach((x,j)=>x.classList.toggle("focus",j===i));});
+    list.appendChild(c);
+  });
+  updateStats();buildOut();
+}
+
+function decide(id,k){
+  const prev=state[id]||{status:"",comment:"",ts:""};
+  const next=prev.status===k?"":k;
+  state[id]=Object.assign({},prev,{status:next,ts:new Date().toISOString()});
+  save();
+  const keep=cur;render();cur=keep;focusCard();
+}
+
+function focusCard(){const cs=document.querySelectorAll(".card");if(cs[cur]){cs[cur].focus({preventScroll:false});}}
+
+function counts(){const c={A:0,R:0,S:0};ITEMS.forEach(it=>{const s=st(it.id);if(s)c[s]++;});c.dec=c.A+c.R+c.S;c.tot=ITEMS.length;c.P=c.tot-c.dec;return c;}
+function updateStats(){
+  const c=counts();
+  nTot.textContent=c.tot;nDec.textContent=c.dec;nA.textContent=c.A;nR.textContent=c.R;nS.textContent=c.S;nP.textContent=c.P;
+  bA.style.width=(100*c.A/c.tot)+"%";bR.style.width=(100*c.R/c.tot)+"%";bS.style.width=(100*c.S/c.tot)+"%";
+}
+
+function buildData(){
+  const items=ITEMS.map(it=>({id:it.id,status:st(it.id)||"pendente",comment:(state[it.id]&&state[it.id].comment)||"",ts:(state[it.id]&&state[it.id].ts)||""}));
+  const c=counts();
+  return {schema:"ar-board.verdict.v1",batch:BATCH,mode:"triagem",items:items,summary:{A:c.A,R:c.R,S:c.S,pendentes:c.P}};
+}
+function buildMD(){
+  const d=buildData(),by={A:[],R:[],S:[],pendente:[]};
+  d.items.forEach(x=>by[x.status].push(x));
+  const title=id=>{const it=ITEMS.find(i=>i.id===id);return it?it.title:id;};
+  const line=x=>"- "+x.id+" — "+title(x.id)+(x.comment?"\n  - Comentário: "+x.comment.replace(/\n/g,"\n    "):"");
+  let o="Terminei. Veredito do lote "+d.batch+"\n\nResumo: "+d.summary.A+" aprovados, "+d.summary.R+" rejeitados, "+d.summary.S+" em standby, "+d.summary.pendentes+" pendentes.\n";
+  [["A","Aprovados"],["R","Rejeitados"],["S","Standby"],["pendente","Pendentes"]].forEach(([k,t])=>{
+    o+="\n## "+t+" ("+by[k].length+")\n"+(by[k].length?by[k].map(line).join("\n"):"- nenhum")+"\n";
+  });
+  return o;
+}
+function buildOut(){out.value=fmt.value==="json"?JSON.stringify(buildData(),null,2):buildMD();}
+function missingComments(){return ITEMS.filter(it=>{const s=st(it.id);return (s==="R"||s==="S")&&!((state[it.id]&&state[it.id].comment)||"").trim();}).map(i=>i.id);}
+
+function say(t){msg.textContent=t;}
+async function copy(){
+  const miss=missingComments();
+  buildOut();
+  if(miss.length){say("Atenção: sem comentário em "+miss.join(", ")+". Copiando mesmo assim; o 'porquê' alimenta as regras do agente.");}
+  try{await navigator.clipboard.writeText(out.value);say((miss.length?msg.textContent+" ":"")+"Copiado. Cole no chat e escreva Terminei.");}
+  catch(e){out.removeAttribute("readonly");out.focus();out.select();let ok=false;try{ok=document.execCommand("copy");}catch(_){}
+    out.setAttribute("readonly","");say(ok?"Copiado. Cole no chat e escreva Terminei.":"Cópia automática bloqueada neste ambiente. Selecione o texto da prévia e copie manualmente.");}
+}
+function download(){
+  buildOut();
+  const j=fmt.value==="json";
+  const blob=new Blob([out.value],{type:j?"application/json":"text/markdown"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="veredito-ar-board."+(j?"json":"md");
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  say("Arquivo gerado. Se o download for bloqueado aqui, use Copiar.");
+}
+
+document.querySelectorAll("[data-f]").forEach(b=>b.addEventListener("click",()=>{fStatus=b.dataset.f;document.querySelectorAll("[data-f]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));cur=0;render();}));
+document.querySelectorAll("[data-v]").forEach(b=>b.addEventListener("click",()=>{fSev=b.dataset.v;document.querySelectorAll("[data-v]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));cur=0;render();}));
+fmt.addEventListener("change",buildOut);
+document.getElementById("copy").addEventListener("click",copy);
+document.getElementById("dl").addEventListener("click",download);
+let armed=false,armTimer=null;
+document.getElementById("reset").addEventListener("click",ev=>{
+  const b=ev.currentTarget;
+  if(!armed){armed=true;b.textContent="Confirmar limpeza";say("Clique de novo em 4 segundos para apagar todas as decisões e comentários.");
+    armTimer=setTimeout(()=>{armed=false;b.textContent="Limpar decisões";say("");},4000);return;}
+  clearTimeout(armTimer);armed=false;b.textContent="Limpar decisões";state={};save();render();say("Decisões limpas.");
+});
+
+document.addEventListener("keydown",e=>{
+  const t=e.target;if(t&&(t.tagName==="TEXTAREA"||t.tagName==="SELECT"||t.tagName==="INPUT"))return;
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  const vis=visible();if(!vis.length)return;
+  const k=e.key.toLowerCase();
+  if(k==="arrowdown"||k==="j"){e.preventDefault();cur=Math.min(vis.length-1,cur+1);focusCard();}
+  else if(k==="arrowup"||k==="k"){e.preventDefault();cur=Math.max(0,cur-1);focusCard();}
+  else if(k==="a"||k==="r"||k==="s"){e.preventDefault();decide(vis[cur].id,k.toUpperCase());}
+  else if(k==="c"){e.preventDefault();const ta=document.querySelectorAll(".card")[cur].querySelector("textarea");if(ta)ta.focus();}
+});
+
+load();render();
+if(!persistOK)say("Armazenamento local indisponível: decisões valem só nesta sessão. Use Copiar antes de fechar.");
+</script>
+</body>
+</html>

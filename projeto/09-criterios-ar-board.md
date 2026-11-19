@@ -44,3 +44,40 @@ Lote `claudin-cofre-skins-2026-11-17`. Veredito de Thomáz: 14 aprovados, 3 reje
 3. **S1, eixos da primeira rodada.** Aprovado sem comentário; assumido modo + frota, como proposto.
 4. **S8, formato da arte.** Confirmar o fluxo do Flow e o orçamento de 90 KB por pose antes do primeiro lote.
 5. **Validação visual da frota** continua pendente com Thomáz (prints do app).
+
+## Lote de skins 1 (2026-11-18): 9 aprovados, 1 rejeitado, 2 em standby
+Painel em `projeto/skins-ar-board/`. Previews em SVG provisório; a arte final vai pelo Flow (D3).
+
+### Aprovar quando
+- **Pacotes de skin (D4, com ajuste):** Mangue (padrão, a atual), Maré (azul-esverdeado) e **Malungo**, que substitui a Parabólica. No Malungo, o prato da parabólica sai e entra o chapéu icônico de Chico Science (M4).
+- **Frota (F2 + F3, combinados):** miniaturas **distintas por tipo de agente**, até 2 visíveis e `+N` no resto. Thomáz quer que as miniaturas possam ser **outros seres do mangue**, não só caranguejos.
+- **Skin por modo (D2):** uma skin escolhida, e os modos só trocam adereço (opção A recomendada, aprovada sem comentário).
+- **Modos calmos (D1):** meditar e cigarro desenham a skin na versão mais quieta. Thomáz avisa se mudar de ideia.
+- **Arte final pelo Flow (D3):** PNG até cerca de 90 KB por pose, 64x48, com a `flow-assets` (versão do Antigravity, já instalada em `~/.claude/skills`).
+
+### Rejeitar quando
+- Ponto de estado nas miniaturas (F4). Porquê: a cor por tipo (F2) já foi decidida.
+
+### Standby (volta só com contexto novo)
+- **Lama (M3):** "não me agrada".
+- **Miniaturas de mesma cor (F1):** "quero distinção". Na prática superada por F2.
+
+### Em aberto (nascem do veredito)
+1. **Mapa tipo → ser do mangue e cor.** Quais tipos de agente ganham figura própria (Explore, Plan, general-purpose, outros) e qual criatura cada um (por exemplo guaiamum, siri, aratu, camarão, garça). A forma diferente também garante que a cor nunca seja o único sinal.
+2. **Com mais de 2 tipos vivos, quais 2 aparecem?** Proposta: os 2 mais antigos, ou os 2 tipos mais frequentes. Decidir antes do código.
+3. **Chico Science (M4/Malungo):** só o chapéu de palha, sem rosto nem traços da pessoa, para ser homenagem e não retrato.
+4. **Cota do Flow:** o limite de 12 gerações do Antigravity pede um lote enxuto: uma imagem âncora de estilo e as poses por skin em etapas.
+
+### Decisões de 2026-11-18 (mapa e Flow)
+- **Mapa aprovado:** Explorar = siri azul; Planejar = garça lilás; Executar = guaiamum âmbar; Revisar = aratu verde; outros = caranguejinho cinza. Uma miniatura por tipo, os 2 tipos com mais agentes vivos (empate: o mais antigo), `×n` quando há vários e `+N` nos agentes sem miniatura. Opcional: `fleet-map.json` em `<config>/claudin/`.
+- **Arte:** só as âncoras no Nano Banana, em separado; o lote inteiro (32 imagens) de uma vez no Flow, com as âncoras como referência. Prompts em `projeto/skins-ar-board/flow-skins-prompts.md`. Correção: são 9 poses por skin (`MOODS` inclui `alert`), não 8.
+
+
+## Arte das skins (2026-11-18): 6 aprovados, 1 rejeitado
+Painel `projeto/skins-ar-board/ar-board-skins-arte.html`. PNGs finais em `assets/skins/` (poses 64x48, minis 24x24, até 1 KB cada, alfa de 1 bit, paleta travada por skin).
+- **Mangue (S1):** "perfeita". Fica como o desenho padrão.
+- **Maré (S2) rejeitada como gerada:** agora é troca de paleta a partir do Mangue (mesma silhueta, antenas claras). Os 9 cards da Maré saem do lote do Flow.
+- **Malungo (S3) aprovado, mas "singela":** rodada 2 feita no Flow em 2026-11-19 e reingerida (9 poses). O chapéu de palha trançado tem 489x153 px em todas as poses (a `search` inclina, como o Mangue). Na `alert` e na `run` as antenas finas saem do chapéu; nas outras ficam escondidas.
+- **Minis (M1), pernas (D2) e pipeline (D3) aprovados.** Mantém 2 pernas. Os PNGs reduzidos são a fonte da arte.
+- **Correção de ingestão (D1 e M1):** o `err` ficava fraco e o siri sem olhos porque as pupilas `#1A1A1A` caíam como fundo `#1E1E1E`. Resolvido tratando como primeiro plano tudo que não liga à borda; o X e as pupilas voltaram, sem regerar nada.
+- **Aratu refeito sem o ramo (2026-11-19):** nova imagem do Flow, reingerida em 24x24. Em aberto: o pacote de skins no código continua depois do cofre.
