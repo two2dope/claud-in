@@ -238,4 +238,4 @@ O Mangue Beat, o manifesto *Caranguejos com cérebro* e Chico Science & Nação 
 
 ---
 
-© 2026 two2Dope
+Licença [MIT](LICENSE). © 2026 two2Dope
