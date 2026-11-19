@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1 — 2026-11-19
+
+- **O Claudin agora anda dentro do cenário.** Com a faixa do QG ligada (botão 🏝), o mascote fica em cima da imagem, no chão da cabana, andando por ela com a skin, o olhar e os modos de sempre. O balão passa para logo abaixo da faixa, com a seta para cima, apontando para ele. Sem a faixa nada muda.
+- **Conhecido:** o visual no desktop do mascote dentro da faixa ainda não foi conferido; a luz da noite forma um domo grande no centro; sem LICENSE.
+
 ## 0.7.0 — 2026-11-19
 
 - **QG do Claudin no Mangue (opcional).** O botão 🏝, ao lado da 🧰, liga uma faixa de pixel art acima do mascote: a base dos caranguejos com cérebro, numa cabana de palafita entre raízes de mangue. A faixa se ajusta à largura da janela, na linha acima do prompt e no painel lateral, e a escolha fica guardada. No terminal, que não desenha imagem, o botão não aparece.
