@@ -5,7 +5,7 @@ import type { Action, CofreView, ColaView, FleetRow, Mode, ModeKind, Mood, Say, 
 import { tabLabel } from './abas'
 import { COLA_FILE, flattenCola, parseCatalogo, withClaudin } from './cola'
 import { QG_ART } from './cenario-arte'
-import { SPOTS, STATIONS, composeQg, pct, pomodoroOf, stationCol, withOutline } from './cenario'
+import { SPOTS, STATIONS, composeQg, pct, pomodoroOf, stationCol, withOutline, type Panel } from './cenario'
 import { CONTEXT_PRESETS, DEFAULT_PRESET, contextLevel, contextLine, contextWarn, presetById, readPercent } from './contexto'
 import { CORAL, SKINS, lookFor, sprite } from './desenho'
 import { MINI_KINDS, parseFleetMap, pickMinis } from './minis'
@@ -61,8 +61,14 @@ const SHORTCUTS: { label: string; text: string }[] = [
   { label: 'próximo passo', text: 'Qual é o próximo passo mais útil agora? Responda em uma frase.' },
 ]
 const TOOLBOX_W = 56
+// Cores da caixa no painel lateral, como na ilustração do README.
+const CHIP_BG = '#2b2b2b'
+const ROW_BG = '#242424'
+const ROW_HOVER = '#303030'
 // Recheio invisível de uma zona do QG: linhas de espaços duros, maiores que qualquer zona (a zona corta o excesso),
 // para o clique pegar em todo o retângulo do objeto e não só numa letra.
+// As zonas em ordem da esquerda para a direita (a camada as põe lado a lado).
+const ZONES = [...SPOTS].sort((a, b) => a.x0 - b.x0)
 const ZONE_FILL = Array.from({ length: 14 }, () => ' '.repeat(48)).join('\n')
 const PAGE = 4
 const PAGE_CMD = 3
@@ -91,6 +97,8 @@ const ctxLevel = atom({ plugin: 'claudin', key: 'ctxLevel' } as const, 0)
 const ctxPreset = atom({ plugin: 'claudin', key: 'ctxPreset' } as const, DEFAULT_PRESET)
 // QG do Claudin no Mangue: a faixa de pixel art acima do mascote, ligada pelo botão 📡 (guardada em $.store).
 const cenario = atom({ plugin: 'claudin', key: 'cenario' } as const, false)
+// Interruptor da lanterna do QG: true apaga a luz da sala (guardado em $.store).
+const lightsOff = atom({ plugin: 'claudin', key: 'lightsOff' } as const, false)
 // Skins: o padrão é a Mangue. 'classico' é o Claudin chapado de antes (e o único que usa os sprites soltos do usuário).
 // Pastas sprites/<skin>/<pose>.svg do usuário viram skins de arte própria. A escolha fica em $.store.
 const DEFAULT_SKIN = 'mangue'
@@ -698,6 +706,40 @@ async function cycleCtxPreset($: any) {
 async function loadCenario($: any) {
   const saved = await $.store.get('cenario')
   await update($, cenario, () => saved === true)
+  const off = await $.store.get('lightsOff')
+  await update($, lightsOff, () => off === true)
+}
+
+async function toggleLights($: any) {
+  const next = !(await read($, lightsOff))
+  await $.store.set('lightsOff', next)
+  await update($, lightsOff, () => next)
+  await speak($, 'idle', next ? 'Luz apagada.' : 'Luz acesa.')
+}
+
+// O que os monitores do QG mostram: modelo, contexto, tokens, custo e limites. Nada aqui pode barrar o desenho.
+async function readPanel($: any, agents: number, cmds: number): Promise<Panel> {
+  const p: Panel = { agents, tools: cmds }
+  try {
+    p.model = await $.session.model()
+  } catch {
+    // sem modelo
+  }
+  try {
+    const u = await $.session.usage()
+    const c = u?.context
+    if (typeof c?.percent === 'number') p.ctx = Math.round(c.percent)
+    if (typeof c?.tokens === 'number') p.tokens = c.tokens
+    if (typeof c?.window === 'number') p.window = c.window
+    if (typeof u?.cost?.usd === 'number') p.usd = u.cost.usd
+    for (const r of Array.isArray(u?.rateLimits) ? u.rateLimits : []) {
+      if (/five|5h/i.test(String(r?.kind))) p.limit5h = r.percentUsed
+      if (/seven|7d/i.test(String(r?.kind))) p.limit7d = r.percentUsed
+    }
+  } catch {
+    // sem leitura
+  }
+  return p
 }
 
 // O QG só aparece no painel lateral: na linha do prompt ele e a caixa aberta empurram a conversa para cima.
@@ -718,6 +760,7 @@ async function toggleCenario($: any, inPane: boolean) {
 async function openSpot($: any, id: string) {
   const spot = SPOTS.find(s => s.id === id)
   if (!spot) return
+  if (spot.id === 'luz') return toggleLights($)
   if (spot.id === 'frota' && (await read($, fleet)).length === 0) return speak($, 'idle', 'Nenhum agente por aqui. Os monitores acendem quando a frota trabalha.')
   if (spot.id === 'cofre' && !(await read($, cofre))) return speak($, 'idle', 'O cofre não está ligado: falta o cofre.json em <config>/claudin.')
   await update($, boxPage, () => 0)
@@ -1198,15 +1241,27 @@ async function draw($: any, e: any, next: any) {
   const pg = Math.min(page, pages - 1)
   const rows = items.slice(pg * size_, pg * size_ + size_)
   const line = '─'.repeat(TOOLBOX_W - 18)
+  const chips = isPane && !!Svg // superfície gráfica com espaço: fichas e linhas com fundo
   const body = (
     <Box flexDirection="column" alignItems="flex-start" width="100%">
-      <Text dimColor>🧰 Caixa de ferramentas</Text>
-      <Box flexDirection="row">
-        {cats.map(c => (
-          <Button key={`cat-${c}`} plain label={tabLabel(c, CAT_LABEL[c] ?? c, c === cat)} onPress={pick(c)} />
-        ))}
-      </Box>
-      <Text dimColor>{line}</Text>
+      {chips ? <Text dimColor>caixa de ferramentas</Text> : <Text dimColor>🧰 Caixa de ferramentas</Text>}
+      {chips ? (
+        // No painel lateral: abas como fichas com o nome, a aberta em coral, como na ilustração do README.
+        <Box flexDirection="row" flexWrap="wrap" columnGap={1} rowGap={1} marginTop={1} marginBottom={1}>
+          {cats.map(c => (
+            <Box key={`chip-${c}`} backgroundColor={c === cat ? CORAL : CHIP_BG} paddingX={1}>
+              <Button key={`cat-${c}`} plain label={CAT_LABEL[c] ?? c} onPress={pick(c)} />
+            </Box>
+          ))}
+        </Box>
+      ) : (
+        <Box flexDirection="row">
+          {cats.map(c => (
+            <Button key={`cat-${c}`} plain label={tabLabel(c, CAT_LABEL[c] ?? c, c === cat)} onPress={pick(c)} />
+          ))}
+        </Box>
+      )}
+      {chips ? null : <Text dimColor>{line}</Text>}
       {cat === 'comandos' && Input ? (
         <Box key="q-row" flexDirection="row" columnGap={1}>
           {colaShown ? (
@@ -1272,6 +1327,10 @@ async function draw($: any, e: any, next: any) {
             <Text>{x.label}</Text>
             <Button key={`${x.key}-x`} plain label="✕" onPress={x.onDelete} />
           </Box>
+        ) : chips ? (
+          <Box key={`row-${x.key}`} width="100%" backgroundColor={ROW_BG} paddingX={1} marginBottom={1} hover={{ backgroundColor: ROW_HOVER }}>
+            <Button key={x.key} plain label={x.label} onPress={x.onPress} />
+          </Box>
         ) : (
           <Button key={x.key} plain label={`  ${x.label}`} onPress={x.onPress} />
         ),
@@ -1293,7 +1352,7 @@ async function draw($: any, e: any, next: any) {
         <Button key="tb" label={open ? '✕' : '🧰'} onPress={() => update($, boxOpen, (v: boolean) => !v)} />
       </Box>
       {open ? (
-        <Box flexDirection="column" borderStyle="round" borderColor="subtle" marginTop={1} paddingX={1} width={isPane ? undefined : TOOLBOX_W} height={isPane ? undefined : 10} overflow="hidden" alignItems="flex-start">
+        <Box flexDirection="column" borderStyle={isPane && Svg ? 'single' : 'round'} borderColor="subtle" marginTop={1} paddingX={1} paddingY={isPane && Svg ? 1 : 0} width={isPane ? undefined : TOOLBOX_W} height={isPane ? undefined : 10} overflow="hidden" alignItems="flex-start">
           {body}
         </Box>
       ) : null}
@@ -1333,40 +1392,42 @@ async function draw($: any, e: any, next: any) {
     ? picked.shown.flatMap(x => Array.from({ length: Math.min(x.count, STATIONS.length) }, (_, n) => ({ kind: x.kind, n, role: MINI_ROLE[x.kind] ?? '' }))).slice(0, STATIONS.length)
     : []
   let qgNode: any = null
+  const lightsOffNow = sceneOn && !!(await read($, lightsOff))
   if (sceneOn) {
     const nowQ = await $.clock.now()
     const clock = new Date(nowQ)
-    const art = composeQg(QG_ART.svg, { w: QG_ART.w, h: QG_ART.h, minutes: clock.getHours() * 60 + clock.getMinutes(), pomo: pomodoroOf(activeTimers, nowQ) })
+    const panel = await readPanel($, fleetRows.length, (await read($, turn)).cmds)
+    const art = composeQg(QG_ART.svg, {
+      w: QG_ART.w,
+      h: QG_ART.h,
+      minutes: clock.getHours() * 60 + clock.getMinutes(),
+      pomo: pomodoroOf(activeTimers, nowQ),
+      lightsOff: !!(await read($, lightsOff)),
+      panel,
+      working: !!e.props?.isWorking,
+    })
     qgNode = (
       <Box key="qg" position="relative" width="100%">
         <Svg key="qg-art" source={art} alt="QG do Claudin: a base dos caranguejos com cérebro, em uma cabana de palafita no mangue" />
-        {SPOTS.map(sp => (
-          // Zona clicável sobre o objeto: uma camada do tamanho da imagem, com espaçadores em porcentagem até o
-          // retângulo do objeto. Ao passar o ponteiro, a borda acende e o nome aparece; o clique abre a aba.
-          <Box key={`qg-layer-${sp.id}`} position="absolute" top={0} left={0} right={0} bottom={0} flexDirection="column">
-            <Box key={`qg-top-${sp.id}`} height={pct(sp.y0)} />
-            <Box key={`qg-row-${sp.id}`} flexDirection="row" height={pct(sp.y1 - sp.y0)}>
-              <Box key={`qg-left-${sp.id}`} width={pct(sp.x0)} />
-              <Box
-                key={`zone-${sp.id}`}
-                position="relative"
-                width={pct(sp.x1 - sp.x0)}
-                height="100%"
-                overflow="hidden"
-                borderStyle="round"
-                borderColor="transparent"
-                hover={{ borderColor: '#ffd27a' }}
-              >
-                <Button key={`spot-${sp.id}`} plain onPress={() => openSpot($, sp.id)} label={sp.label}>
-                  <Text hover={{ backgroundColor: '#ffd27a33' }}>{ZONE_FILL}</Text>
+        {/* Zonas clicáveis numa camada só: colunas lado a lado (as zonas não se cruzam na horizontal), cada uma
+            com um espaçador até o topo do objeto. Camadas empilhadas cobriam umas às outras e engoliam o clique.
+            Em repouso nada aparece; sob o ponteiro a zona ganha um brilho e o nome do objeto. */}
+        <Box key="qg-zones" position="absolute" top={0} left={0} right={0} bottom={0} flexDirection="row">
+          {ZONES.flatMap((sp, i) => [
+            <Box key={`qg-gap-${sp.id}`} width={pct(sp.x0 - (i > 0 ? ZONES[i - 1]!.x1 : 0))} />,
+            <Box key={`qg-col-${sp.id}`} flexDirection="column" width={pct(sp.x1 - sp.x0)}>
+              <Box key={`qg-top-${sp.id}`} height={pct(sp.y0)} />
+              <Box key={`zone-${sp.id}`} position="relative" height={pct(sp.y1 - sp.y0)} overflow="hidden" hover={{ backgroundColor: '#ffd27a38' }}>
+                <Button key={`spot-${sp.id}`} plain onPress={() => openSpot($, sp.id)}>
+                  <Text>{ZONE_FILL}</Text>
                 </Button>
                 <Box position="absolute" top={0} left={0} display="none" hover={{ display: 'flex' }} backgroundColor="#1a0f08">
-                  <Text color="#ffd27a">{sp.name}</Text>
+                  <Text color="#ffd27a">{sp.id === 'luz' ? (lightsOffNow ? 'Acender' : 'Apagar') : sp.name}</Text>
                 </Box>
               </Box>
-            </Box>
-          </Box>
-        ))}
+            </Box>,
+          ])}
+        </Box>
         <Box key="qg-claudin" position="absolute" bottom={0} left={Math.max(0, Math.min(x, cols - 8))}>
           {sceneSprite}
         </Box>
