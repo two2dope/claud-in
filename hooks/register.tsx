@@ -5,7 +5,7 @@ import type { Action, CofreView, ColaView, FleetRow, Mode, ModeKind, Mood, Say, 
 import { tabLabel } from './abas'
 import { COLA_FILE, flattenCola, parseCatalogo, withClaudin } from './cola'
 import { QG_ART } from './cenario-arte'
-import { SPOTS, STATIONS, composeQg, pinCol, pomodoroOf, stationCol } from './cenario'
+import { SPOTS, STATIONS, composeQg, pct, pomodoroOf, stationCol, withOutline } from './cenario'
 import { CONTEXT_PRESETS, DEFAULT_PRESET, contextLevel, contextLine, contextWarn, presetById, readPercent } from './contexto'
 import { CORAL, SKINS, lookFor, sprite } from './desenho'
 import { MINI_KINDS, parseFleetMap, pickMinis } from './minis'
@@ -61,6 +61,9 @@ const SHORTCUTS: { label: string; text: string }[] = [
   { label: 'próximo passo', text: 'Qual é o próximo passo mais útil agora? Responda em uma frase.' },
 ]
 const TOOLBOX_W = 56
+// Recheio invisível de uma zona do QG: linhas de espaços duros, maiores que qualquer zona (a zona corta o excesso),
+// para o clique pegar em todo o retângulo do objeto e não só numa letra.
+const ZONE_FILL = Array.from({ length: 14 }, () => ' '.repeat(48)).join('\n')
 const PAGE = 4
 const PAGE_CMD = 3
 const PANE_RANGE = 14
@@ -86,7 +89,7 @@ const ctxPct = atom({ plugin: 'claudin', key: 'ctxPct' } as const, null as numbe
 const ctxLevel = atom({ plugin: 'claudin', key: 'ctxLevel' } as const, 0)
 // Faixa dos avisos de contexto (id de CONTEXT_PRESETS), escolhida em Ajustes e guardada em $.store.
 const ctxPreset = atom({ plugin: 'claudin', key: 'ctxPreset' } as const, DEFAULT_PRESET)
-// QG do Claudin no Mangue: a faixa de pixel art acima do mascote, ligada pelo botão 🏝 (guardada em $.store).
+// QG do Claudin no Mangue: a faixa de pixel art acima do mascote, ligada pelo botão 📡 (guardada em $.store).
 const cenario = atom({ plugin: 'claudin', key: 'cenario' } as const, false)
 // Skins: o padrão é a Mangue. 'classico' é o Claudin chapado de antes (e o único que usa os sprites soltos do usuário).
 // Pastas sprites/<skin>/<pose>.svg do usuário viram skins de arte própria. A escolha fica em $.store.
@@ -697,13 +700,21 @@ async function loadCenario($: any) {
   await update($, cenario, () => saved === true)
 }
 
-async function toggleCenario($: any) {
+// O QG só aparece no painel lateral: na linha do prompt ele e a caixa aberta empurram a conversa para cima.
+// Na linha do prompt, o 📡 liga o QG e leva o Claudin para o painel; no painel, ele liga e desliga.
+async function toggleCenario($: any, inPane: boolean) {
+  if (!inPane) {
+    await $.store.set('cenario', true)
+    await update($, cenario, () => true)
+    if ((await placeClaudin($, true)) !== 'lateral') await speak($, 'idle', 'O QG mora no painel lateral, e não consegui abrir o painel agora.')
+    return
+  }
   const next = !(await read($, cenario))
   await $.store.set('cenario', next)
   await update($, cenario, () => next)
 }
 
-// Um pino do QG abre a aba do que o objeto representa; sem o que abrir (frota vazia, cofre desligado) só o Claudin avisa.
+// Uma zona do QG abre a aba do que o objeto representa; sem o que abrir (frota vazia, cofre desligado) só o Claudin avisa.
 async function openSpot($: any, id: string) {
   const spot = SPOTS.find(s => s.id === id)
   if (!spot) return
@@ -723,6 +734,7 @@ async function openSpot($: any, id: string) {
   }
   if (spot.tab === 'prazos') await loadCofreDeadlines($)
   if (spot.tab === 'cofre') await loadCofreView($)
+  if (spot.tab === 'acoes') await loadContext($)
 }
 
 // Cola: mesmo formato do cofre.json ({ "path": "..." }), mas aponta para o arquivo catalogo.json.
@@ -1277,7 +1289,7 @@ async function draw($: any, e: any, next: any) {
   const toolbox = (
     <Box key="toolbox" flexDirection="column" alignItems="flex-end" {...(isPane ? { alignSelf: 'flex-end' } : { position: 'absolute', top: 0, right: 0, width: TOOLBOX_W })}>
       <Box flexDirection="row" columnGap={1}>
-        {Svg ? <Button key="sc" label={cenarioOn ? '▾🏝' : '🏝'} onPress={() => toggleCenario($)} /> : null}
+        {Svg ? <Button key="sc" label={cenarioOn && isPane ? '▾📡' : '📡'} onPress={() => toggleCenario($, isPane)} /> : null}
         <Button key="tb" label={open ? '✕' : '🧰'} onPress={() => update($, boxOpen, (v: boolean) => !v)} />
       </Box>
       {open ? (
@@ -1288,9 +1300,10 @@ async function draw($: any, e: any, next: any) {
     </Box>
   )
 
-  const mascot = Svg ? (
-    <Svg source={(m.kind === 'normal' ? skinSprites[s.mood] : undefined) ?? (skinDef ? undefined : custom[s.mood]) ?? sprite(s.mood, m.kind, lookFor(s.mood as Mood, w.dir, open), skinDef)} alt="Claudin, o mascote" width={size.w} height={size.h} isInteractive />
-  ) : null
+  const mascotSrc = Svg ? ((m.kind === 'normal' ? skinSprites[s.mood] : undefined) ?? (skinDef ? undefined : custom[s.mood]) ?? sprite(s.mood, m.kind, lookFor(s.mood as Mood, w.dir, open), skinDef)) : ''
+  const mascot = Svg ? <Svg source={mascotSrc} alt="Claudin, o mascote" width={size.w} height={size.h} isInteractive /> : null
+  // No QG o Claudin ganha contorno e sombra para não se perder no fundo.
+  const sceneSprite = Svg ? <Svg source={withOutline(mascotSrc)} alt="Claudin, o mascote" width={size.w} height={size.h} isInteractive /> : null
   // Miniaturas da frota ao lado do mascote: até 2 criaturas (×n quando há vários do tipo) e +N nos agentes sem miniatura.
   // Em meditar e cigarro ficam de fora (modos calmos).
   const calm = m.kind === 'meditar' || m.kind === 'cigarro'
@@ -1313,30 +1326,53 @@ async function draw($: any, e: any, next: any) {
   ]
 
   // Com a faixa ligada as miniaturas da frota ficam nas bancadas dela e não ao lado do mascote.
-  const miniBeside = cenarioOn ? [] : miniRow
-  const sceneMascot = cenarioOn && !!Svg // o mascote anda dentro da faixa; o balão fica logo abaixo
-  const stationMinis = cenarioOn
+  const sceneOn = cenarioOn && !!Svg && isPane // o QG só no painel lateral
+  const miniBeside = sceneOn ? [] : miniRow
+  const sceneMascot = sceneOn // o mascote anda dentro da faixa; o balão fica logo abaixo
+  const stationMinis = sceneOn
     ? picked.shown.flatMap(x => Array.from({ length: Math.min(x.count, STATIONS.length) }, (_, n) => ({ kind: x.kind, n, role: MINI_ROLE[x.kind] ?? '' }))).slice(0, STATIONS.length)
     : []
   let qgNode: any = null
-  if (cenarioOn && Svg) {
+  if (sceneOn) {
     const nowQ = await $.clock.now()
     const clock = new Date(nowQ)
     const art = composeQg(QG_ART.svg, { w: QG_ART.w, h: QG_ART.h, minutes: clock.getHours() * 60 + clock.getMinutes(), pomo: pomodoroOf(activeTimers, nowQ) })
     qgNode = (
       <Box key="qg" position="relative" width="100%">
         <Svg key="qg-art" source={art} alt="QG do Claudin: a base dos caranguejos com cérebro, em uma cabana de palafita no mangue" />
+        {SPOTS.map(sp => (
+          // Zona clicável sobre o objeto: uma camada do tamanho da imagem, com espaçadores em porcentagem até o
+          // retângulo do objeto. Ao passar o ponteiro, a borda acende e o nome aparece; o clique abre a aba.
+          <Box key={`qg-layer-${sp.id}`} position="absolute" top={0} left={0} right={0} bottom={0} flexDirection="column">
+            <Box key={`qg-top-${sp.id}`} height={pct(sp.y0)} />
+            <Box key={`qg-row-${sp.id}`} flexDirection="row" height={pct(sp.y1 - sp.y0)}>
+              <Box key={`qg-left-${sp.id}`} width={pct(sp.x0)} />
+              <Box
+                key={`zone-${sp.id}`}
+                position="relative"
+                width={pct(sp.x1 - sp.x0)}
+                height="100%"
+                overflow="hidden"
+                borderStyle="round"
+                borderColor="transparent"
+                hover={{ borderColor: '#ffd27a' }}
+              >
+                <Button key={`spot-${sp.id}`} plain onPress={() => openSpot($, sp.id)} label={sp.label}>
+                  <Text hover={{ backgroundColor: '#ffd27a33' }}>{ZONE_FILL}</Text>
+                </Button>
+                <Box position="absolute" top={0} left={0} display="none" hover={{ display: 'flex' }} backgroundColor="#1a0f08">
+                  <Text color="#ffd27a">{sp.name}</Text>
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+        ))}
         <Box key="qg-claudin" position="absolute" bottom={0} left={Math.max(0, Math.min(x, cols - 8))}>
-          {mascot}
+          {sceneSprite}
         </Box>
         {stationMinis.map((mm, i) => (
           <Box key={`qg-mini-${mm.kind}${mm.n ? `-${mm.n}` : ''}`} position="absolute" bottom={0} left={stationCol(i, cols)}>
-            <Svg source={miniSprites[mm.kind] ?? ''} alt={`Agente: ${mm.role}`} width={26} height={26} />
-          </Box>
-        ))}
-        {SPOTS.map(sp => (
-          <Box key={`qg-${sp.id}`} position="absolute" top={0} left={pinCol(sp, cols)}>
-            <Button key={`pin-${sp.id}`} plain label={sp.pin} onPress={() => openSpot($, sp.id)} />
+            <Svg source={withOutline(miniSprites[mm.kind] ?? '')} alt={`Agente: ${mm.role}`} width={26} height={26} />
           </Box>
         ))}
       </Box>
@@ -1410,6 +1446,39 @@ async function hideRow($: any, e: any, next: any) {
     return <Box />
   }
   return next(e)
+}
+
+// Resumo do fim do turno principal, com o aviso de contexto quando ele sobe de nível.
+async function sayTurnEnd($: any, e: any) {
+  const ok = e.reason === 'answer'
+  const st = await read($, turn)
+  const parts = [
+    st.files.length ? `${st.files.length} arquivo${st.files.length > 1 ? 's' : ''} editado${st.files.length > 1 ? 's' : ''}` : '',
+    st.cmds ? `${st.cmds} comando${st.cmds > 1 ? 's' : ''}` : '',
+    st.errors ? `${st.errors} falha${st.errors > 1 ? 's' : ''}` : '',
+    st.agents ? `${st.agents} agente${st.agents > 1 ? 's' : ''}` : '',
+  ].filter(Boolean)
+  const summary = parts.length ? `Pronto: ${parts.join(', ')}.` : 'Pronto. Nada a reportar.'
+  // Janela de contexto: avisa uma vez ao subir de nível; descer (depois de /compact ou /clear) rearma.
+  const pct = await loadContext($)
+  const levels = presetById(await read($, ctxPreset)).levels
+  const warn = pct === null || !ok ? null : contextWarn(await read($, ctxLevel), pct, levels)
+  // Sem leitura nada muda; turno interrompido não marca o nível como visto (o aviso sai no próximo).
+  if (pct !== null && ok) await update($, ctxLevel, () => contextLevel(pct, levels))
+  const next1: Action | null =
+    st.errors > 0
+      ? { label: 'investigar falhas', text: 'Houve falhas neste turno. Resuma o que falhou e proponha como corrigir.' }
+      : st.files.length > 0
+        ? { label: 'rodar testes', text: 'Rode os testes do projeto e me diga o resultado.' }
+        : null
+  await speak(
+    $,
+    ok ? (st.errors ? 'err' : warn?.mood === 'alert' ? 'alert' : 'ok') : 'err',
+    ok ? (warn ? `${summary} ${warn.text}` : summary) : e.reason === 'aborted' ? 'Interrompido.' : 'O turno terminou com erro.',
+    ok ? (st.errors > 0 ? next1 : warn?.action ?? next1) : null,
+  )
+  const s = await read($, say)
+  settle($, s.seq, 20000)
 }
 
 export const register: Register = on => {
@@ -1497,8 +1566,12 @@ export const register: Register = on => {
     } catch {
       // o balão não pode impedir a ferramenta
     }
-    const ran: any = await next(e)
-    slow?.cancel()
+    let ran: any
+    try {
+      ran = await next(e)
+    } finally {
+      slow?.cancel()
+    }
     try {
       if (ran && (ran.isError === true || ran.deny !== undefined)) {
         await update($, turn, (s: TurnStats) => ({ ...s, errors: s.errors + 1 }))
@@ -1544,38 +1617,18 @@ export const register: Register = on => {
       }
       return next(e)
     }
-    const ok = e.reason === 'answer'
-    const st = await read($, turn)
-    const parts = [
-      st.files.length ? `${st.files.length} arquivo${st.files.length > 1 ? 's' : ''} editado${st.files.length > 1 ? 's' : ''}` : '',
-      st.cmds ? `${st.cmds} comando${st.cmds > 1 ? 's' : ''}` : '',
-      st.errors ? `${st.errors} falha${st.errors > 1 ? 's' : ''}` : '',
-      st.agents ? `${st.agents} agente${st.agents > 1 ? 's' : ''}` : '',
-    ].filter(Boolean)
-    const summary = parts.length ? `Pronto: ${parts.join(', ')}.` : 'Pronto. Nada a reportar.'
-    // Janela de contexto: avisa uma vez ao subir de nível; descer (depois de /compact ou /clear) rearma.
-    const pct = await loadContext($)
-    const levels = presetById(await read($, ctxPreset)).levels
-    const warn = pct === null ? null : contextWarn(await read($, ctxLevel), pct, levels)
-    await update($, ctxLevel, () => contextLevel(pct, levels))
-    const next1: Action | null =
-      st.errors > 0
-        ? { label: 'investigar falhas', text: 'Houve falhas neste turno. Resuma o que falhou e proponha como corrigir.' }
-        : st.files.length > 0
-          ? { label: 'rodar testes', text: 'Rode os testes do projeto e me diga o resultado.' }
-          : null
-    await speak(
-      $,
-      ok ? (st.errors ? 'err' : warn?.mood === 'alert' ? 'alert' : 'ok') : 'err',
-      ok ? (warn ? `${summary} ${warn.text}` : summary) : e.reason === 'aborted' ? 'Interrompido.' : 'O turno terminou com erro.',
-      ok ? (st.errors > 0 ? next1 : warn?.action ?? next1) : null,
-    )
-    const s = await read($, say)
-    settle($, s.seq, 20000)
+    // O resumo e o aviso de contexto nunca podem barrar o fim do turno: o que falhar é engolido.
+    try {
+      await sayTurnEnd($, e)
+    } catch {
+      // idem
+    }
     return next(e)
   })
 
   on('ui.render', { component: 'AbovePrompt' }, draw)
+
+
   on('ui.render', { component: 'Pane', requestId: 'claudin' }, draw)
 
   on('ui.render', { component: 'ToolUse' }, hideRow)

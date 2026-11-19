@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.2 — 2026-11-19
+
+- **Zonas clicáveis no lugar dos pinos.** Os objetos do QG viraram áreas de clique sobre a própria imagem: livros e pastas (Cola), monitores (frota), cofre (Cofre), calendário (Agenda), servidor (Ações, com a janela de contexto) e relógio (Tempo). Ao passar o ponteiro, a borda da zona acende e o nome do objeto aparece; o clique abre a aba.
+- **O QG mora no painel lateral.** Na linha do prompt, a faixa e a caixa aberta empurravam a conversa para cima. Agora o 📡 na linha do prompt liga o QG e leva o Claudin para o painel lateral; no painel, o 📡 liga e desliga a faixa. Sem espaço para o painel, o Claudin avisa e a linha do prompt fica como está.
+- **Botão do QG virou a antena parabólica 📡**, no lugar da ilha.
+- **Relógio com ponteiros.** Sem pomodoro, o relógio de parede marca a hora do computador; com pomodoro, mostra a fatia vermelha do que falta.
+- **Personagens destacados do fundo.** O Claudin e as miniaturas ganham contorno escuro e uma sombra leve dentro do QG, e a imagem ganha um véu escuro de 10%.
+- **Luz das lanternas menor.** O raio da luz à noite caiu de 11% para 7% da largura, sem o domo grande no centro.
+- **Correções da revisão de 0.6.0 a 0.7.1.** A máscara da luz noturna estava invertida (o centro da lanterna ficava escuro e a borda formava o domo claro); agora a luz abre a escuridão no meio. O fim do turno não pode mais ser barrado por uma falha no resumo ou no aviso de contexto. Turno interrompido ou leitura de contexto vazia não marcam mais o aviso como visto. O aviso "ainda rodando" é cancelado mesmo quando a ferramenta falha. A imagem do QG nunca passa do limite do motor nem quebra sem a tag de fechamento.
+- **Conhecido:** as zonas, o destaque e o contorno ainda não foram conferidos no app desktop; sem LICENSE.
+
 ## 0.7.1 — 2026-11-19
 
 - **O Claudin agora anda dentro do cenário.** Com a faixa do QG ligada (botão 🏝), o mascote fica em cima da imagem, no chão da cabana, andando por ela com a skin, o olhar e os modos de sempre. O balão passa para logo abaixo da faixa, com a seta para cima, apontando para ele. Sem a faixa nada muda.
