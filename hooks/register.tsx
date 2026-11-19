@@ -4,6 +4,8 @@ import type { Register } from 'claude-code'
 import type { Action, CofreView, ColaView, FleetRow, Mode, ModeKind, Mood, Say, TurnStats, Walk } from '../types'
 import { tabLabel } from './abas'
 import { COLA_FILE, flattenCola, parseCatalogo, withClaudin } from './cola'
+import { QG_ART } from './cenario-arte'
+import { SPOTS, STATIONS, composeQg, pinCol, pomodoroOf, stationCol } from './cenario'
 import { CONTEXT_PRESETS, DEFAULT_PRESET, contextLevel, contextLine, contextWarn, presetById, readPercent } from './contexto'
 import { CORAL, SKINS, lookFor, sprite } from './desenho'
 import { MINI_KINDS, parseFleetMap, pickMinis } from './minis'
@@ -84,6 +86,8 @@ const ctxPct = atom({ plugin: 'claudin', key: 'ctxPct' } as const, null as numbe
 const ctxLevel = atom({ plugin: 'claudin', key: 'ctxLevel' } as const, 0)
 // Faixa dos avisos de contexto (id de CONTEXT_PRESETS), escolhida em Ajustes e guardada em $.store.
 const ctxPreset = atom({ plugin: 'claudin', key: 'ctxPreset' } as const, DEFAULT_PRESET)
+// QG do Claudin no Mangue: a faixa de pixel art acima do mascote, ligada pelo botão 🏝 (guardada em $.store).
+const cenario = atom({ plugin: 'claudin', key: 'cenario' } as const, false)
 // Skins: o padrão é a Mangue. 'classico' é o Claudin chapado de antes (e o único que usa os sprites soltos do usuário).
 // Pastas sprites/<skin>/<pose>.svg do usuário viram skins de arte própria. A escolha fica em $.store.
 const DEFAULT_SKIN = 'mangue'
@@ -688,6 +692,39 @@ async function cycleCtxPreset($: any) {
   await update($, ctxLevel, () => contextLevel(seen, next.levels))
 }
 
+async function loadCenario($: any) {
+  const saved = await $.store.get('cenario')
+  await update($, cenario, () => saved === true)
+}
+
+async function toggleCenario($: any) {
+  const next = !(await read($, cenario))
+  await $.store.set('cenario', next)
+  await update($, cenario, () => next)
+}
+
+// Um pino do QG abre a aba do que o objeto representa; sem o que abrir (frota vazia, cofre desligado) só o Claudin avisa.
+async function openSpot($: any, id: string) {
+  const spot = SPOTS.find(s => s.id === id)
+  if (!spot) return
+  if (spot.id === 'frota' && (await read($, fleet)).length === 0) return speak($, 'idle', 'Nenhum agente por aqui. Os monitores acendem quando a frota trabalha.')
+  if (spot.id === 'cofre' && !(await read($, cofre))) return speak($, 'idle', 'O cofre não está ligado: falta o cofre.json em <config>/claudin.')
+  await update($, boxPage, () => 0)
+  await update($, boxCat, () => spot.tab)
+  await update($, colaOpen, () => false)
+  await update($, boxOpen, () => true)
+  if (spot.tab === 'comandos') {
+    await loadCommands($)
+    if (await read($, cola)) {
+      await loadColaView($)
+      await update($, colaGroup, () => '')
+      await update($, colaOpen, () => true)
+    }
+  }
+  if (spot.tab === 'prazos') await loadCofreDeadlines($)
+  if (spot.tab === 'cofre') await loadCofreView($)
+}
+
 // Cola: mesmo formato do cofre.json ({ "path": "..." }), mas aponta para o arquivo catalogo.json.
 async function loadCola($: any) {
   const user = await userDir($)
@@ -924,6 +961,7 @@ async function draw($: any, e: any, next: any) {
   const colaG = await read($, colaGroup)
   const ctxP = await read($, ctxPct)
   const ctxPre = presetById(await read($, ctxPreset))
+  const cenarioOn = !!(await read($, cenario))
   const colaShown = !!colaPath && (await read($, colaOpen))
   const skinSel = await read($, skin)
   const skinSprites = await read($, skinArt)
@@ -1238,7 +1276,10 @@ async function draw($: any, e: any, next: any) {
 
   const toolbox = (
     <Box key="toolbox" flexDirection="column" alignItems="flex-end" {...(isPane ? { alignSelf: 'flex-end' } : { position: 'absolute', top: 0, right: 0, width: TOOLBOX_W })}>
-      <Button key="tb" label={open ? '✕' : '🧰'} onPress={() => update($, boxOpen, (v: boolean) => !v)} />
+      <Box flexDirection="row" columnGap={1}>
+        {Svg ? <Button key="sc" label={cenarioOn ? '▾🏝' : '🏝'} onPress={() => toggleCenario($)} /> : null}
+        <Button key="tb" label={open ? '✕' : '🧰'} onPress={() => update($, boxOpen, (v: boolean) => !v)} />
+      </Box>
       {open ? (
         <Box flexDirection="column" borderStyle="round" borderColor="subtle" marginTop={1} paddingX={1} width={isPane ? undefined : TOOLBOX_W} height={isPane ? undefined : 10} overflow="hidden" alignItems="flex-start">
           {body}
@@ -1271,7 +1312,34 @@ async function draw($: any, e: any, next: any) {
     ...(picked.extra > 0 && picked.shown.length > 0 ? [<Text key="mini-more" dimColor>{`+${picked.extra}`}</Text>] : []),
   ]
 
-  return (
+  // Com a faixa ligada as miniaturas da frota ficam nas bancadas dela e não ao lado do mascote.
+  const miniBeside = cenarioOn ? [] : miniRow
+  const stationMinis = cenarioOn
+    ? picked.shown.flatMap(x => Array.from({ length: Math.min(x.count, STATIONS.length) }, (_, n) => ({ kind: x.kind, n, role: MINI_ROLE[x.kind] ?? '' }))).slice(0, STATIONS.length)
+    : []
+  let qgNode: any = null
+  if (cenarioOn && Svg) {
+    const nowQ = await $.clock.now()
+    const clock = new Date(nowQ)
+    const art = composeQg(QG_ART.svg, { w: QG_ART.w, h: QG_ART.h, minutes: clock.getHours() * 60 + clock.getMinutes(), pomo: pomodoroOf(activeTimers, nowQ) })
+    qgNode = (
+      <Box key="qg" position="relative" width="100%">
+        <Svg key="qg-art" source={art} alt="QG do Claudin: a base dos caranguejos com cérebro, em uma cabana de palafita no mangue" />
+        {stationMinis.map((mm, i) => (
+          <Box key={`qg-mini-${mm.kind}${mm.n ? `-${mm.n}` : ''}`} position="absolute" bottom={0} left={stationCol(i, cols)}>
+            <Svg source={miniSprites[mm.kind] ?? ''} alt={`Agente: ${mm.role}`} width={26} height={26} />
+          </Box>
+        ))}
+        {SPOTS.map(sp => (
+          <Box key={`qg-${sp.id}`} position="absolute" top={0} left={pinCol(sp, cols)}>
+            <Button key={`pin-${sp.id}`} plain label={sp.pin} onPress={() => openSpot($, sp.id)} />
+          </Box>
+        ))}
+      </Box>
+    )
+  }
+
+  const root = (
     <Box flexDirection={isPane ? 'column' : 'row'} alignItems="flex-start" width="100%" minHeight={!isPane && open ? 13 : undefined}>
       <Box key="claudin" flexDirection="column" marginLeft={x} width={colW} alignItems="flex-start">
         <Box borderStyle="round" borderColor={BORDER[s.mood] ?? 'subtle'} paddingX={1}>
@@ -1306,10 +1374,10 @@ async function draw($: any, e: any, next: any) {
         </Box>
         <Text dimColor>  ╰▾</Text>
         {Svg ? (
-          miniRow.length > 0 ? (
+          miniBeside.length > 0 ? (
             <Box flexDirection="row" alignItems="flex-end" columnGap={1}>
               {mascot}
-              {miniRow}
+              {miniBeside}
             </Box>
           ) : (
             mascot
@@ -1320,6 +1388,14 @@ async function draw($: any, e: any, next: any) {
       </Box>
       {toolbox}
     </Box>
+  )
+  return qgNode ? (
+    <Box flexDirection="column" width="100%">
+      {qgNode}
+      {root}
+    </Box>
+  ) : (
+    root
   )
 }
 
@@ -1535,6 +1611,7 @@ export const register: Register = on => {
     await loadSprites($)
     await loadSkin($)
     await loadCtxPreset($)
+    await loadCenario($)
     await loadMinis($)
     await loadShortcuts($)
     await loadCofre($)

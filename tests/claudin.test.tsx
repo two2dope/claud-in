@@ -1047,11 +1047,11 @@ test('skin do usuário só com PNG não é carregada (o desktop não desenha PNG
 })
 
 // ── frota: uma miniatura por tipo de agente (criaturas do mangue), até 2, com ×n e +N ────
-const bootFrota = async ($: any, on: any, extra: Record<string, string> = {}) => {
+const bootFrota = async ($: any, on: any, extra: Record<string, string> = {}, stored: Record<string, unknown> = {}) => {
   mock.clock(on, { now: 2_700_000 })
   on('agent.spawn', (_: any, e: any) => ({ agentId: e.description, model: 'haiku' }))
   on('turn.complete', () => ({ text: '' }))
-  await bootFs($, on, extra, { USERPROFILE: 'C:/u' })
+  await bootFs($, on, extra, { USERPROFILE: 'C:/u' }, stored)
 }
 const spawnAll = async ($: any, list: [string, string][]) => {
   for (const [desc, type] of list) await $.agent.spawn(SPAWN(desc, type))
@@ -1510,5 +1510,124 @@ test('faixa guardada que não existe mais cai na padrão', async ($: any, on: an
   await ui.press({ key: 'next' })
   await ui.press({ key: 'next' }) // o botão de contexto fica na terceira página de Ajustes
   expect((await ui.find({ key: 'ctx' }))?.props?.label).toMatch(/50\/70\/85%/)
+  await ui.unmount()
+})
+
+// ── QG do Claudin no Mangue: a faixa de pixel art atrás do mascote ───────
+const NIGHT = new Date(2026, 10, 19, 22).getTime()
+const qg = async (ui: any) => JSON.stringify(await ui.find({ key: 'qg' }))
+
+test('o botão 🏝 liga e desliga a faixa do QG', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, {}, { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ key: 'qg' })).toBeUndefined()
+  await ui.press({ key: 'sc' })
+  expect(await ui.find({ key: 'qg' })).toBeDefined()
+  await ui.press({ key: 'sc' })
+  expect(await ui.find({ key: 'qg' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('a escolha de ligar a faixa fica guardada para a sessão seguinte', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ key: 'qg' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('com a faixa ligada o botão da caixa de ferramentas continua lá e a caixa abre', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'tb' })
+  expect(await ui.find({ key: 'cat-ajustes' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('cada objeto do QG tem um pino que abre a aba do que ele representa', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, { ...cofreFiles(), ...colaFiles() }, { USERPROFILE: 'C:/u' }, { cenario: true })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  for (const id of ['cola', 'frota', 'cofre', 'agenda', 'tempo']) expect(await ui.find({ key: `pin-${id}` })).toBeDefined()
+  await ui.press({ key: 'pin-agenda' })
+  expect((await ui.find({ key: 'cat-prazos' }))?.props?.label).toBe('▸📅 Agenda')
+  await ui.press({ key: 'pin-cofre' })
+  expect((await ui.find({ key: 'cat-cofre' }))?.props?.label).toBe('▸🔐 Cofre')
+  await ui.press({ key: 'pin-cola' })
+  expect((await ui.find({ key: 'cat-comandos' }))?.props?.label).toBe('▸⌘ Comandos')
+  expect(await ui.find({ key: 'cl-q' })).toBeDefined() // a lista da oficina, não a de comandos
+  await ui.press({ key: 'pin-tempo' })
+  expect((await ui.find({ key: 'cat-tempo' }))?.props?.label).toBe('▸⏱ Tempo')
+  await ui.unmount()
+})
+
+test('pino sem o que abrir só avisa: frota vazia e cofre desligado', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'pin-frota' })
+  expect(await ui.find({ type: 'Text', text: /Nenhum agente por aqui/ })).toBeDefined()
+  await ui.press({ key: 'pin-cofre' })
+  expect(await ui.find({ type: 'Text', text: /cofre não está ligado/ })).toBeDefined()
+  expect(await ui.find({ key: 'cat-prazos' })).toBeUndefined() // a caixa não abriu
+  await ui.unmount()
+})
+
+test('o pino da Cola sem catálogo abre a lista normal de comandos', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'pin-cola' })
+  expect((await ui.find({ key: 'cat-comandos' }))?.props?.label).toBe('▸⌘ Comandos')
+  expect(await ui.find({ key: 'q' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('à noite a faixa ganha a escuridão com luz nas lanternas; de dia não', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
+  const dia = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await qg(dia)).not.toContain('mask id=')
+  await dia.unmount()
+})
+
+test('à noite a faixa tem a máscara de luz', async ($: any, on: any) => {
+  mock.clock(on, { now: NIGHT })
+  await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await qg(ui)).toContain('mask id=')
+  await ui.unmount()
+})
+
+test('o pomodoro aparece como a fatia vermelha no relógio de parede', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await qg(ui)).not.toMatch(/class=\\"pomo/)
+  await ui.press({ key: 'tb' })
+  await ui.press({ key: 'cat-tempo' })
+  await ui.press({ key: 't25' })
+  expect(await qg(ui)).toMatch(/class=\\"pomo/)
+  await ui.unmount()
+})
+
+test('as miniaturas da frota ficam nas bancadas da faixa, e não ao lado do mascote', async ($: any, on: any) => {
+  await bootFrota($, on, {}, { cenario: true })
+  await spawnAll($, [['e1', 'Explore'], ['p1', 'Plan']])
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ key: 'qg-mini-siri' })).toBeDefined()
+  expect(await ui.find({ key: 'qg-mini-garca' })).toBeDefined()
+  expect(await ui.find({ key: 'mini-siri' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('sem a faixa as miniaturas continuam ao lado do mascote', async ($: any, on: any) => {
+  await bootFrota($, on)
+  await spawnAll($, [['e1', 'Explore']])
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ key: 'mini-siri' })).toBeDefined()
+  expect(await ui.find({ key: 'qg-mini-siri' })).toBeUndefined()
   await ui.unmount()
 })
