@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { QG_ART } from './cenario-arte'
-import { QG_LIMIT, SPOTS, STATIONS, composeQg, pinCol, pomodoroOf, skyAt, stationCol } from './cenario'
+import { QG_LIMIT, SPOTS, STATIONS, composeQg, pct, pomodoroOf, skyAt, stationCol, withOutline } from './cenario'
 
 const HORA = (h: number, m = 0) => h * 60 + m
 
@@ -22,8 +22,8 @@ describe('QG: a arte', () => {
 })
 
 describe('QG: pontos clicáveis e bancadas', () => {
-  test('cinco pontos, cada um com a aba que abre, dentro da imagem', () => {
-    expect(SPOTS.map(s => [s.id, s.tab])).toEqual([['cola', 'comandos'], ['frota', 'frota'], ['cofre', 'cofre'], ['agenda', 'prazos'], ['tempo', 'tempo']])
+  test('seis zonas, cada uma com a aba que abre, dentro da imagem', () => {
+    expect(SPOTS.map(s => [s.id, s.tab])).toEqual([['cola', 'comandos'], ['frota', 'frota'], ['cofre', 'cofre'], ['agenda', 'prazos'], ['servidor', 'acoes'], ['tempo', 'tempo']])
     for (const s of SPOTS) {
       expect(s.x0).toBeGreaterThanOrEqual(0)
       expect(s.x1).toBeLessThanOrEqual(1)
@@ -34,13 +34,14 @@ describe('QG: pontos clicáveis e bancadas', () => {
     }
   })
 
-  test('as quatro bancadas ficam em ordem, dentro da imagem, e o pino cai na coluna do meio do ponto', () => {
+  test('as quatro bancadas ficam em ordem e dentro da imagem; a zona vira porcentagem CSS', () => {
     expect(STATIONS.length).toBe(4)
     expect([...STATIONS].sort((a, b) => a - b)).toEqual([...STATIONS])
     for (const x of STATIONS) expect(x > 0 && x < 1).toBe(true)
-    const agenda = SPOTS.find(s => s.id === 'agenda')!
-    expect(pinCol(agenda, 100)).toBe(Math.round(((agenda.x0 + agenda.x1) / 2) * 100) - 1)
-    expect(pinCol(SPOTS[0]!, 1)).toBeGreaterThanOrEqual(0)
+    expect(pct(0.16)).toBe('16%')
+    expect(pct(0.1234)).toBe('12%')
+    expect(pct(-1)).toBe('0%')
+    expect(pct(2)).toBe('100%')
     expect(stationCol(0, 100)).toBe(Math.round(STATIONS[0]! * 100) - 1)
   })
 })
@@ -108,8 +109,22 @@ describe('QG: a imagem com luz e relógio, tudo dentro do mesmo SVG', () => {
   const base = QG_ART.svg
   const dia = { w: QG_ART.w, h: QG_ART.h, minutes: HORA(12), pomo: null }
 
-  test('de dia e sem pomodoro a imagem sai como está', () => {
-    expect(composeQg(base, dia)).toBe(base)
+  test('de dia e sem pomodoro entram só o véu leve e os ponteiros da hora', () => {
+    const d = composeQg(base, dia)
+    expect(d).toContain('class="hands"')
+    expect(d).not.toContain('<mask id="lit">')
+    expect(d.match(/<svg /g)?.length).toBe(1)
+  })
+
+  test('os ponteiros marcam a hora: meio-dia aponta para cima, e com pomodoro eles saem', () => {
+    const d = composeQg(base, dia)
+    const lines = [...d.matchAll(/<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)"/g)]
+    expect(lines.length).toBe(2)
+    for (const l of lines) {
+      expect(Math.abs(Number(l[3]) - Number(l[1]))).toBeLessThan(0.05) // x igual: vertical
+      expect(Number(l[4])).toBeLessThan(Number(l[2])) // para cima
+    }
+    expect(composeQg(base, { ...dia, pomo: { fraction: 0.5 } })).not.toContain('class="hands"')
   })
 
   test('à noite entram a escuridão com máscara de luz, o brilho das lâmpadas e o das telas', () => {
@@ -135,6 +150,18 @@ describe('QG: a imagem com luz e relógio, tudo dentro do mesmo SVG', () => {
     expect(cheio).toMatch(/class="pomo"[^>]*<circle|<circle[^>]*class="pomo"/)
   })
 
+  test('a máscara abre a escuridão no centro da lanterna (preto no meio, branco na borda)', () => {
+    const noite = composeQg(base, { ...dia, minutes: HORA(22) })
+    expect(noite).toContain('<radialGradient id="hole"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#fff"/>')
+  })
+
+  test('arte grande demais ou sem fechamento não quebra o limite nem o SVG', () => {
+    const grande = base.replace('</svg>', `<!--${'x'.repeat(QG_LIMIT - base.length - 10)}--></svg>`)
+    const out = composeQg(grande, { ...dia, minutes: HORA(22), pomo: { fraction: 0.4 } })
+    expect(out.length).toBeLessThanOrEqual(QG_LIMIT)
+    expect(composeQg('<svg>', dia)).toBe('<svg>')
+  })
+
   test('o pior caso (noite, lâmpadas e pomodoro) cabe no limite do motor', () => {
     for (let m = 0; m < 1440; m += 30) {
       for (const pomo of [null, { fraction: 0.37 }, { fraction: 1 }]) {
@@ -148,5 +175,24 @@ describe('QG: a imagem com luz e relógio, tudo dentro do mesmo SVG', () => {
 describe('QG: o total do pomodoro vem do timer quando ele o grava', () => {
   test('ms do timer vence o número do rótulo', () => {
     expect(pomodoroOf([{ label: 'pomodoro 25 min', endsAt: 10 * 60_000, ms: 50 * 60_000 }], 0)).toEqual({ fraction: 0.2 })
+  })
+})
+
+describe('QG: contorno dos personagens', () => {
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 12" shape-rendering="crispEdges"><rect width="2" height="2"/></svg>'
+
+  test('o contorno embrulha o desenho num filtro e abre margem no viewBox', () => {
+    const o = withOutline(svg)
+    expect(o).toContain('<filter id="ol"')
+    expect(o).toContain('<g filter="url(#ol)"><rect width="2" height="2"/></g>')
+    expect(o).not.toContain('viewBox="0 0 16 12"')
+    expect(o.match(/<svg /g)?.length).toBe(1)
+    expect(o.endsWith('</svg>')).toBe(true)
+  })
+
+  test('sem viewBox, vazio ou já contornado volta igual', () => {
+    expect(withOutline('')).toBe('')
+    expect(withOutline('<svg></svg>')).toBe('<svg></svg>')
+    expect(withOutline(withOutline(svg))).toBe(withOutline(svg))
   })
 })

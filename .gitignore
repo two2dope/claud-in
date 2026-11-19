@@ -8,3 +8,17 @@ projeto/backups/
 Captura de tela*.png
 
 node_modules/
+
+# Estado local do plugin Navigator.
+.agent/
+
+# Arte bruta do Flow e referências: ficam só na máquina; o repositório leva o SVG gerado.
+assets/qg/
+assets/skins/
+assets/*.jpg
+assets/*.jpeg
+assets/*.png
+assets/*.webp
+assets/*.zip
+assets/flow-assets-bundle*.json
+captura-de-tela-*.png
