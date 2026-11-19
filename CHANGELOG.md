@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.7 — 2026-11-19
+
+- **Ícones inteiros.** A coluna de cada ícone passou de 3 para 4 células e fica centrada no ponto marcado: o botão do desktop precisa de folga além das 2 células do emoji, e cortava o 💡, o 🌙, o 🦀 e o ⚡.
+- **Relógio limpo.** A "marca d'água" era o ⏱ apagado por cima dos ponteiros. Agora o botão do relógio é em branco e o ⏱ só aparece sob o ponteiro.
+- **Cola um pouco à esquerda**, por cima do livro tombado.
+- **Segundo interruptor: modo neon.** O 🔮 no segundo poste de madeira liga um tom roxo e tiras de neon ciano e magenta na prateleira, nas bancadas, no chão e em volta do rack, pulsando. A escolha fica guardada.
+- **Painel em três monitores**, cada um com pouca coisa e a letra do maior tamanho que cabe: em cima o modelo e o contexto; no meio tokens, custo e os limites de 5 horas e 7 dias; embaixo agentes e comandos.
+- **Vaga-lumes verdes de verdade.** Estavam por baixo da escuridão da noite; agora são desenhados por cima, com halo verde, piscando fora de compasso (dez caminhos), também de dia.
+- **A lua só aparece no escuro** (à noite ou com a luz apagada), onde dá para vê-la, mais forte.
+
 ## 0.7.6 — 2026-11-19
 
 - **O ícone é o botão.** As linhas de botão em branco que cobriam as zonas não respondiam no desktop e deixavam marcas (as reticências sobre o relógio, o cofre e o servidor): presas em colunas estreitas, encolhiam em `…`. Saíram todas: agora cada ponto do QG é um botão com o próprio ícone, numa coluna de largura fixa e desenhado por cima de tudo (o Claudin do QG deixou de ser um quadro interativo, que pegava o clique), posto exatamente onde foi marcado no print (Sobre na placa, Cola no canto dos livros, luz no poste, 🦀 no monitor de cima, cofre e servidor no meio, Agenda no canto do calendário, ⏱ no centro do relógio).

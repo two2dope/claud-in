@@ -7,13 +7,14 @@ export const QG_LIMIT = 131072 // caracteres que o Svg do mod aceita
 
 // Ponto do QG: o retângulo do objeto na imagem (fração da largura e da altura), a aba que abre, o ícone que é o botão
 // e o centro onde ele fica (cx, cy). `always` deixa o ícone aceso; os outros ficam apagados até o ponteiro passar.
-export type Spot = { id: 'sobre' | 'cola' | 'luz' | 'frota' | 'cofre' | 'agenda' | 'tempo' | 'servidor'; tab: string; label: string; name: string; pin: string; cx: number; cy: number; always?: boolean; x0: number; y0: number; x1: number; y1: number }
+export type Spot = { id: 'sobre' | 'cola' | 'luz' | 'neon' | 'frota' | 'cofre' | 'agenda' | 'tempo' | 'servidor'; tab: string; label: string; name: string; pin: string; cx: number; cy: number; always?: boolean; x0: number; y0: number; x1: number; y1: number }
 
 export const SPOTS: Spot[] = [
   { id: 'sobre', tab: 'sobre', label: 'Placa de madeira: sobre o Claudin', name: 'Sobre', pin: 'ℹ️', cx: 0.117, cy: 0.177, x0: 0.1, y0: 0.12, x1: 0.158, y1: 0.62 },
-  { id: 'cola', tab: 'comandos', label: 'Livros e pastas de skills: a Cola da oficina', name: 'Cola', pin: '📚', cx: 0.263, cy: 0.127, x0: 0.16, y0: 0.113, x1: 0.27, y1: 0.279 },
+  { id: 'cola', tab: 'comandos', label: 'Livros e pastas de skills: a Cola da oficina', name: 'Cola', pin: '📚', cx: 0.254, cy: 0.127, x0: 0.16, y0: 0.113, x1: 0.27, y1: 0.279 },
   { id: 'luz', tab: '', label: 'Lanterna: acende e apaga a luz da sala', name: 'Luz', pin: '💡', cx: 0.294, cy: 0.57, always: true, x0: 0.278, y0: 0.02, x1: 0.32, y1: 0.75 },
   { id: 'frota', tab: 'frota', label: 'Monitores: a frota de agentes', name: 'Frota', pin: '🦀', cx: 0.35, cy: 0.234, always: true, x0: 0.326, y0: 0.108, x1: 0.521, y1: 0.69 },
+  { id: 'neon', tab: '', label: 'Segundo interruptor: o modo neon', name: 'Neon', pin: '🔮', cx: 0.537, cy: 0.57, always: true, x0: 0.523, y0: 0.02, x1: 0.551, y1: 0.75 },
   { id: 'cofre', tab: 'cofre', label: 'Cofre: o cofre de contexto', name: 'Cofre', pin: '🔐', cx: 0.573, cy: 0.443, x0: 0.553, y0: 0.318, x1: 0.614, y1: 0.589 },
   { id: 'agenda', tab: 'prazos', label: 'Calendário: a Agenda', name: 'Agenda', pin: '📅', cx: 0.685, cy: 0.36, x0: 0.6285, y0: 0.318, x1: 0.705, y1: 0.576 },
   { id: 'servidor', tab: 'acoes', label: 'Servidor: ações e janela de contexto', name: 'Ações', pin: '⚡', cx: 0.752, cy: 0.563, x0: 0.725, y0: 0.252, x1: 0.797, y1: 0.935 },
@@ -161,83 +162,83 @@ export function modelShort(id: string | undefined): string {
 
 export const kTokens = (n: number): string => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(Math.round(n)))
 
-// O painel: um monitor desenhado por cima das telas de cima (as duas grandes e a pequena da direita), com moldura
-// própria para não depender do encaixe na arte. Mostra tudo ao mesmo tempo, em três linhas.
+// O painel em três monitores desenhados com moldura própria (não dependem do encaixe na arte), cada um com pouca
+// coisa e letra grande: em cima modelo e contexto; no meio tokens, custo e limites; embaixo agentes e comandos.
 export const DISPLAY: [number, number, number, number] = [0.37, 0.108, 0.512, 0.302]
-// A tela laranja da fileira do meio mostra agentes e comandos.
-const SIDE_SCREEN = 2
+export const DISPLAY_MID: [number, number, number, number] = [0.369, 0.326, 0.516, 0.5]
+export const DISPLAY_LOW: [number, number, number, number] = [0.369, 0.528, 0.516, 0.69]
 
 const pad = (a: string, b: string, width: number) => {
   const gap = Math.max(1, width - a.length - b.length)
   return a + ' '.repeat(gap) + b
 }
 
-// As linhas do painel, só com o que existe.
-export function panelLines(p: Panel): string[] {
-  const W = 19
-  const lines: string[] = []
+// As linhas de cada monitor, só com o que existe.
+export function panelLines(p: Panel): { top: string[]; mid: string[]; low: string[] } {
+  const W = 16
   const model = modelShort(p.model)
   const ctx = typeof p.ctx === 'number' ? `CTX ${p.ctx}%` : ''
-  if (model || ctx) lines.push(pad(model, ctx, W))
   const tok = typeof p.tokens === 'number' ? `TOK ${kTokens(p.tokens)}` : ''
   const usd = typeof p.usd === 'number' ? `$${p.usd.toFixed(2)}` : ''
-  if (tok || usd) lines.push(pad(tok, usd, W))
   const l5 = typeof p.limit5h === 'number' ? `5H ${Math.round(p.limit5h)}%` : ''
   const l7 = typeof p.limit7d === 'number' ? `7D ${Math.round(p.limit7d)}%` : ''
-  if (l5 || l7) lines.push(pad(l5, l7, W))
-  return lines
+  const top = [model, ctx].filter(Boolean)
+  const mid = [tok || usd ? pad(tok, usd, W) : '', l5 || l7 ? pad(l5, l7, W) : ''].filter(Boolean)
+  const low = typeof p.agents === 'number' || typeof p.tools === 'number' ? [pad(`AGT ${p.agents ?? 0}`, `CMD ${p.tools ?? 0}`, W)] : []
+  return { top, mid, low }
 }
 
-export function panelSvg(p: Panel, working = false, w = 360, h = 76): string {
+// Um monitor desenhado: moldura, tela e as linhas centradas, com letra do maior tamanho que cabe.
+function monitor(r: [number, number, number, number], lines: string[], w: number, h: number, hot: boolean[] = []): string {
+  if (lines.length === 0) return ''
   const esc = (t: string) => t.replace(/[<>&]/g, '')
-  const [x0, y0, x1, y1] = DISPLAY
+  const [x0, y0, x1, y1] = r
   const X = x0 * w
   const Y = y0 * h
   const W = (x1 - x0) * w
   const H = (y1 - y0) * h
-  const b = 1.4 // moldura
-  let out = `<g class="panel" shape-rendering="auto">`
-  out += `<rect x="${X.toFixed(1)}" y="${Y.toFixed(1)}" width="${W.toFixed(1)}" height="${H.toFixed(1)}" rx="0.8" fill="#2a2d2b"/>`
-  out += `<rect x="${(X + b).toFixed(1)}" y="${(Y + b).toFixed(1)}" width="${(W - 2 * b).toFixed(1)}" height="${(H - 2 * b).toFixed(1)}" fill="#03170a"/>`
-  const lines = panelLines(p)
-  const fs = 3.4
+  const b = 1.2
+  const longest = Math.max(...lines.map(l => l.length), 1)
+  const fs = Math.min((W - 2 * b - 1.5) / (longest * 0.6), (H - 2 * b - 0.6) / (lines.length * 1.1))
   const cx = X + W / 2
-  const top = Y + b + 0.3 + fs * 0.92
+  const block = lines.length * fs * 1.1
+  const top = Y + b + (H - 2 * b - block) / 2 + fs * 0.88
+  let out = `<rect x="${X.toFixed(1)}" y="${Y.toFixed(1)}" width="${W.toFixed(1)}" height="${H.toFixed(1)}" rx="0.8" fill="#2a2d2b"/>`
+  out += `<rect x="${(X + b).toFixed(1)}" y="${(Y + b).toFixed(1)}" width="${(W - 2 * b).toFixed(1)}" height="${(H - 2 * b).toFixed(1)}" fill="#03170a"/>`
   lines.forEach((t, k) => {
-    const hot = (k === 0 && (p.ctx ?? 0) >= 70) || (k === 2 && (p.limit5h ?? 0) >= 80)
-    out += `<text x="${cx.toFixed(1)}" y="${(top + k * fs * 1.12).toFixed(1)}" font-size="${fs}" fill="${hot ? '#ffcf7a' : '#b9ffc8'}" text-anchor="middle" font-family="monospace" font-weight="700" xml:space="preserve">${esc(t)}</text>`
+    out += `<text x="${cx.toFixed(1)}" y="${(top + k * fs * 1.1).toFixed(1)}" font-size="${fs.toFixed(2)}" fill="${hot[k] ? '#ffcf7a' : '#b9ffc8'}" text-anchor="middle" font-family="monospace" font-weight="700" xml:space="preserve">${esc(t)}</text>`
   })
+  return out
+}
+
+export function panelSvg(p: Panel, working = false, w = 360, h = 76): string {
+  const { top, mid, low } = panelLines(p)
+  let out = `<g class="panel" shape-rendering="auto">`
+  out += monitor(DISPLAY, top, w, h, [false, (p.ctx ?? 0) >= 70])
+  out += monitor(DISPLAY_MID, mid, w, h, [false, (p.limit5h ?? 0) >= 80])
+  out += monitor(DISPLAY_LOW, low, w, h)
   if (typeof p.ctx === 'number') {
+    const [x0, , x1, y1] = DISPLAY
     const f = Math.max(0, Math.min(1, p.ctx / 100))
-    out += `<rect x="${(X + b + 1).toFixed(1)}" y="${(Y + H - b - 0.75).toFixed(1)}" width="${((W - 2 * b - 2) * f).toFixed(2)}" height="0.45" fill="${(p.ctx ?? 0) >= 70 ? '#ffcf7a' : '#5fd08a'}"/>`
-  }
-  // Agentes e comandos na tela laranja do meio.
-  const r = MONITORS[SIDE_SCREEN]!
-  if (typeof p.agents === 'number' || typeof p.tools === 'number') {
-    const sx = r[0] * w
-    const sy = r[1] * h
-    const sw = (r[2] - r[0]) * w
-    const sh = (r[3] - r[1]) * h
-    out += `<rect x="${sx.toFixed(1)}" y="${sy.toFixed(1)}" width="${sw.toFixed(1)}" height="${sh.toFixed(1)}" fill="#03170a" opacity=".92"/>`
-    out += `<text x="${(sx + sw / 2).toFixed(1)}" y="${(sy + sh * 0.42).toFixed(1)}" font-size="3.3" fill="#b9ffc8" text-anchor="middle" font-family="monospace" font-weight="700">AGT ${p.agents ?? 0}</text>`
-    out += `<text x="${(sx + sw / 2).toFixed(1)}" y="${(sy + sh * 0.82).toFixed(1)}" font-size="3.3" fill="#b9ffc8" text-anchor="middle" font-family="monospace" font-weight="700">CMD ${p.tools ?? 0}</text>`
+    out += `<rect x="${(x0 * w + 2.2).toFixed(1)}" y="${(y1 * h - 2.1).toFixed(1)}" width="${(((x1 - x0) * w - 4.4) * f).toFixed(2)}" height="0.5" fill="${p.ctx >= 70 ? '#ffcf7a' : '#5fd08a'}"/>`
   }
   if (working) {
-    out += `<rect x="${(X + W - b - 2).toFixed(1)}" y="${(Y + b + 0.8).toFixed(1)}" width="1.1" height="1.1" fill="#b9ffc8"><animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/></rect>`
+    const [, y0, x1] = DISPLAY
+    out += `<rect x="${(x1 * w - 3.2).toFixed(1)}" y="${(y0 * h + 2).toFixed(1)}" width="1.1" height="1.1" fill="#b9ffc8"><animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/></rect>`
   }
   return out + '</g>'
 }
 
 // ── a vida do cenário: tudo animado dentro do SVG, sem custo de redesenho ──
-// Telas menores com linhas de "código" que crescem, LEDs do servidor, a lua da prateleira e bichinhos no mangue.
-const SMALL_SCREENS = MONITORS.filter((_, i) => i !== SIDE_SCREEN)
+// Desenhada por cima da escuridão: linhas de "código" nas telas da esquerda, LEDs do servidor, a lua da prateleira
+// (só no escuro, quando dá para vê-la) e vaga-lumes verdes piscando pelas raízes do mangue.
+const SMALL_SCREENS = [MONITORS[1]!, MONITORS[5]!]
 const SERVER = [0.737, 0.3, 0.785, 0.88] // área dos LEDs no rack
 const MOON = [0.5715, 0.15] // centro da lua na prateleira
 
 export function ambientSvg(w = 360, h = 76, night = false): string {
   const f = (n: number) => n.toFixed(1)
-  let out = '<g class="vida" shape-rendering="auto"><defs><filter id="moonblur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.1"/></filter></defs>'
-  // Linhas de código nas telas pequenas.
+  let out = '<g class="vida" shape-rendering="auto"><defs><filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="0.9"/></filter></defs>'
   SMALL_SCREENS.forEach(([x0, y0, x1, y1], i) => {
     const X = x0 * w + 1.5
     const W = (x1 - x0) * w - 3
@@ -245,10 +246,10 @@ export function ambientSvg(w = 360, h = 76, night = false): string {
     for (let l = 0; l < 3; l++) {
       const y = y0 * h + H * (0.28 + l * 0.22)
       const dur = 2.2 + ((i * 3 + l * 5) % 7) * 0.45
-      out += `<rect x="${f(X)}" y="${f(y)}" height="0.9" width="0" fill="#9dffb5" opacity=".75"><animate attributeName="width" values="0;${f(W * (0.45 + ((i + l) % 3) * 0.2))};${f(W * (0.45 + ((i + l) % 3) * 0.2))};0" keyTimes="0;.6;.9;1" dur="${dur.toFixed(2)}s" repeatCount="indefinite"/></rect>`
+      const full = f(W * (0.45 + ((i + l) % 3) * 0.2))
+      out += `<rect x="${f(X)}" y="${f(y)}" height="0.9" width="0" fill="#9dffb5" opacity=".75"><animate attributeName="width" values="0;${full};${full};0" keyTimes="0;.6;.9;1" dur="${dur.toFixed(2)}s" repeatCount="indefinite"/></rect>`
     }
   })
-  // LEDs do servidor, piscando em ritmos diferentes.
   const [sx0, sy0, sx1, sy1] = SERVER as [number, number, number, number]
   for (let r = 0; r < 7; r++) {
     for (let c = 0; c < 3; c++) {
@@ -259,25 +260,48 @@ export function ambientSvg(w = 360, h = 76, night = false): string {
       out += `<rect x="${f(x)}" y="${f(y)}" width="0.9" height="0.9" fill="${color}"><animate attributeName="opacity" values="1;.15;1" dur="${dur.toFixed(2)}s" repeatCount="indefinite"/></rect>`
     }
   }
-  // A lua da prateleira acesa, respirando.
-  out += `<circle cx="${f(MOON[0]! * w)}" cy="${f(MOON[1]! * h)}" r="4.2" fill="#fff1b0" opacity=".55" filter="url(#moonblur)"><animate attributeName="opacity" values=".3;.85;.3" dur="4s" repeatCount="indefinite"/></circle>`
-  out += `<circle cx="${f(MOON[0]! * w)}" cy="${f(MOON[1]! * h)}" r="1.6" fill="#fff8d6" opacity=".7"><animate attributeName="opacity" values=".45;.95;.45" dur="4s" repeatCount="indefinite"/></circle>`
-  // Bichinhos no mangue: vaga-lumes à noite, mosquitinhos de dia, passeando pelas raízes dos dois lados.
-  const bug = night ? '#fff27a' : '#3a2a18'
+  if (night) {
+    out += `<circle class="lua" cx="${f(MOON[0]! * w)}" cy="${f(MOON[1]! * h)}" r="4.6" fill="#fff1b0" opacity=".6" filter="url(#glow)"><animate attributeName="opacity" values=".35;.95;.35" dur="4s" repeatCount="indefinite"/></circle>`
+    out += `<circle cx="${f(MOON[0]! * w)}" cy="${f(MOON[1]! * h)}" r="1.8" fill="#fffbe6" opacity=".85"><animate attributeName="opacity" values=".55;1;.55" dur="4s" repeatCount="indefinite"/></circle>`
+  }
+  // Vaga-lumes verdes: um halo borrado e um ponto, piscando fora de compasso; de dia, mais discretos.
   const paths = [
     'M10 20 q8 -6 14 4 t10 8 t-12 10 t-10 -12z',
     'M20 50 q10 -8 16 2 t-4 12 t-14 -6z',
     'M6 36 q6 -10 12 -2 t4 10 t-12 -2z',
     'M28 10 q6 4 2 10 t-10 2 t8 -12z',
+    'M14 64 q8 -6 14 0 t-4 8 t-10 -8z',
     'M335 18 q-8 8 -14 0 t-8 10 t12 8 t10 -18z',
     'M345 46 q-10 6 -16 -2 t2 -10 t14 12z',
     'M352 30 q-6 -8 -12 -2 t-2 10 t14 -8z',
     'M326 58 q8 -4 12 2 t-4 8 t-8 -10z',
+    'M340 66 q-8 -6 -14 0 t4 8 t10 -8z',
   ]
+  const peak = night ? 1 : 0.7
   paths.forEach((d, i) => {
-    const dur = 9 + i * 2.5
-    out += `<circle r="${night ? 0.9 : 0.6}" fill="${bug}"><animateMotion path="${d}" dur="${dur}s" repeatCount="indefinite"/>${night ? `<animate attributeName="opacity" values="1;.2;1" dur="${(1.4 + i * 0.3).toFixed(1)}s" repeatCount="indefinite"/>` : ''}</circle>`
+    const dur = 9 + i * 2.1
+    const blink = `<animate attributeName="opacity" values="0;${peak};${peak};0;0" keyTimes="0;.15;.45;.6;1" dur="${(2 + (i % 4) * 0.7).toFixed(1)}s" begin="${(i * 0.37).toFixed(2)}s" repeatCount="indefinite"/>`
+    out += `<g opacity="0"><animateMotion path="${d}" dur="${dur.toFixed(1)}s" repeatCount="indefinite"/>${blink}<circle r="2" fill="#7dff4a" opacity=".55" filter="url(#glow)"/><circle r="0.75" fill="#e2ffb0"/></g>`
   })
+  return out + '</g>'
+}
+
+// ── modo neon: o segundo interruptor deixa a sala com cara de laboratório ──
+// Um tom roxo por cima e tiras de neon (ciano e magenta) na prateleira, nas bancadas, no rack e no chão, pulsando.
+export function neonSvg(w = 360, h = 76): string {
+  const f = (n: number) => n.toFixed(1)
+  const strip = (x0: number, y: number, x1: number, color: string, dur: number) =>
+    `<line x1="${f(x0 * w)}" y1="${f(y * h)}" x2="${f(x1 * w)}" y2="${f(y * h)}" stroke="${color}" stroke-width="0.9" stroke-linecap="round"><animate attributeName="opacity" values=".6;1;.6" dur="${dur}s" repeatCount="indefinite"/></line>` +
+    `<line x1="${f(x0 * w)}" y1="${f(y * h)}" x2="${f(x1 * w)}" y2="${f(y * h)}" stroke="${color}" stroke-width="3" opacity=".45" filter="url(#neonglow)"/>`
+  let out = `<g class="neon" shape-rendering="auto"><defs><filter id="neonglow" x="-20%" y="-300%" width="140%" height="700%"><feGaussianBlur stdDeviation="1.4"/></filter></defs>`
+  out += `<rect width="${w}" height="${h}" fill="#3b0a6e" opacity=".22"/>`
+  out += strip(0.548, 0.255, 0.7, '#00f0ff', 2.4)
+  out += strip(0.165, 0.29, 0.27, '#ff2bd6', 2.9)
+  out += strip(0.33, 0.715, 0.52, '#ff2bd6', 2.1)
+  out += strip(0.55, 0.715, 0.72, '#00f0ff', 2.7)
+  out += strip(0.03, 0.965, 0.97, '#a84bff', 3.3)
+  const [sx0, sy0, sx1, sy1] = [0.727, 0.255, 0.795, 0.93]
+  out += `<rect x="${f(sx0 * w)}" y="${f(sy0 * h)}" width="${f((sx1 - sx0) * w)}" height="${f((sy1 - sy0) * h)}" fill="none" stroke="#00f0ff" stroke-width="0.7"><animate attributeName="opacity" values=".5;1;.5" dur="1.8s" repeatCount="indefinite"/></rect>`
   return out + '</g>'
 }
 
@@ -285,7 +309,7 @@ export function ambientSvg(w = 360, h = 76, night = false): string {
 export const VEIL = 0.1
 
 // ── a imagem com luz e relógio ──
-export type QgState = { w: number; h: number; minutes: number; pomo: Pomo | null; lightsOff?: boolean; panel?: Panel | null; working?: boolean }
+export type QgState = { w: number; h: number; minutes: number; pomo: Pomo | null; lightsOff?: boolean; neon?: boolean; panel?: Panel | null; working?: boolean }
 
 // O monitor pequeno de cima à esquerda pulsa em coral enquanto há agentes.
 export function fleetPulse(agents: number, w = 360, h = 76): string {
@@ -316,7 +340,7 @@ function lightBody(w: number, h: number, sky0: Sky, lightsOff = false): string {
 export function composeQg(base: string, s: QgState): string {
   const veil = `<rect width="${s.w}" height="${s.h}" fill="#140b05" opacity="${VEIL}"/>`
   const night = skyAt(s.minutes).dark >= 0.3 || !!s.lightsOff
-  const body = veil + ambientSvg(s.w, s.h, night) + lightBody(s.w, s.h, skyAt(s.minutes), s.lightsOff) + (s.panel ? panelSvg(s.panel, s.working, s.w, s.h) + fleetPulse(s.panel.agents ?? 0, s.w, s.h) : '') + (s.pomo ? wedge(s.w, s.h, s.pomo.fraction) : hands(s.w, s.h, s.minutes))
+  const body = veil + lightBody(s.w, s.h, skyAt(s.minutes), s.lightsOff) + (s.neon ? neonSvg(s.w, s.h) : '') + ambientSvg(s.w, s.h, night) + (s.panel ? panelSvg(s.panel, s.working, s.w, s.h) + fleetPulse(s.panel.agents ?? 0, s.w, s.h) : '') + (s.pomo ? wedge(s.w, s.h, s.pomo.fraction) : hands(s.w, s.h, s.minutes))
   const end = base.lastIndexOf('</svg>')
   if (end < 0) return base
   const out = base.slice(0, end) + body + base.slice(end)
