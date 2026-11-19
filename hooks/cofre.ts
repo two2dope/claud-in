@@ -163,3 +163,47 @@ export function mergeDeadlines<T extends DeadlineLike>(local: T[], fromCofre: T[
   const taken = new Set(fromCofre.map(key))
   return [...local.filter(d => !taken.has(key(d))), ...fromCofre]
 }
+
+// ── Aba Cofre: o _hot em leitura (fios ativos e urgentes, como texto) ──
+export type HotLists = { fios: string[]; urgent: string[] }
+const LIST_MAX = 8
+
+export function parseHotLists(text: string): HotLists {
+  const out: HotLists = { fios: [], urgent: [] }
+  let section: keyof HotLists | null = null
+  for (const line of text.split(/\r?\n/)) {
+    const h = /^##\s+(.*)$/.exec(line)
+    if (h) {
+      const name = h[1].trim().toLowerCase()
+      section = name.startsWith('fios') ? 'fios' : name.startsWith('urgente') ? 'urgent' : null
+      continue
+    }
+    if (!section || !BULLET.test(line)) continue
+    const item = line.replace(/^\s*[-*]\s+/, '').trim()
+    if (item && out[section].length < LIST_MAX) out[section].push(item)
+  }
+  return out
+}
+
+// ── Captura rápida: a ÚNICA escrita do Claudin no cofre é criar um arquivo NOVO em Raw/Notas ──
+// Nunca edita nem apaga, nunca mexe no _pending nem roda selar: o ciclo diário enfileira e sela (cofre.py novos).
+export const NOTES_DIR = 'Raw/Notas'
+const TITLE_MAX = 60
+const NAME_TRIES = 50
+
+// "AAAA-MM-DD - <título> (claudin)": título da primeira linha, sem caractere proibido no Windows, com até 60 caracteres.
+export function noteFileStem(text: string, today: string): string {
+  const first = text.split(/\r?\n/).find(l => l.trim()) ?? ''
+  const clean = first.replace(/[<>:"/\|?*\u0000-\u001f]/g, '').replace(/\s+/g, ' ').trim()
+  const title = clean.slice(0, TITLE_MAX).replace(/[. ]+$/, '') || 'nota'
+  return `${today} - ${title} (claudin)`
+}
+
+// Primeiro nome livre: "<stem>.md", depois "<stem> (2).md"... Nunca devolve um que já existe; null se desistir.
+export async function freeNoteName(stem: string, exists: (name: string) => Promise<boolean>): Promise<string | null> {
+  for (let n = 1; n <= NAME_TRIES; n++) {
+    const name = n === 1 ? `${stem}.md` : `${stem} (${n}).md`
+    if (!(await exists(name))) return name
+  }
+  return null
+}

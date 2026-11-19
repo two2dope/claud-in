@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { COFRE_FILE, HOT_FILE, HOT_STALE_DAYS, PENDING_FILE, PENDING_MAX, countPending, daysBetween, healthNotes, hotLine, mergeDeadlines, parseCofreConfig, parseHot, parseHotDeadlines, resolveCofre } from './cofre'
+import { COFRE_FILE, HOT_FILE, HOT_STALE_DAYS, PENDING_FILE, PENDING_MAX, countPending, daysBetween, healthNotes, hotLine, mergeDeadlines, parseCofreConfig, parseHot, parseHotDeadlines, parseHotLists, resolveCofre, NOTES_DIR, freeNoteName, noteFileStem } from './cofre'
 
 const BS = String.fromCharCode(92)
 const cfg = (path: unknown) => JSON.stringify({ path })
@@ -244,5 +244,65 @@ describe('mergeDeadlines', () => {
   test('sem prazos do cofre devolve os locais como estão', () => {
     const local = [L('1', '2026-11-25', 'x')]
     expect(mergeDeadlines(local, [])).toEqual(local)
+  })
+})
+
+describe('parseHotLists', () => {
+  const T = ['# Hoje — 2026-11-19', '**Próximo passo:** x', '## Prazos (14 dias)', '- 25/11 · A · b', '## Fios ativos', '- claudin: skins, falta o código', '- oficina: ok', '## Urgente', '- responder o parceiro', '  - com recuo', 'texto solto', ''].join('\n')
+
+  test('devolve os fios e os urgentes como texto, sem o marcador da lista', () => {
+    expect(parseHotLists(T)).toEqual({ fios: ['claudin: skins, falta o código', 'oficina: ok'], urgent: ['responder o parceiro', 'com recuo'] })
+  })
+
+  test('sem as seções, listas vazias', () => {
+    expect(parseHotLists('')).toEqual({ fios: [], urgent: [] })
+    expect(parseHotLists('# Hoje\n- solto\n')).toEqual({ fios: [], urgent: [] })
+  })
+
+  test('limita cada lista', () => {
+    const many = ['## Urgente', ...Array.from({ length: 20 }, (_, i) => `- item ${i}`), ''].join('\n')
+    expect(parseHotLists(many).urgent).toHaveLength(8)
+  })
+})
+
+describe('noteFileStem', () => {
+  const D = '2026-11-19'
+
+  test('data, título da primeira linha e a marca do Claudin', () => {
+    expect(noteFileStem('Ideia sobre skins\nresto da nota', D)).toBe('2026-11-19 - Ideia sobre skins (claudin)')
+  })
+
+  test('tira caracteres que o Windows não aceita e junta espaços', () => {
+    expect(noteFileStem('a<b>c:d"e/f\g|h?i*j   k', D)).toBe('2026-11-19 - abcdefghij k (claudin)')
+  })
+
+  test('corta em 60 caracteres e tira ponto e espaço do fim', () => {
+    const stem = noteFileStem('x'.repeat(100), D)
+    expect(stem).toBe(`2026-11-19 - ${'x'.repeat(60)} (claudin)`)
+    expect(noteFileStem('título com ponto...  ', D)).toBe('2026-11-19 - título com ponto (claudin)')
+  })
+
+  test('texto sem título legível vira "nota"', () => {
+    expect(noteFileStem('   ', D)).toBe('2026-11-19 - nota (claudin)')
+    expect(noteFileStem('???', D)).toBe('2026-11-19 - nota (claudin)')
+  })
+
+  test('as notas vão para Raw/Notas', () => {
+    expect(NOTES_DIR).toBe('Raw/Notas')
+  })
+})
+
+describe('freeNoteName', () => {
+  test('usa o nome simples quando está livre', async () => {
+    expect(await freeNoteName('a (claudin)', async () => false)).toBe('a (claudin).md')
+  })
+
+  test('acrescenta (2), (3)... e nunca devolve um nome que já existe', async () => {
+    const taken = new Set(['a (claudin).md', 'a (claudin) (2).md'])
+    expect(await freeNoteName('a (claudin)', async n => taken.has(n))).toBe('a (claudin) (3).md')
+  })
+
+  test('desiste (null) se 50 nomes estiverem tomados', async () => {
+    expect(await freeNoteName('a', async () => true)).toBeNull()
   })
 })

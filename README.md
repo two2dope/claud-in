@@ -77,7 +77,9 @@ Uma ação sugerida só preenche o prompt. Quem decide enviar é você, então o
 | Tempo | Timers e pomodoro, com pausar, reiniciar e cancelar |
 | Agenda | Prazos com contagem em dias e lembretes recorrentes |
 | Frota | Só aparece com subagentes: estado, tipo, tarefa, tempo e ferramentas de cada um (até seis; o resto vira `+N agentes`) |
+| Cofre | Só aparece com o cofre ligado (veja abaixo): próximo passo, urgentes, fios ativos e avisos do `_hot`, o botão que preenche o prompt e um campo para capturar uma nota |
 
+**Barra de abas.** Cada aba mostra só o ícone (💬 Prompts, ⚡ Ações, ⌘ Comandos, ⚙ Ajustes, ⏱ Tempo, 📅 Agenda, 🦀 Frota, 🔐 Cofre); a aba aberta mostra também o nome.
 **Tempo e agenda.** Timers, prazos e lembretes são gravados entre sessões. A saudação do dia resume o que vence hoje e o que venceu.
 
 **Modos.** O ciclo fica em Ajustes.
@@ -137,7 +139,7 @@ Os seus arquivos moram em `<config>/claudin/`, em que `<config>` é a pasta defi
 
 - **Sprites próprios:** `<config>/claudin/sprites/`, um arquivo por pose (`.svg` ou `.png`, PNG até cerca de 90 KB). As poses são `idle`, `think`, `read`, `code`, `run`, `search`, `ok`, `err`. Pose sem arquivo usa o desenho padrão.
 - **Atalhos de prompt:** `<config>/claudin/shortcuts.json`, uma lista de `{ "label", "text" }`.
-- **Cofre (opcional, só leitura):** `<config>/claudin/cofre.json`, no formato `{ "path": "~/Projetos/00_cofre" }`. É pessoal e nunca vai para o repositório. Com ele ligado, a saudação do dia mostra o próximo passo e a contagem de urgentes do `Wiki/_hot.md` e avisa quando o hot está velho ou a fila do `Raw/_pending.md` passa de 40 itens. O Claudin só lê. Na aba Ações aparece o botão `próximo passo do cofre`, que só preenche o prompt. Os prazos do `_hot` aparecem na Agenda como `do cofre`, só leitura.
+- **Cofre (opcional, só leitura):** `<config>/claudin/cofre.json`, no formato `{ "path": "~/Projetos/00_cofre" }`. É pessoal e nunca vai para o repositório. Com ele ligado, a saudação do dia mostra o próximo passo e a contagem de urgentes do `Wiki/_hot.md` e avisa quando o hot está velho ou a fila do `Raw/_pending.md` passa de 40 itens. O Claudin só lê, com uma exceção: o campo `capturar nota…` da aba Cofre cria um arquivo novo em `Raw/Notas` (`AAAA-MM-DD - <título> (claudin).md`), nunca edita nem apaga e não mexe no `_pending`; o ciclo diário enfileira e sela a nota. Na aba Ações aparece o botão `próximo passo do cofre`, que só preenche o prompt. Os prazos do `_hot` aparecem na Agenda como `do cofre`, só leitura.
 - **Favoritos iniciais:** `<config>/claudin/favorites-seed.json` entra na primeira vez; depois os favoritos ficam no armazenamento do próprio mod.
 
 Quem carrega o plugin por `--plugin-dir` também pode pôr esses arquivos na pasta clonada (`sprites/`, `shortcuts.json`, `favorites-seed.json`); eles valem quando não há versão sua na pasta de config.
