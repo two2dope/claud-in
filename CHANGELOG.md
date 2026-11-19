@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.7.4 — 2026-11-19
+
+- **A zona inteira responde ao clique.** Um botão do desktop desenha uma linha só, e na 0.7.3 a zona tinha um único botão no meio (aparecia como `…`). Agora cada zona é uma pilha de linhas de botão que cobre o objeto todo.
+- **Ícone no hover.** Ao passar o ponteiro, a zona acende e mostra o ícone do que ela abre (📚 Cola, 💡 luz, 🦀 frota, 🔐 Cofre, 📅 Agenda, ⚡ Ações, ⏱ Tempo), não o nome.
+- **Sem travar.** O painel dos monitores lia o engine a cada redesenho (de 1,5 em 1,5 s); agora lê ao abrir o QG, ao enviar e no fim de cada turno.
+- **Um monitor só, com letra maior.** As duas telas grandes de cima viram um painel que reveza páginas a cada 4 s: modelo e contexto, tokens e custo, limites de 5 horas e 7 dias, agentes e comandos.
+- **O cenário ganhou vida.** Linhas de código crescendo nas outras telas, LEDs piscando no servidor, a lua da prateleira acesa e respirando, e bichinhos passeando pelas raízes do mangue (vaga-lumes à noite, mosquitinhos de dia). Tudo animado dentro da própria imagem, sem custo de redesenho.
+- **Gadget escondido.** A placa de madeira à esquerda abre o Sobre: versão e links para o repositório, a página do projeto, as novidades e o legends-claude.
+- **Abas só com ícone** também no painel lateral; a aba aberta mostra o ícone e o nome, na ficha coral.
+- **O Claudin cresceu.** Os tamanhos sobem um degrau: o pequeno é o antigo médio, o médio é o antigo grande e o grande é novo (84x63).
+- **Cada sessão lembra o seu Claudin.** Skin, tamanho e QG ligado ficam guardados por sessão: ao voltar para uma sessão, ele volta como estava (bom para usar uma cor por sessão). Uma sessão nova começa com a última escolha.
+- **Conhecido:** nada disso conferido no desktop; sem LICENSE.
+
 ## 0.7.3 — 2026-11-19
 
 - **As zonas do QG agora respondem ao clique.** Na 0.7.2 cada zona era uma camada do tamanho da imagem, e a de cima cobria as outras e engolia o clique. Agora elas ficam lado a lado numa camada só.

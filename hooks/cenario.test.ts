@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { QG_ART } from './cenario-arte'
-import { QG_LIMIT, MONITORS, SPOTS, kTokens, modelShort, panelSvg, STATIONS, composeQg, pct, pomodoroOf, skyAt, stationCol, withOutline } from './cenario'
+import { QG_LIMIT, MONITORS, ambientSvg, SPOTS, kTokens, modelShort, panelSvg, STATIONS, composeQg, pct, pomodoroOf, skyAt, stationCol, withOutline } from './cenario'
 
 const HORA = (h: number, m = 0) => h * 60 + m
 
@@ -22,8 +22,8 @@ describe('QG: a arte', () => {
 })
 
 describe('QG: pontos clicáveis e bancadas', () => {
-  test('sete zonas, cada uma com a aba que abre, dentro da imagem', () => {
-    expect(SPOTS.map(s => [s.id, s.tab])).toEqual([['cola', 'comandos'], ['luz', ''], ['frota', 'frota'], ['cofre', 'cofre'], ['agenda', 'prazos'], ['servidor', 'acoes'], ['tempo', 'tempo']])
+  test('oito zonas, cada uma com a aba que abre, dentro da imagem', () => {
+    expect(SPOTS.map(s => [s.id, s.tab])).toEqual([['sobre', 'sobre'], ['cola', 'comandos'], ['luz', ''], ['frota', 'frota'], ['cofre', 'cofre'], ['agenda', 'prazos'], ['servidor', 'acoes'], ['tempo', 'tempo']])
     for (const s of SPOTS) {
       expect(s.x0).toBeGreaterThanOrEqual(0)
       expect(s.x1).toBeLessThanOrEqual(1)
@@ -220,7 +220,8 @@ describe('QG: zonas sem sobreposição e painel dos monitores', () => {
     const vazio = panelSvg({})
     expect(vazio).not.toContain('<text')
     const cheio = panelSvg({ model: 'claude-opus-5-5', ctx: 42, tokens: 84_000, window: 200_000, usd: 1.75, limit5h: 30, limit7d: 12, agents: 2, tools: 7 }, true)
-    for (const t of ['OPUS', '5.5', 'CTX', '42%', '84k', '1.75', '5H', '7D', 'AGT', 'CMD']) expect(cheio).toContain(`>${t}<`)
+    for (const t of ['OPUS 5.5', 'CTX 42%', 'TOK 84k', 'US$ 1.75', '5H 30%', '7D 12%', 'AGT 2', 'CMD 7']) expect(cheio).toContain(`>${t}<`)
+    expect(cheio.match(/calcMode="discrete"/g)?.length).toBe(4) // quatro páginas que se revezam
     expect(cheio).toContain('<animate')
     expect(MONITORS.every(([x0, y0, x1, y1]) => x0 < x1 && y0 < y1 && x1 <= 1 && y1 <= 1)).toBe(true)
   })
@@ -230,5 +231,16 @@ describe('QG: zonas sem sobreposição e painel dos monitores', () => {
     const noite = { w: QG_ART.w, h: QG_ART.h, minutes: HORA(22), pomo: null }
     expect(composeQg(base, noite)).toContain('url(#warm)')
     expect(composeQg(base, { ...noite, lightsOff: true })).not.toContain('url(#warm)')
+  })
+})
+
+describe('QG: a vida do cenário', () => {
+  test('telas, LEDs, lua e bichinhos animados, e tudo cabe no limite', () => {
+    const v = ambientSvg(360, 76, true)
+    expect(v).toContain('animateMotion')
+    expect(v.match(/<animate /g)!.length).toBeGreaterThan(20)
+    const noite = composeQg(QG_ART.svg, { w: QG_ART.w, h: QG_ART.h, minutes: HORA(22), pomo: { fraction: 0.5 }, panel: { model: 'claude-opus-5-5', ctx: 99, tokens: 999_999, window: 1_000_000, usd: 999.99, limit5h: 99, limit7d: 99, agents: 9, tools: 99 }, working: true })
+    expect(noite.length).toBeLessThanOrEqual(QG_LIMIT)
+    expect(noite).toContain('class="vida"')
   })
 })
