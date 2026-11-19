@@ -1314,6 +1314,7 @@ async function draw($: any, e: any, next: any) {
 
   // Com a faixa ligada as miniaturas da frota ficam nas bancadas dela e não ao lado do mascote.
   const miniBeside = cenarioOn ? [] : miniRow
+  const sceneMascot = cenarioOn && !!Svg // o mascote anda dentro da faixa; o balão fica logo abaixo
   const stationMinis = cenarioOn
     ? picked.shown.flatMap(x => Array.from({ length: Math.min(x.count, STATIONS.length) }, (_, n) => ({ kind: x.kind, n, role: MINI_ROLE[x.kind] ?? '' }))).slice(0, STATIONS.length)
     : []
@@ -1325,6 +1326,9 @@ async function draw($: any, e: any, next: any) {
     qgNode = (
       <Box key="qg" position="relative" width="100%">
         <Svg key="qg-art" source={art} alt="QG do Claudin: a base dos caranguejos com cérebro, em uma cabana de palafita no mangue" />
+        <Box key="qg-claudin" position="absolute" bottom={0} left={Math.max(0, Math.min(x, cols - 8))}>
+          {mascot}
+        </Box>
         {stationMinis.map((mm, i) => (
           <Box key={`qg-mini-${mm.kind}${mm.n ? `-${mm.n}` : ''}`} position="absolute" bottom={0} left={stationCol(i, cols)}>
             <Svg source={miniSprites[mm.kind] ?? ''} alt={`Agente: ${mm.role}`} width={26} height={26} />
@@ -1342,6 +1346,7 @@ async function draw($: any, e: any, next: any) {
   const root = (
     <Box flexDirection={isPane ? 'column' : 'row'} alignItems="flex-start" width="100%" minHeight={!isPane && open ? 13 : undefined}>
       <Box key="claudin" flexDirection="column" marginLeft={x} width={colW} alignItems="flex-start">
+        {sceneMascot ? <Text dimColor>  ▴</Text> : null}
         <Box borderStyle="round" borderColor={BORDER[s.mood] ?? 'subtle'} paddingX={1}>
           {showLog ? (
             <Box flexDirection="column">
@@ -1372,8 +1377,8 @@ async function draw($: any, e: any, next: any) {
             </Box>
           )}
         </Box>
-        <Text dimColor>  ╰▾</Text>
-        {Svg ? (
+        {sceneMascot ? null : <Text dimColor>  ╰▾</Text>}
+        {sceneMascot ? null : Svg ? (
           miniBeside.length > 0 ? (
             <Box flexDirection="row" alignItems="flex-end" columnGap={1}>
               {mascot}

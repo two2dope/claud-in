@@ -1631,3 +1631,41 @@ test('sem a faixa as miniaturas continuam ao lado do mascote', async ($: any, on
   expect(await ui.find({ key: 'qg-mini-siri' })).toBeUndefined()
   await ui.unmount()
 })
+
+// ── QG: o Claudin anda DENTRO da faixa; o balão fica logo abaixo, com a seta para cima ───────
+test('com a faixa ligada o mascote fica dentro dela, e sem a faixa continua na linha de sempre', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ key: 'qg-claudin' })).toBeDefined()
+  expect(JSON.stringify(await ui.find({ key: 'qg-claudin' }))).toContain('Claudin, o mascote')
+  await ui.unmount()
+})
+
+test('sem a faixa não existe o mascote do cenário', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, {}, { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ key: 'qg-claudin' })).toBeUndefined()
+  expect(JSON.stringify(await ui.find({ key: 'claudin' }))).toContain('Claudin, o mascote')
+  await ui.unmount()
+})
+
+test('na faixa o mascote não se repete embaixo, o balão aponta para cima e continua falando', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(JSON.stringify(await ui.find({ key: 'claudin' }))).not.toContain('Claudin, o mascote')
+  expect(await ui.find({ type: 'Text', text: /▴/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /╰▾/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /Online/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('o mascote da faixa leva a skin e os modos do Claudin', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true, skin: 'lama' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(JSON.stringify(await ui.find({ key: 'qg-claudin' }))).toContain('#4fae4a') // o brotinho da Lama
+  await ui.unmount()
+})
