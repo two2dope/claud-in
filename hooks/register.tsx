@@ -4,7 +4,7 @@ import type { Register } from 'claude-code'
 import type { Action, CofreView, FleetRow, Mode, ModeKind, Mood, Say, TurnStats, Walk } from '../types'
 import { tabLabel } from './abas'
 import { MINI_KINDS, parseFleetMap, pickMinis } from './minis'
-import { COFRE_FILE, HOT_FILE, NOTES_DIR, PENDING_FILE, countPending, freeNoteName, noteFileStem, healthNotes, hotLine, mergeDeadlines, parseHot, parseHotDeadlines, parseHotLists, resolveCofre } from './cofre'
+import { COFRE_FILE, HOT_FILE, NOTES_DIR, isSafeNoteName, PENDING_FILE, countPending, freeNoteName, noteFileStem, healthNotes, hotLine, mergeDeadlines, parseHot, parseHotDeadlines, parseHotLists, resolveCofre } from './cofre'
 import { FLEET_MAX_ROWS, clip, failSay, finish, liveCount, orderRows, reconcile, revive, rowLine, shouldSaySpawn, spawnSay, summaryLine, upsert } from './frota'
 
 const say = atom({ plugin: 'claudin', key: 'say' } as const, {
@@ -74,6 +74,7 @@ const skinArt = atom({ plugin: 'claudin', key: 'skinArt' } as const, {} as Recor
 // Miniaturas da frota: arte por criatura (sprites/frota/<criatura>) e o mapa tipo -> criatura do usuário (fleet-map.json).
 const miniArt = atom({ plugin: 'claudin', key: 'miniArt' } as const, {} as Record<string, string>)
 const fleetMap = atom({ plugin: 'claudin', key: 'fleetMap' } as const, {} as Record<string, string>)
+const MINI_ROLE: Record<string, string> = { siri: 'explorar', garca: 'planejar', guaiamum: 'executar', aratu: 'revisar', caranguejinho: 'outros' }
 const skinNames = atom({ plugin: 'claudin', key: 'skinNames' } as const, [] as string[])
 const noteText = atom({ plugin: 'claudin', key: 'noteText' } as const, '')
 const NOTE_MAX = 4000
@@ -204,12 +205,14 @@ const MODE_LINE: Record<ModeKind, string> = {
 const BREAK_MS = 10 * 60 * 1000
 
 // Em meditar e cigarro o Claudin só fala de erro ou risco; o resto vai só para o histórico.
-async function speak($: any, mood: Mood, text: string, act: Action | null = null) {
+// Devolve true quando a fala saiu; nos modos calmos só erro e alerta falam, o resto fica só no histórico.
+async function speak($: any, mood: Mood, text: string, act: Action | null = null): Promise<boolean> {
   await update($, log, (l: string[]) => [...l, text].slice(-6))
   const m = await read($, mode)
-  if ((m.kind === 'meditar' || m.kind === 'cigarro') && mood !== 'err' && mood !== 'alert') return
+  if ((m.kind === 'meditar' || m.kind === 'cigarro') && mood !== 'err' && mood !== 'alert') return false
   await update($, action, () => act)
   await update($, say, (s: Say) => ({ mood, text, seq: s.seq + 1 }))
+  return true
 }
 
 async function setMode($: any, kind: ModeKind) {
@@ -602,20 +605,27 @@ async function loadCofreView($: any) {
 
 // Captura rápida: cria UM arquivo novo em <cofre>/Raw/Notas. É a única escrita do Claudin no cofre: nunca edita
 // nem apaga, e não mexe no _pending nem no selo (o ciclo diário enfileira e sela).
+let capturing = false
 async function captureNote($: any, raw: string) {
   const root = await read($, cofre)
   const text = raw.trim()
-  if (!root || !text) return
+  if (!root || !text || capturing) return
+  capturing = true // dois envios seguidos não podem escolher o mesmo nome
   try {
     const today = dayKey(new Date(await $.clock.now()))
     const dir = `${root}/${NOTES_DIR}`
     const name = await freeNoteName(noteFileStem(text, today), (n: string) => $.fs.exists(`${dir}/${n}`))
-    if (!name) return speak($, 'err', 'Não achei um nome livre para a nota.')
-    await $.fs.write(`${dir}/${name}`, `${text.slice(0, NOTE_MAX)}\n`)
+    if (!name || !isSafeNoteName(name)) {
+      await speak($, 'err', 'Não achei um nome seguro para a nota.')
+      return
+    }
     await update($, noteText, () => '')
+    await $.fs.write(`${dir}/${name}`, `${text.slice(0, NOTE_MAX)}\n`)
     await speak($, 'ok', `Nota guardada no cofre: ${short(name, 30)}.`)
   } catch {
     await speak($, 'err', 'Não consegui guardar a nota no cofre.')
+  } finally {
+    capturing = false
   }
 }
 
@@ -637,8 +647,8 @@ async function greetToday($: any, force: boolean) {
   const d = new Date(now)
   const today = dayKey(d)
   if (!force && (await $.store.get('lastGreeting')) === today) return
-  await $.store.set('lastGreeting', today)
-  const dl = mergeDeadlines(await read($, deadlines), await read($, cofreDeadlines))
+  const local = await read($, deadlines)
+  const dl = mergeDeadlines(local, await read($, cofreDeadlines))
   const rm = await read($, reminders)
   const tm = await read($, timers)
   const over = dl.filter(x => daysUntil(x.date, now) < 0)
@@ -656,12 +666,17 @@ async function greetToday($: any, force: boolean) {
     await cofreHotLine($, today),
   ].filter(Boolean)
   if (parts.length === 0) {
+    await $.store.set('lastGreeting', today)
     if (force) await speak($, 'idle', 'Nada pendente na agenda.')
     return
   }
   const hour = d.getHours()
   const hi = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
-  await speak($, over.length || hoje.length ? 'alert' : 'idle', `${hi}. ${parts.join(' · ')}.`)
+  // O alerta vem só dos prazos digitados no Claudin; um prazo do cofre (espelho) não fura meditar nem cigarro.
+  const urgent = local.some(x => daysUntil(x.date, now) <= 0)
+  const spoken = await speak($, urgent ? 'alert' : 'idle', `${hi}. ${parts.join(' · ')}.`)
+  // Saudação engolida por um modo calmo não conta como dada: volta na próxima sessão.
+  if (spoken) await $.store.set('lastGreeting', today)
 }
 
 const fmtLeft = (ms: number) => {
@@ -753,7 +768,7 @@ async function loadSkinArt($: any, name: string) {
     const roots = await dataRoots($)
     for (const m of MOODS) {
       done: for (const root of roots) {
-        for (const ext of ['svg', 'png']) {
+        for (const ext of ['svg']) { // o desktop não desenha PNG embutido: skins só em SVG
           const path = `${root}/sprites/${name}/${m}.${ext}`
           try {
             if (!(await $.fs.exists(path))) continue
@@ -774,7 +789,7 @@ async function loadMinis($: any) {
   const roots = await dataRoots($)
   for (const kind of MINI_KINDS) {
     done: for (const root of roots) {
-      for (const ext of ['svg', 'png']) {
+      for (const ext of ['svg']) {
         const path = `${root}/sprites/frota/${kind}.${ext}`
         try {
           if (!(await $.fs.exists(path))) continue
@@ -893,7 +908,7 @@ async function draw($: any, e: any, next: any) {
   const m = await read($, mode)
   const act = await read($, action)
   const open = await read($, boxOpen)
-  const cat = await read($, boxCat)
+  const catRaw = await read($, boxCat)
   const page = await read($, boxPage)
   const allCmds = await read($, cmds)
   const q = await read($, query)
@@ -914,6 +929,7 @@ async function draw($: any, e: any, next: any) {
   const nowF = fleetRows.length > 0 ? await $.clock.now() : 0
   const fleetLine = summaryLine(fleetRows, nowF)
   const cats = [...CATS, ...(fleetRows.length > 0 ? [FLEET_CAT] : []), ...(cofreRoot ? [COFRE_CAT] : [])]
+  const cat = cats.includes(catRaw) ? catRaw : 'prompts' // aba que sumiu (frota vazia, cofre desligado) não prende a caixa
   const nowT = activeTimers.length > 0 ? (await read($, tick)) || (await $.clock.now()) : 0
   const extras = await read($, extraShortcuts)
   const cmd = await read($, lastCmd)
@@ -995,7 +1011,7 @@ async function draw($: any, e: any, next: any) {
               { key: 'quiet', label: quiet ? 'ver tools' : 'ocultar tools', onPress: () => update($, isQuiet, (v: boolean) => !v) },
               { key: 'log', label: showLog ? 'fechar histórico' : 'histórico', onPress: () => update($, isLogOpen, (v: boolean) => !v) },
               { key: 'sep2', label: '', sep: true, onPress: () => {} },
-              { key: 'greet', label: 'saudação do dia', onPress: () => greetToday($, true) },
+              { key: 'greet', label: 'saudação do dia', onPress: async () => { await loadCofreDeadlines($); await greetToday($, true) } },
               { key: 'pet', label: 'afagar', onPress: () => speak($, 'ok', PETS[Math.floor(Math.random() * PETS.length)] ?? 'Presente.') },
               {
                 key: 'side',
@@ -1175,14 +1191,16 @@ async function draw($: any, e: any, next: any) {
   // Miniaturas da frota ao lado do mascote: até 2 criaturas (×n quando há vários do tipo) e +N nos agentes sem miniatura.
   // Em meditar e cigarro ficam de fora (modos calmos).
   const calm = m.kind === 'meditar' || m.kind === 'cigarro'
-  const picked = calm || !Svg ? { shown: [], extra: 0 } : pickMinis(fleetRows, 2, userFleetMap)
+  const picked0 = calm || !Svg ? { shown: [], extra: 0 } : pickMinis(fleetRows, 2, userFleetMap)
+  const lost = picked0.shown.filter(x => !miniSprites[x.kind]).reduce((n, x) => n + x.count, 0) // sem arte: entra no +N
+  const picked = { shown: picked0.shown.filter(x => miniSprites[x.kind]), extra: picked0.extra + lost }
   const miniPx = Math.max(10, Math.round(size.h * 0.6))
   const miniRow = [
     ...picked.shown.flatMap(x =>
       miniSprites[x.kind]
         ? [
             <Box key={`mini-${x.kind}`} flexDirection="row" alignItems="flex-end">
-              <Svg source={miniSprites[x.kind]} alt={`miniatura: ${x.kind}`} width={miniPx} height={miniPx} />
+              <Svg source={miniSprites[x.kind]} alt={`${x.count} agente${x.count > 1 ? 's' : ''}: ${MINI_ROLE[x.kind]}`} width={miniPx} height={miniPx} />
               {x.count > 1 ? <Text dimColor>{`×${x.count}`}</Text> : null}
             </Box>,
           ]

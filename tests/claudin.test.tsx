@@ -835,11 +835,13 @@ test('cofre ligado mas sem _hot.md: a aba avisa em uma linha', async ($: any, on
 })
 
 // ── captura rápida: a única escrita no cofre é um arquivo NOVO em Raw/Notas ──────
+const captureLog: string[] = []
 const bootCapture = async ($: any, on: any) => {
   const files: Record<string, string> = cofreFiles({ 'C:/cofre/Wiki/_hot.md': HOT_FULL, 'C:/cofre/Raw/_pending.md': pendingMd(2) })
   const written: Record<string, string> = {}
   on('fs.write', (_: any, e: any) => {
     const path = String(e.path).split(String.fromCharCode(92)).join('/')
+    captureLog.push(path)
     written[path] = e.text
     files[path] = e.text
     return { value: undefined }
@@ -1062,5 +1064,79 @@ test('fleet-map.json do usuário troca a criatura de um tipo', async ($: any, on
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
   expect(await ui.find({ key: 'mini-aratu' })).toBeDefined()
   expect(await ui.find({ key: 'mini-siri' })).toBeUndefined()
+  await ui.unmount()
+})
+
+// ── correções da auditoria ────────────────────────────────────────────────────────
+const BSL = String.fromCharCode(92)
+
+test('título com barra invertida não leva a nota para fora de Raw/Notas', async ($: any, on: any) => {
+  const written = await bootCapture($, on)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openCofre(ui)
+  await ui.input({ key: 'cf-note', text: ['x', '..', '..', 'Wiki', 'y'].join(BSL) })
+  const paths = Object.keys(written)
+  expect(paths).toHaveLength(1)
+  expect(paths[0]).toMatch(/^C:\/cofre\/Raw\/Notas\/[^/]+\.md$/)
+  expect(paths[0]).not.toContain('/Wiki/')
+  await ui.unmount()
+})
+
+test('em meditar, prazo vindo do cofre não fura o silêncio da saudação', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, cofreFiles({ 'C:/cofre/Wiki/_hot.md': HOT_PRAZOS }), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openAjustes(ui)
+  await ui.press({ key: 'mode' })
+  await ui.press({ key: 'mode' })
+  await ui.press({ key: 'mode' })
+  await ui.press({ key: 'next' })
+  await ui.press({ key: 'greet' })
+  expect(await ui.find({ type: 'Text', text: /hoje: Entregar relatório/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('aba que não existe mais não prende a caixa', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  const files: Record<string, string> = cofreFiles()
+  await bootFs($, on, files, { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openCofre(ui)
+  expect(await ui.find({ key: 'cf-note' })).toBeDefined()
+  delete files['C:/u/.claude/claudin/cofre.json'] // o cofre some e a sessão recarrega
+  await $.session.start({ cwd: '.', surface: null })
+  expect(await ui.find({ key: 'cf-note' })).toBeUndefined()
+  expect((await ui.find({ key: 'cat-prompts' }))?.props?.label).toBe('▸💬 Prompts')
+  await ui.unmount()
+})
+
+test('criatura sem arte entra no +N em vez de sumir da conta', async ($: any, on: any) => {
+  const { 'sprites/frota/siri.svg': _siri, ...semSiri } = MINI_FILES
+  mock.clock(on, { now: 2_700_000 })
+  on('agent.spawn', (_: any, e: any) => ({ agentId: e.description, model: 'haiku' }))
+  on('turn.complete', () => ({ text: '' }))
+  await bootFs($, on, semSiri, { USERPROFILE: 'C:/u' })
+  await spawnAll($, [['e1', 'Explore'], ['p1', 'Plan']])
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ key: 'mini-siri' })).toBeUndefined()
+  expect(await ui.find({ key: 'mini-garca' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^\+1$/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('a miniatura diz o tipo e a quantidade no alt', async ($: any, on: any) => {
+  await bootFrota($, on)
+  await spawnAll($, [['p1', 'Plan'], ['p2', 'Plan']])
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(JSON.stringify(await ui.find({ key: 'mini-garca' }))).toContain('2 agentes: planejar')
+  await ui.unmount()
+})
+
+test('skin do usuário só com PNG não é carregada (o desktop não desenha PNG embutido)', async ($: any, on: any) => {
+  await bootSkins($, on, { 'C:/u/.claude/claudin/sprites/meu/idle.png': 'binario' }, ['meu'])
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openAjustes(ui)
+  for (let i = 0; i < 4; i++) await ui.press({ key: 'skin' })
+  expect(await sprite(ui)).not.toContain('<image')
   await ui.unmount()
 })

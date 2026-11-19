@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { COFRE_FILE, HOT_FILE, HOT_STALE_DAYS, PENDING_FILE, PENDING_MAX, countPending, daysBetween, healthNotes, hotLine, mergeDeadlines, parseCofreConfig, parseHot, parseHotDeadlines, parseHotLists, resolveCofre, NOTES_DIR, freeNoteName, noteFileStem } from './cofre'
+import { COFRE_FILE, isSafeNoteName, HOT_FILE, HOT_STALE_DAYS, PENDING_FILE, PENDING_MAX, countPending, daysBetween, healthNotes, hotLine, mergeDeadlines, parseCofreConfig, parseHot, parseHotDeadlines, parseHotLists, resolveCofre, NOTES_DIR, freeNoteName, noteFileStem } from './cofre'
 
 const BS = String.fromCharCode(92)
 const cfg = (path: unknown) => JSON.stringify({ path })
 
 describe('parseCofreConfig', () => {
   test('lê o caminho e troca barra invertida por barra', () => {
-    expect(parseCofreConfig(cfg(`C:${BS}Projetos${BS}00_cofre`))).toBe('C:/Projetos/00_cofre')
+    expect(parseCofreConfig(cfg(`C:${BS}Projetos${BS}meu-cofre`))).toBe('C:/Projetos/meu-cofre')
   })
 
   test('tira a barra final', () => {
@@ -16,7 +16,7 @@ describe('parseCofreConfig', () => {
   })
 
   test('expande ~ com a pasta pessoal', () => {
-    expect(parseCofreConfig(cfg('~/Projetos/00_cofre'), 'C:/u')).toBe('C:/u/Projetos/00_cofre')
+    expect(parseCofreConfig(cfg('~/Projetos/meu-cofre'), 'C:/u')).toBe('C:/u/Projetos/meu-cofre')
     expect(parseCofreConfig(cfg('~/cofre'), `C:${BS}u${BS}`)).toBe('C:/u/cofre')
   })
 
@@ -304,5 +304,43 @@ describe('freeNoteName', () => {
 
   test('desiste (null) se 50 nomes estiverem tomados', async () => {
     expect(await freeNoteName('a', async () => true)).toBeNull()
+  })
+})
+
+describe('captura: nome de arquivo seguro', () => {
+  const BSL = String.fromCharCode(92)
+
+  test('barra invertida e barra no título somem, então o nome nunca vira caminho', () => {
+    const stem = noteFileStem(['a', '..', '..', 'Wiki', 'x'].join(BSL), '2026-11-19')
+    expect(stem).not.toContain(BSL)
+    expect(stem).not.toContain('/')
+    expect(noteFileStem('C:' + BSL + 'temp', '2026-11-19')).toBe('2026-11-19 - Ctemp (claudin)')
+  })
+
+  test('isSafeNoteName recusa separador de pasta, .. e nome vazio', () => {
+    expect(isSafeNoteName('2026-11-19 - ideia (claudin).md')).toBe(true)
+    expect(isSafeNoteName('a/b.md')).toBe(false)
+    expect(isSafeNoteName('a' + BSL + 'b.md')).toBe(false)
+    expect(isSafeNoteName('..')).toBe(false)
+    expect(isSafeNoteName('')).toBe(false)
+  })
+})
+
+describe('caminho do cofre só absoluto', () => {
+  test('caminho relativo desliga; absoluto e ~/ valem', () => {
+    expect(parseCofreConfig(cfg('cofre'))).toBeNull()
+    expect(parseCofreConfig(cfg('./cofre'))).toBeNull()
+    expect(parseCofreConfig(cfg('../cofre'))).toBeNull()
+    expect(parseCofreConfig(cfg('C:/cofre'))).toBe('C:/cofre')
+    expect(parseCofreConfig(cfg('/home/u/cofre'))).toBe('/home/u/cofre')
+    expect(parseCofreConfig(cfg('~/cofre'), 'C:/u')).toBe('C:/u/cofre')
+  })
+})
+
+describe('prazo de dezembro visto em janeiro', () => {
+  test('DD/MM distante para a frente é do ano anterior', () => {
+    const t = ['## Prazos', '- 28/12 · Fechamento · drive', ''].join('\n')
+    expect(parseHotDeadlines(t, '2027-01-03')[0]?.date).toBe('2026-12-28')
+    expect(parseHotDeadlines(t, '2026-12-20')[0]?.date).toBe('2026-12-28')
   })
 })
