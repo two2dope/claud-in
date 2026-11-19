@@ -1779,7 +1779,7 @@ test('a placa de madeira abre o Sobre, com a versão e os links do projeto', asy
   await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
   await ui.press({ key: 'spot-sobre' })
-  expect(await ui.find({ type: 'Text', text: /Claudin 0\.7\.4/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Claudin 0\.7\.5/ })).toBeDefined()
   expect(JSON.stringify(await ui.find({ key: 'sb-git' }))).toContain('https://github.com/two2dope/claud-in')
   await ui.unmount()
 })
@@ -1789,5 +1789,16 @@ test('o tamanho cresceu: médio é o antigo grande e o grande passou dele', asyn
   await bootFs($, on, {}, { USERPROFILE: 'C:/u' })
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
   expect(JSON.stringify(await ui.find({ key: 'claudin' }))).toContain('"width":64')
+  await ui.unmount()
+})
+
+test('a linha de botão da zona tem caracteres em branco que não são espaço, na largura da zona', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
+  const label = (await ui.find({ key: 'spot-cofre' }))?.props?.label as string
+  expect(label.length).toBeGreaterThan(1)
+  expect(label.trim()).toBe(label)
+  expect(/^⠀+$/.test(label)).toBe(true)
   await ui.unmount()
 })

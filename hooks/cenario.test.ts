@@ -220,8 +220,8 @@ describe('QG: zonas sem sobreposição e painel dos monitores', () => {
     const vazio = panelSvg({})
     expect(vazio).not.toContain('<text')
     const cheio = panelSvg({ model: 'claude-opus-5-5', ctx: 42, tokens: 84_000, window: 200_000, usd: 1.75, limit5h: 30, limit7d: 12, agents: 2, tools: 7 }, true)
-    for (const t of ['OPUS 5.5', 'CTX 42%', 'TOK 84k', 'US$ 1.75', '5H 30%', '7D 12%', 'AGT 2', 'CMD 7']) expect(cheio).toContain(`>${t}<`)
-    expect(cheio.match(/calcMode="discrete"/g)?.length).toBe(4) // quatro páginas que se revezam
+    for (const t of ['OPUS 5.5', 'CTX 42%', 'TOK 84k', '$1.75', '5H 30%', '7D 12%', 'AGT 2', 'CMD 7']) expect(cheio).toContain(t)
+    expect(cheio.match(/<text /g)?.length).toBe(5) // três linhas no painel, duas na tela laranja // quatro páginas que se revezam
     expect(cheio).toContain('<animate')
     expect(MONITORS.every(([x0, y0, x1, y1]) => x0 < x1 && y0 < y1 && x1 <= 1 && y1 <= 1)).toBe(true)
   })

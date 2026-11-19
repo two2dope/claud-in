@@ -7,17 +7,17 @@ export const QG_LIMIT = 131072 // caracteres que o Svg do mod aceita
 
 // Zona clicável: o retângulo do objeto na imagem (fração da largura e da altura), a aba que abre e o nome curto
 // que aparece no destaque quando o ponteiro passa por cima.
-export type Spot = { id: 'sobre' | 'cola' | 'luz' | 'frota' | 'cofre' | 'agenda' | 'tempo' | 'servidor'; tab: string; label: string; name: string; pin: string; x0: number; y0: number; x1: number; y1: number }
+export type Spot = { id: 'sobre' | 'cola' | 'luz' | 'frota' | 'cofre' | 'agenda' | 'tempo' | 'servidor'; tab: string; label: string; name: string; pin: string; ix?: number; iy?: number; x0: number; y0: number; x1: number; y1: number }
 
 export const SPOTS: Spot[] = [
   { id: 'sobre', tab: 'sobre', label: 'Placa de madeira: sobre o Claudin', name: 'Sobre', pin: 'ℹ️', x0: 0.1, y0: 0.12, x1: 0.158, y1: 0.62 },
-  { id: 'cola', tab: 'comandos', label: 'Livros e pastas de skills: a Cola da oficina', name: 'Cola', pin: '📚', x0: 0.16, y0: 0.113, x1: 0.27, y1: 0.279 },
+  { id: 'cola', tab: 'comandos', label: 'Livros e pastas de skills: a Cola da oficina', name: 'Cola', pin: '📚', ix: 0.86, iy: 0, x0: 0.16, y0: 0.113, x1: 0.27, y1: 0.279 },
   { id: 'luz', tab: '', label: 'Lanterna: acende e apaga a luz da sala', name: 'Luz', pin: '💡', x0: 0.285, y0: 0.02, x1: 0.318, y1: 0.3 },
-  { id: 'frota', tab: 'frota', label: 'Monitores: a frota de agentes', name: 'Frota', pin: '🦀', x0: 0.33, y0: 0.14, x1: 0.534, y1: 0.72 },
-  { id: 'cofre', tab: 'cofre', label: 'Cofre: o cofre de contexto', name: 'Cofre', pin: '🔐', x0: 0.554, y0: 0.321, x1: 0.613, y1: 0.596 },
-  { id: 'agenda', tab: 'prazos', label: 'Calendário: a Agenda', name: 'Agenda', pin: '📅', x0: 0.629, y0: 0.324, x1: 0.706, y1: 0.572 },
-  { id: 'servidor', tab: 'acoes', label: 'Servidor: ações e janela de contexto', name: 'Ações', pin: '⚡', x0: 0.727, y0: 0.24, x1: 0.792, y1: 0.92 },
-  { id: 'tempo', tab: 'tempo', label: 'Relógio: o pomodoro', name: 'Tempo', pin: '⏱', x0: 0.82, y0: 0.097, x1: 0.863, y1: 0.303 },
+  { id: 'frota', tab: 'frota', label: 'Monitores: a frota de agentes', name: 'Frota', pin: '🦀', ix: 0.08, iy: 0.12, x0: 0.326, y0: 0.108, x1: 0.521, y1: 0.69 },
+  { id: 'cofre', tab: 'cofre', label: 'Cofre: o cofre de contexto', name: 'Cofre', pin: '🔐', x0: 0.553, y0: 0.318, x1: 0.614, y1: 0.589 },
+  { id: 'agenda', tab: 'prazos', label: 'Calendário: a Agenda', name: 'Agenda', pin: '📅', x0: 0.6285, y0: 0.318, x1: 0.705, y1: 0.576 },
+  { id: 'servidor', tab: 'acoes', label: 'Servidor: ações e janela de contexto', name: 'Ações', pin: '⚡', x0: 0.725, y0: 0.252, x1: 0.797, y1: 0.935 },
+  { id: 'tempo', tab: 'tempo', label: 'Relógio: o pomodoro', name: 'Tempo', pin: '⏱', x0: 0.818, y0: 0.103, x1: 0.866, y1: 0.31 },
 ]
 
 // Porcentagens CSS de uma zona, para o desktop pôr o retângulo clicável sobre o objeto.
@@ -129,16 +129,15 @@ function hands(w: number, h: number, minutes: number): string {
 // ── os monitores: um painel com o que vale a pena ver da sessão ──
 // Telas da parede (fração x0, y0, x1, y1), da esquerda para a direita e de cima para baixo.
 export const MONITORS: [number, number, number, number][] = [
-  [0.38, 0.152, 0.429, 0.32],
-  [0.433, 0.152, 0.482, 0.32],
-  [0.332, 0.354, 0.375, 0.53],
-  [0.382, 0.354, 0.427, 0.53],
-  [0.436, 0.354, 0.482, 0.53],
-  [0.489, 0.354, 0.532, 0.53],
-  [0.332, 0.555, 0.375, 0.715],
-  [0.382, 0.555, 0.427, 0.715],
-  [0.436, 0.555, 0.482, 0.715],
-  [0.489, 0.555, 0.532, 0.715],
+  [0.338, 0.187, 0.363, 0.28],
+  [0.33, 0.333, 0.363, 0.495],
+  [0.372, 0.333, 0.418, 0.495],
+  [0.428, 0.333, 0.466, 0.495],
+  [0.477, 0.333, 0.513, 0.495],
+  [0.33, 0.533, 0.363, 0.682],
+  [0.372, 0.533, 0.418, 0.682],
+  [0.428, 0.533, 0.466, 0.682],
+  [0.477, 0.533, 0.513, 0.682],
 ]
 
 export type Panel = { model?: string; ctx?: number | null; tokens?: number; window?: number; usd?: number; limit5h?: number; limit7d?: number; agents?: number; tools?: number }
@@ -153,72 +152,82 @@ export function modelShort(id: string | undefined): string {
 
 export const kTokens = (n: number): string => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(Math.round(n)))
 
-// A tela do painel: as duas telas grandes de cima, juntas (fração x0, y0, x1, y1).
-export const DISPLAY: [number, number, number, number] = [0.38, 0.152, 0.482, 0.32]
-const PAGE_S = 4 // segundos de cada página
+// O painel: um monitor desenhado por cima das telas de cima (as duas grandes e a pequena da direita), com moldura
+// própria para não depender do encaixe na arte. Mostra tudo ao mesmo tempo, em três linhas.
+export const DISPLAY: [number, number, number, number] = [0.37, 0.108, 0.512, 0.302]
+// A tela laranja da fileira do meio mostra agentes e comandos.
+const SIDE_SCREEN = 2
 
-// As páginas do painel, só com o que existe: [linha de cima, linha de baixo, barra de 0 a 1 ou nada, quente].
-export function panelPages(p: Panel): [string, string, number | undefined, boolean][] {
-  const pages: [string, string, number | undefined, boolean][] = []
-  const model = modelShort(p.model)
-  const ctx = typeof p.ctx === 'number' ? `CTX ${p.ctx}%` : ''
-  if (model || ctx) pages.push([model || 'CLAUDE', ctx, typeof p.ctx === 'number' ? p.ctx / 100 : undefined, (p.ctx ?? 0) >= 70])
-  if (typeof p.tokens === 'number' || typeof p.usd === 'number')
-    pages.push([typeof p.tokens === 'number' ? `TOK ${kTokens(p.tokens)}` : '', typeof p.usd === 'number' ? `US$ ${p.usd.toFixed(2)}` : '', p.tokens && p.window ? p.tokens / p.window : undefined, false])
-  if (typeof p.limit5h === 'number' || typeof p.limit7d === 'number')
-    pages.push([typeof p.limit5h === 'number' ? `5H ${Math.round(p.limit5h)}%` : '', typeof p.limit7d === 'number' ? `7D ${Math.round(p.limit7d)}%` : '', typeof p.limit5h === 'number' ? p.limit5h / 100 : undefined, (p.limit5h ?? 0) >= 80])
-  if (typeof p.agents === 'number' || typeof p.tools === 'number') pages.push([`AGT ${p.agents ?? 0}`, `CMD ${p.tools ?? 0}`, undefined, false])
-  return pages
+const pad = (a: string, b: string, width: number) => {
+  const gap = Math.max(1, width - a.length - b.length)
+  return a + ' '.repeat(gap) + b
 }
 
-// O painel: as páginas se revezam por animação dentro do próprio SVG (sem redesenhar); sem animação fica a primeira.
-// Trabalhando, um cursor pisca no canto da tela.
+// As linhas do painel, só com o que existe.
+export function panelLines(p: Panel): string[] {
+  const W = 19
+  const lines: string[] = []
+  const model = modelShort(p.model)
+  const ctx = typeof p.ctx === 'number' ? `CTX ${p.ctx}%` : ''
+  if (model || ctx) lines.push(pad(model, ctx, W))
+  const tok = typeof p.tokens === 'number' ? `TOK ${kTokens(p.tokens)}` : ''
+  const usd = typeof p.usd === 'number' ? `$${p.usd.toFixed(2)}` : ''
+  if (tok || usd) lines.push(pad(tok, usd, W))
+  const l5 = typeof p.limit5h === 'number' ? `5H ${Math.round(p.limit5h)}%` : ''
+  const l7 = typeof p.limit7d === 'number' ? `7D ${Math.round(p.limit7d)}%` : ''
+  if (l5 || l7) lines.push(pad(l5, l7, W))
+  return lines
+}
+
 export function panelSvg(p: Panel, working = false, w = 360, h = 76): string {
   const esc = (t: string) => t.replace(/[<>&]/g, '')
-  const pages = panelPages(p)
   const [x0, y0, x1, y1] = DISPLAY
   const X = x0 * w
   const Y = y0 * h
   const W = (x1 - x0) * w
   const H = (y1 - y0) * h
+  const b = 1.4 // moldura
+  let out = `<g class="panel" shape-rendering="auto">`
+  out += `<rect x="${X.toFixed(1)}" y="${Y.toFixed(1)}" width="${W.toFixed(1)}" height="${H.toFixed(1)}" rx="0.8" fill="#2a2d2b"/>`
+  out += `<rect x="${(X + b).toFixed(1)}" y="${(Y + b).toFixed(1)}" width="${(W - 2 * b).toFixed(1)}" height="${(H - 2 * b).toFixed(1)}" fill="#03170a"/>`
+  const lines = panelLines(p)
+  const fs = 3.4
   const cx = X + W / 2
-  let out = `<g class="panel" shape-rendering="auto"><rect x="${X.toFixed(1)}" y="${Y.toFixed(1)}" width="${W.toFixed(1)}" height="${H.toFixed(1)}" fill="#041a0b" opacity=".9"/>`
-  const n = pages.length
-  const total = n * PAGE_S
-  pages.forEach(([top, bottom, bar, hot], k) => {
-    const ink = hot ? '#ffcf7a' : '#c6ffd0'
-    let g = `<text x="${cx.toFixed(1)}" y="${(Y + H * 0.42).toFixed(1)}" font-size="${(H * 0.34).toFixed(2)}" fill="#7dffa0" text-anchor="middle" font-family="monospace" font-weight="700">${esc(top)}</text>`
-    g += `<text x="${cx.toFixed(1)}" y="${(Y + H * 0.8).toFixed(1)}" font-size="${(H * 0.34).toFixed(2)}" fill="${ink}" text-anchor="middle" font-family="monospace" font-weight="700">${esc(bottom)}</text>`
-    if (typeof bar === 'number' && Number.isFinite(bar)) {
-      const b = Math.max(0, Math.min(1, bar))
-      g += `<rect x="${(X + W * 0.1).toFixed(1)}" y="${(Y + H * 0.88).toFixed(1)}" width="${(W * 0.8 * b).toFixed(2)}" height="${(H * 0.06).toFixed(2)}" fill="${ink}"/>`
-    }
-    if (n <= 1) {
-      out += `<g>${g}</g>`
-      return
-    }
-    // Página k visível entre k/n e (k+1)/n do ciclo.
-    const a = (k / n).toFixed(3)
-    const b = ((k + 1) / n).toFixed(3)
-    const values = k === 0 ? '1;0;0' : '0;1;0;0'
-    const times = k === 0 ? `0;${b};1` : `0;${a};${b};1`
-    out += `<g opacity="${k === 0 ? 1 : 0}">${g}<animate attributeName="opacity" values="${values}" keyTimes="${times}" calcMode="discrete" dur="${total}s" repeatCount="indefinite"/></g>`
+  const top = Y + b + 0.3 + fs * 0.92
+  lines.forEach((t, k) => {
+    const hot = (k === 0 && (p.ctx ?? 0) >= 70) || (k === 2 && (p.limit5h ?? 0) >= 80)
+    out += `<text x="${cx.toFixed(1)}" y="${(top + k * fs * 1.12).toFixed(1)}" font-size="${fs}" fill="${hot ? '#ffcf7a' : '#b9ffc8'}" text-anchor="middle" font-family="monospace" font-weight="700" xml:space="preserve">${esc(t)}</text>`
   })
+  if (typeof p.ctx === 'number') {
+    const f = Math.max(0, Math.min(1, p.ctx / 100))
+    out += `<rect x="${(X + b + 1).toFixed(1)}" y="${(Y + H - b - 0.75).toFixed(1)}" width="${((W - 2 * b - 2) * f).toFixed(2)}" height="0.45" fill="${(p.ctx ?? 0) >= 70 ? '#ffcf7a' : '#5fd08a'}"/>`
+  }
+  // Agentes e comandos na tela laranja do meio.
+  const r = MONITORS[SIDE_SCREEN]!
+  if (typeof p.agents === 'number' || typeof p.tools === 'number') {
+    const sx = r[0] * w
+    const sy = r[1] * h
+    const sw = (r[2] - r[0]) * w
+    const sh = (r[3] - r[1]) * h
+    out += `<rect x="${sx.toFixed(1)}" y="${sy.toFixed(1)}" width="${sw.toFixed(1)}" height="${sh.toFixed(1)}" fill="#03170a" opacity=".92"/>`
+    out += `<text x="${(sx + sw / 2).toFixed(1)}" y="${(sy + sh * 0.42).toFixed(1)}" font-size="3.3" fill="#b9ffc8" text-anchor="middle" font-family="monospace" font-weight="700">AGT ${p.agents ?? 0}</text>`
+    out += `<text x="${(sx + sw / 2).toFixed(1)}" y="${(sy + sh * 0.82).toFixed(1)}" font-size="3.3" fill="#b9ffc8" text-anchor="middle" font-family="monospace" font-weight="700">CMD ${p.tools ?? 0}</text>`
+  }
   if (working) {
-    out += `<rect x="${(X + W - 3).toFixed(1)}" y="${(Y + 1.2).toFixed(1)}" width="1.4" height="1.4" fill="#c6ffd0"><animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/></rect>`
+    out += `<rect x="${(X + W - b - 2).toFixed(1)}" y="${(Y + b + 0.8).toFixed(1)}" width="1.1" height="1.1" fill="#b9ffc8"><animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/></rect>`
   }
   return out + '</g>'
 }
 
 // ── a vida do cenário: tudo animado dentro do SVG, sem custo de redesenho ──
 // Telas menores com linhas de "código" que crescem, LEDs do servidor, a lua da prateleira e bichinhos no mangue.
-const SMALL_SCREENS = MONITORS.filter(([x0, y0]) => !(x0 >= DISPLAY[0] - 0.001 && y0 <= DISPLAY[3]))
-const SERVER = [0.738, 0.3, 0.782, 0.86] // área dos LEDs no rack
-const MOON = [0.586, 0.17] // centro da lua na prateleira
+const SMALL_SCREENS = MONITORS.filter((_, i) => i !== SIDE_SCREEN)
+const SERVER = [0.737, 0.3, 0.785, 0.88] // área dos LEDs no rack
+const MOON = [0.5715, 0.15] // centro da lua na prateleira
 
 export function ambientSvg(w = 360, h = 76, night = false): string {
   const f = (n: number) => n.toFixed(1)
-  let out = '<g class="vida" shape-rendering="auto">'
+  let out = '<g class="vida" shape-rendering="auto"><defs><filter id="moonblur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.1"/></filter></defs>'
   // Linhas de código nas telas pequenas.
   SMALL_SCREENS.forEach(([x0, y0, x1, y1], i) => {
     const X = x0 * w + 1.5
@@ -242,7 +251,8 @@ export function ambientSvg(w = 360, h = 76, night = false): string {
     }
   }
   // A lua da prateleira acesa, respirando.
-  out += `<circle cx="${f(MOON[0]! * w)}" cy="${f(MOON[1]! * h)}" r="3.4" fill="#ffe9a8" opacity=".35"><animate attributeName="opacity" values=".15;.5;.15" dur="4.5s" repeatCount="indefinite"/></circle>`
+  out += `<circle cx="${f(MOON[0]! * w)}" cy="${f(MOON[1]! * h)}" r="4.2" fill="#fff1b0" opacity=".55" filter="url(#moonblur)"><animate attributeName="opacity" values=".3;.85;.3" dur="4s" repeatCount="indefinite"/></circle>`
+  out += `<circle cx="${f(MOON[0]! * w)}" cy="${f(MOON[1]! * h)}" r="1.6" fill="#fff8d6" opacity=".7"><animate attributeName="opacity" values=".45;.95;.45" dur="4s" repeatCount="indefinite"/></circle>`
   // Bichinhos no mangue: vaga-lumes à noite, mosquitinhos de dia, passeando pelas raízes dos dois lados.
   const bug = night ? '#fff27a' : '#3a2a18'
   const paths = [

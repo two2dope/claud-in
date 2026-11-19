@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.5 — 2026-11-19
+
+- **Clique nas zonas, de novo.** Na 0.7.4 as linhas de botão levavam só um espaço, e o desktop desenha um rótulo só de espaço sem largura: o clique caía no vazio (só a luz e o relógio, finos, pegavam). Agora cada linha leva caracteres em branco que não são espaço (U+2800), em 70% da largura da zona.
+- **Ícone no lugar certo.** O ícone do hover aparece no meio do objeto; a Cola, no canto de cima à direita dos livros; o 🦀 da frota, no monitor pequeno de cima à esquerda.
+- **Zonas medidas na arte.** Servidor, relógio, cofre e calendário com as bordas tiradas da própria imagem.
+- **Painel com tudo ao mesmo tempo.** Um monitor desenhado com moldura própria cobre as telas de cima e mostra três linhas juntas (modelo e contexto, tokens e custo, limites de 5 horas e 7 dias), com a barra do contexto embaixo. Agentes e comandos ficam na tela laranja do meio. As outras telas seguem com as linhas de código.
+- **A lua acende de verdade.** Estava fora do lugar; agora brilha sobre a lua da prateleira, com halo e respiração.
+- **Conhecido:** nada disso conferido no desktop; sem LICENSE.
+
 ## 0.7.4 — 2026-11-19
 
 - **A zona inteira responde ao clique.** Um botão do desktop desenha uma linha só, e na 0.7.3 a zona tinha um único botão no meio (aparecia como `…`). Agora cada zona é uma pilha de linhas de botão que cobre o objeto todo.
