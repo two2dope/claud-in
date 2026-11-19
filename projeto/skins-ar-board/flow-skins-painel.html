@@ -1,0 +1,1922 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claudin: skins Mangue, Maré e Malungo — Central de Prompts &amp; Validação de Assets</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- SISTEMA DE DESIGN ADAPTÁVEL (DARK & LIGHT MODE) + TOKENS VISUAIS RESILIENTES -->
+  <style>
+    :root {
+      /* Tema Escuro (Padrão) */
+      --bg-base: #070a13;
+      --bg-surface: #0f172a;
+      --bg-card: #131c31;
+      --bg-card-hover: #18233c;
+      --bg-input: #090d16;
+      --border-subtle: rgba(148, 163, 184, 0.15);
+      --border-strong: rgba(148, 163, 184, 0.35);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --gold-primary: #f59e0b;
+      --gold-surface: rgba(245, 158, 11, 0.12);
+      --emerald-primary: #10b981;
+      --emerald-surface: rgba(16, 185, 129, 0.12);
+      --indigo-primary: #6366f1;
+      --indigo-surface: rgba(99, 102, 241, 0.12);
+      --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    [data-theme="light"] {
+      /* Tema Claro (High-Contrast & Clean) */
+      --bg-base: #f1f5f9;
+      --bg-surface: #ffffff;
+      --bg-card: #f8fafc;
+      --bg-card-hover: #ffffff;
+      --bg-input: #ffffff;
+      --border-subtle: rgba(100, 116, 139, 0.2);
+      --border-strong: rgba(100, 116, 139, 0.4);
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+      --gold-primary: #d97706;
+      --gold-surface: rgba(217, 119, 6, 0.12);
+      --emerald-primary: #059669;
+      --emerald-surface: rgba(5, 150, 105, 0.12);
+      --indigo-primary: #4f46e5;
+      --indigo-surface: rgba(79, 70, 229, 0.12);
+      --card-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      min-height: 100vh;
+      line-height: 1.5;
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    pre, code, kbd {
+      font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+    }
+
+    button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+      outline: 2px solid var(--gold-primary);
+      outline-offset: 2px;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .btn-smooth {
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .card-smooth {
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+      }
+      .progress-bar-smooth {
+        transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .toast-smooth {
+        transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Checkbox Estilizado Acessível */
+    .custom-checkbox {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 1.35rem;
+      height: 1.35rem;
+      border: 2px solid var(--text-dim);
+      border-radius: 0.375rem;
+      background-color: var(--bg-input);
+      cursor: pointer;
+      display: inline-grid;
+      place-content: center;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+    .custom-checkbox:hover {
+      border-color: var(--emerald-primary);
+      background-color: var(--emerald-surface);
+    }
+    .custom-checkbox:checked {
+      background-color: var(--emerald-primary);
+      border-color: var(--emerald-primary);
+    }
+    .custom-checkbox:checked::before {
+      content: "";
+      width: 0.7rem;
+      height: 0.7rem;
+      clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+      background-color: #ffffff;
+      transform: scale(1);
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-base);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--text-dim);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+  </style>
+</head>
+<body class="p-4 sm:p-6 md:p-8 antialiased">
+
+  <div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- ==================================================== -->
+    <!-- 1. HEADER & CONTROLES GLOBAIS COM TEMA CLARO/ESCURO  -->
+    <!-- ==================================================== -->
+    <header class="border rounded-2xl p-6 sm:p-7 shadow-2xl backdrop-blur-md space-y-5" role="banner" style="background-color: var(--bg-surface); border-color: var(--border-subtle); box-shadow: var(--card-shadow);">
+      
+      <!-- Top Meta Bar -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-5 border-b pb-6" style="border-color: var(--border-subtle);">
+        <div class="space-y-2">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-700/80">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              ✓ Padronização 100% PT-BR
+            </span>
+            <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-sky-950 text-sky-400 border border-sky-800">
+              Google Flow &bull; Nano Banana Pro
+            </span>
+            <span class="text-[11px] font-mono tabular-nums px-2.5 py-0.5 rounded border" style="background-color: var(--bg-card); color: var(--text-muted); border-color: var(--border-subtle);">
+              <span id="badge-total-assets">32</span> Assets Mapeados
+            </span>
+          </div>
+
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-2.5" style="color: var(--text-main);">
+            <span>🎨</span> Claudin: skins Mangue, Maré e Malungo — Central de Prompts &amp; Validação
+          </h1>
+          <p class="text-xs sm:text-sm max-w-3xl leading-relaxed" style="color: var(--text-muted);">
+            Painel unificado de direção de arte para geração em escala no Google Flow. Copie comandos calibrados em 1 clique, audite o progresso com contadores precisos e exporte a coletânea para lote.
+          </p>
+        </div>
+
+        <!-- Global Actions: Theme Toggle & Export Action -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          
+          <!-- Theme Switcher Button -->
+          <button id="btn-theme-toggle" type="button" 
+                  aria-label="Alternar entre tema claro e escuro"
+                  class="btn-smooth px-3.5 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 shadow-sm"
+                  style="background-color: var(--bg-card); color: var(--text-main); border-color: var(--border-subtle);">
+            <span id="theme-icon" aria-hidden="true">☀️</span>
+            <span id="theme-text">Tema Claro</span>
+          </button>
+
+          <!-- Export Markdown Direct Action -->
+          <button id="btn-export-markdown-file" type="button" 
+                  aria-label="Baixar coletânea completa em arquivo Markdown (.md) para importação em lote"
+                  class="btn-smooth px-3.5 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 shadow-sm"
+                  style="background-color: var(--emerald-primary); color: #ffffff; border-color: var(--emerald-primary);">
+            <span aria-hidden="true">📥</span>
+            <span>Baixar Prompts (.md)</span>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- ==================================================== -->
+      <!-- 2. MINI-DASHBOARD VISUAL DE AUDITORIA & MÉTRICAS     -->
+      <!-- ==================================================== -->
+      <section aria-label="Painel de Auditoria e Métricas de Validação" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1">
+        
+        <!-- Card 1: Progresso Global -->
+        <div class="p-4 rounded-xl border flex flex-col justify-between gap-2 shadow-sm" style="background-color: var(--bg-card); border-color: var(--border-subtle);">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-bold flex items-center gap-1.5" style="color: var(--text-muted);">
+              <span>📊</span> Progresso Geral
+            </span>
+            <span id="txt-progress-percent" class="font-extrabold text-amber-500 tabular-nums">0%</span>
+          </div>
+          <div class="space-y-1">
+            <div class="text-xl font-extrabold tabular-nums" style="color: var(--text-main);" id="txt-progress-fraction">
+              0 / 0
+            </div>
+            <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden" 
+                 role="progressbar" id="bar-progress-container"
+                 aria-label="Progresso da Coleção"
+                 aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+              <div id="bar-progress" class="bg-gradient-to-r from-amber-500 to-emerald-400 h-2 rounded-full progress-bar-smooth" style="width: 0%"></div>
+            </div>
+          </div>
+          <p class="text-[10px] text-right" style="color: var(--text-dim);">Sincronizado via localStorage</p>
+        </div>
+
+        <!-- Card 2: Status dos Assets (Validados vs Pendentes) -->
+        <div class="p-4 rounded-xl border flex flex-col justify-between gap-2 shadow-sm" style="background-color: var(--bg-card); border-color: var(--border-subtle);">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-bold flex items-center gap-1.5" style="color: var(--text-muted);">
+              <span>⚖️</span> Auditoria de Lote
+            </span>
+            <span class="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">Status</span>
+          </div>
+          <div class="flex items-center justify-between pt-1">
+            <div>
+              <div class="text-xs" style="color: var(--text-muted);">Aprovados</div>
+              <div id="stat-validated-count" class="text-xl font-extrabold text-emerald-400 tabular-nums">0</div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs" style="color: var(--text-muted);">Pendentes</div>
+              <div id="stat-pending-count" class="text-xl font-extrabold text-amber-400 tabular-nums">0</div>
+            </div>
+          </div>
+          <div class="text-[10px] text-center" style="color: var(--text-dim);" id="stat-pending-subtext">Aguardando geração</div>
+        </div>
+
+        <!-- Card 3: Matriz de Proporções (Aspect Ratios) -->
+        <div class="p-4 rounded-xl border flex flex-col justify-between gap-2 shadow-sm" style="background-color: var(--bg-card); border-color: var(--border-subtle);">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-bold flex items-center gap-1.5" style="color: var(--text-muted);">
+              <span>📐</span> Proporções (Ratios)
+            </span>
+            <span class="text-[10px] font-mono" style="color: var(--text-dim);">Formatos</span>
+          </div>
+          <div class="flex items-center justify-around text-center pt-1">
+            <div>
+              <span class="text-[10px] font-mono font-bold block" style="color: var(--text-dim);">1:1</span>
+              <span id="count-ratio-1-1" class="text-base font-extrabold tabular-nums" style="color: var(--text-main);">0</span>
+            </div>
+            <div>
+              <span class="text-[10px] font-mono font-bold block" style="color: var(--text-dim);">3:4</span>
+              <span id="count-ratio-3-4" class="text-base font-extrabold tabular-nums" style="color: var(--text-main);">0</span>
+            </div>
+            <div>
+              <span class="text-[10px] font-mono font-bold block" style="color: var(--text-dim);">16:9</span>
+              <span id="count-ratio-16-9" class="text-base font-extrabold tabular-nums" style="color: var(--text-main);">0</span>
+            </div>
+          </div>
+          <p class="text-[10px] text-center" style="color: var(--text-dim);">Enquadramento calibrado</p>
+        </div>
+
+        <!-- Card 4: Imagem Âncora & Heráldica -->
+        <div class="p-4 rounded-xl border flex flex-col justify-between gap-2 shadow-sm" style="background-color: var(--bg-card); border-color: var(--border-subtle);">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-bold flex items-center gap-1.5" style="color: var(--text-muted);">
+              <span>⚓</span> Imagem Âncora
+            </span>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">Flow Ready</span>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-lg overflow-hidden border border-amber-500 flex-shrink-0 bg-slate-900">
+              <img src="data:image/png;base64,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" alt="Miniatura Âncora" class="w-full h-full object-cover" />
+            </div>
+            <div class="truncate">
+              <span class="text-xs font-bold block truncate" style="color: var(--text-main);">assets/skins/anchors/anchor-mangue-a1.jpg (poses) + anchor-criaturas-a2.jpg (minis)</span>
+              <span class="text-[10px] text-amber-400 block">⚠️ Desmarcar p/ objetos</span>
+            </div>
+          </div>
+          <div class="text-[10px] flex items-center justify-between" style="color: var(--text-dim);">
+            <span>Isolamento Ativo</span>
+            <button id="btn-reset-cache" type="button" class="hover:underline text-amber-400" title="Zerar checkboxes">Resetar dados</button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ==================================================== -->
+      <!-- 3. BARRA DE FILTROS AVANÇADOS (CATEGORIAS DINÂMICAS) -->
+      <!-- ==================================================== -->
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-2 border-t" style="border-color: var(--border-subtle);">
+        
+        <!-- Category Filter Buttons com Descoberta Dinâmica de Categorias -->
+        <div class="flex items-center gap-2 overflow-x-auto py-1 max-w-full" id="filter-buttons-container" role="tablist" aria-label="Categorias de Assets do Projeto">
+          <button type="button" class="filter-btn btn-smooth px-3.5 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-1.5 shadow-sm" 
+                  data-category="all" role="tab" aria-selected="true" aria-pressed="true"
+                  style="background-color: var(--gold-primary); color: #ffffff; border-color: var(--gold-primary);">
+            <span>✨</span><span>Todas as Categorias</span>
+            <span class="ml-1 text-[10px] font-mono px-1.5 py-0.2 rounded bg-black/30 tabular-nums" id="badge-cat-all-count">0/0</span>
+          </button>
+          <!-- As abas das categorias específicas do projeto são descobertas e injetadas aqui automaticamente -->
+        </div>
+
+        <!-- Filter Status, Aspect Ratio & Search Box -->
+        <div class="flex flex-wrap items-center gap-2.5">
+          
+          <!-- Status Filter Toggle -->
+          <div class="inline-flex rounded-xl p-1 border text-xs" style="background-color: var(--bg-card); border-color: var(--border-subtle);">
+            <button type="button" id="tab-filter-all" class="status-tab px-2.5 py-1 rounded-lg font-semibold text-[11px] transition shadow-xs" data-status="all" style="background-color: var(--bg-surface); color: var(--text-main);">
+              Todos
+            </button>
+            <button type="button" id="tab-filter-pending" class="status-tab px-2.5 py-1 rounded-lg font-medium text-[11px] transition" data-status="pending" style="color: var(--text-muted);">
+              ⏳ Pendentes
+            </button>
+            <button type="button" id="tab-filter-validated" class="status-tab px-2.5 py-1 rounded-lg font-medium text-[11px] transition" data-status="validated" style="color: var(--text-muted);">
+              ✅ Validados
+            </button>
+          </div>
+
+          <!-- Ratio Filter Dropdown -->
+          <select id="sel-ratio-filter" aria-label="Filtrar por proporção de imagem" 
+                  class="rounded-xl px-3 py-1.5 text-xs font-semibold border focus:outline-none"
+                  style="background-color: var(--bg-card); color: var(--text-main); border-color: var(--border-subtle);">
+            <option value="all">📐 Todos Ratios</option>
+            <option value="1:1">⏹️ 1:1 Quadrado</option>
+            <option value="3:4">🎴 3:4 Cartas</option>
+            <option value="16:9">🖥️ 16:9 Panorâmico</option>
+          </select>
+
+          <!-- Search Input with Accessible Label -->
+          <div class="relative">
+            <label for="inp-search" class="sr-only">Filtrar assets por nome ou identificador</label>
+            <input id="inp-search" type="search" placeholder="🔍 Filtrar por nome ou ID..." 
+                   aria-label="Filtrar assets por nome ou identificador"
+                   class="border rounded-xl px-3.5 py-1.5 text-xs focus:outline-none focus:ring-2 w-48 sm:w-56"
+                   style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);" />
+          </div>
+
+          <!-- Export Report Modal/Copy Button -->
+          <button id="btn-export-status" type="button" 
+                  aria-label="Copiar relatório resumido em Markdown para a área de transferência"
+                  class="btn-smooth px-3.5 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                  style="background-color: var(--bg-card); color: var(--text-main); border-color: var(--border-subtle);">
+            <span>📋</span><span>Copiar Relatório</span>
+          </button>
+
+        </div>
+      </div>
+    </header>
+
+    <!-- ==================================================== -->
+    <!-- 4. BANNER DE FLUXO EM 3 PASSOS (ONBOARDING COGNITIVO) -->
+    <!-- ==================================================== -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5" role="region" aria-label="Como usar o Google Flow">
+      <div class="p-3.5 rounded-xl border flex items-start gap-3" style="background-color: var(--bg-card); border-color: var(--border-subtle);">
+        <span class="w-6 h-6 rounded-lg font-bold text-xs flex items-center justify-center flex-shrink-0 border" style="background-color: var(--indigo-surface); color: var(--indigo-primary); border-color: var(--indigo-primary);">1</span>
+        <div>
+          <h2 class="text-xs font-bold" style="color: var(--text-main);">Setup no Google Flow</h2>
+          <p class="text-[11px] mt-0.5 leading-snug" style="color: var(--text-muted);">Cole o Comando Mestre no prompt do Agente e anexe a Imagem Âncora aprovada.</p>
+        </div>
+      </div>
+      <div class="p-3.5 rounded-xl border flex items-start gap-3" style="background-color: var(--bg-card); border-color: var(--border-subtle);">
+        <span class="w-6 h-6 rounded-lg font-bold text-xs flex items-center justify-center flex-shrink-0 border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">2</span>
+        <div>
+          <h2 class="text-xs font-bold" style="color: var(--text-main);">Geração em Lote</h2>
+          <p class="text-[11px] mt-0.5 leading-snug" style="color: var(--text-muted);">Copie os prompts de cada asset em 1 clique e gere variações com velocidade superior.</p>
+        </div>
+      </div>
+      <div class="p-3.5 rounded-xl border flex items-start gap-3" style="background-color: var(--bg-card); border-color: var(--border-subtle);">
+        <span class="w-6 h-6 rounded-lg font-bold text-xs flex items-center justify-center flex-shrink-0 border" style="background-color: var(--emerald-surface); color: var(--emerald-primary); border-color: var(--emerald-primary);">3</span>
+        <div>
+          <h2 class="text-xs font-bold" style="color: var(--text-main);">Validação &amp; Ingestão</h2>
+          <p class="text-[11px] mt-0.5 leading-snug" style="color: var(--text-muted);">Marque o checkbox ao aprovar o arquivo e salve em <code class="font-mono text-emerald-400">assets/</code> no padrão kebab-case.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast (Sticky/Hidden, Acessível via aria-live) -->
+    <div id="copy-toast" 
+         role="status" 
+         aria-live="polite" 
+         class="fixed bottom-6 right-6 bg-emerald-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-2xl border border-emerald-400 toast-smooth opacity-0 pointer-events-none z-50 flex items-center gap-2">
+      <span aria-hidden="true">✓</span>
+      <span id="copy-toast-msg">Prompt copiado para a área de transferência!</span>
+    </div>
+
+    <!-- ==================================================== -->
+    <!-- 5. PARAMETRIZAÇÃO DO AGENTE NO GOOGLE FLOW          -->
+    <!-- ==================================================== -->
+    <section id="agent-customization-section" 
+             aria-labelledby="agent-setup-heading"
+             class="border rounded-2xl p-6 sm:p-7 shadow-2xl space-y-6"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle); box-shadow: var(--card-shadow);">
+      
+      <!-- Section Header -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b pb-4" style="border-color: var(--border-subtle);">
+        <div>
+          <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+            <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border" style="background-color: var(--indigo-surface); color: var(--indigo-primary); border-color: var(--indigo-primary);">
+              ⚙️ Parametrização do Agente
+            </span>
+            <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">
+              Contexto, Escopo &amp; Style Anchor
+            </span>
+          </div>
+          <h2 id="agent-setup-heading" class="text-xl font-extrabold flex items-center gap-2" style="color: var(--text-main);">
+            <span>🧠</span> Comandos de Contextualização do Agente (Google Flow)
+          </h2>
+          <p class="text-xs mt-1 max-w-3xl leading-relaxed" style="color: var(--text-muted);">
+            Insira estes comandos no campo de configuração do Agente no Google Flow para blindar a direção de arte e impedir desvio de estilo ou invasão de palavras em inglês.
+          </p>
+        </div>
+      </div>
+
+      <!-- Reference Image Guidance Card -->
+      <div class="border rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 shadow-md" style="background-color: var(--bg-card); border-color: var(--border-subtle);">
+        <div class="flex items-center gap-4">
+          <div class="w-16 h-16 rounded-xl overflow-hidden border-2 border-amber-500/80 flex-shrink-0 bg-slate-900 shadow-lg relative group">
+            <img src="data:image/png;base64,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" 
+                 alt="Imagem de Referência Âncora do Projeto" 
+                 class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+          </div>
+          <div>
+            <span class="text-xs font-extrabold text-amber-500 flex items-center gap-1.5">
+              <span>🖼️</span> Imagem de Referência do Projeto (Style Anchor)
+            </span>
+            <p class="text-xs mt-0.5" style="color: var(--text-muted);">
+              No slot de <strong>Upload de Imagem de Referência</strong> do Google Flow, utilize o arquivo aprovado:
+            </p>
+            <code class="text-[11px] text-amber-400 font-mono px-2.5 py-0.5 rounded border mt-1 inline-block" style="background-color: var(--bg-input); border-color: var(--border-subtle);">
+              assets/skins/anchors/anchor-mangue-a1.jpg (poses) + anchor-criaturas-a2.jpg (minis)
+            </code>
+          </div>
+        </div>
+
+        <div class="text-[11px] max-w-sm sm:text-right space-y-1.5" style="color: var(--text-muted);">
+          <div>Trava densidade de traço vetorial, proporção anatômica e iluminação de contorno.</div>
+          <div class="text-amber-500 font-bold px-2.5 py-1.5 rounded-lg border text-[10px] leading-snug" style="background-color: var(--gold-surface); border-color: var(--gold-primary);">
+            ⚠️ <strong>Isolamento de Objetos/Heráldica</strong>: Desmarque a foto ao gerar mapas, armas, emblemas e cenários para evitar alucinação facial no relevo!
+          </div>
+        </div>
+      </div>
+
+      <!-- Global Master Instruction Box -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full" style="background-color: var(--indigo-primary);"></span>
+            <h3 class="text-xs font-extrabold uppercase tracking-wider" style="color: var(--text-main);">
+              1. Comando Mestre de Inicialização do Agente (Global Project Prompt)
+            </h3>
+          </div>
+          <span class="text-[10px] px-2 py-0.5 rounded border font-mono" style="background-color: var(--indigo-surface); color: var(--indigo-primary); border-color: var(--indigo-primary);">
+            Cole no prompt principal do Agente
+          </span>
+        </div>
+        <pre class="border p-4 rounded-xl text-xs text-emerald-400 font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-48 leading-relaxed shadow-inner" style="background-color: var(--bg-input); border-color: var(--border-subtle);">You are generating pixel-art sprites for Claudin, a small mascot shown inside a terminal app. Always attach the reference image named in the card. Same character, same proportions, same block size in every image. Only the pose, the palette and the one prop named in the card may change. Output one centered sprite per image on a flat solid #1E1E1E background. No text, no border, no shadow, no gradients, no anti-aliasing. Generate every card of the batch one after another without asking questions.</pre>
+        
+        <button type="button" 
+                class="btn-copy-action btn-copy-agent w-full py-2.5 px-4 rounded-xl text-white font-bold text-xs transition shadow-md flex items-center justify-center gap-2"
+                style="background-color: var(--indigo-primary);">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Comando Mestre do Agente</span>
+        </button>
+      </div>
+
+      <!-- Modular Sub-Directives Grid (Dinâmico para as categorias do projeto) -->
+      <div class="space-y-2 pt-2">
+        <h3 class="text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5" style="color: var(--text-main);">
+          <span>📦</span> 2. Sub-diretrizes Modulares Específicas do Projeto
+        </h3>
+        <p class="text-[11px]" style="color: var(--text-muted);">Anexe o bloco de restrição correspondente ao gerar cada tipo de asset no Google Flow:</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 pt-1" id="subdirectives-grid">
+          
+          <div class="border rounded-xl p-3 space-y-2" style="background-color: var(--bg-card); border-color: var(--border-subtle);">
+            <div class="text-xs font-extrabold" style="color: var(--text-main);">🦀 Skin Mangue (padrão)</div>
+            <pre class="border p-2 rounded-lg text-[11px] font-mono whitespace-pre-wrap select-all max-h-40 overflow-y-auto" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Palette: body and antennae #D97757, cream eyes #F5F4ED, pupils #1A1A1A, one darker coral #B85A40 for shading.</pre>
+            <button type="button" class="btn-copy-action btn-smooth w-full px-2 py-1.5 rounded-lg font-bold text-[11px] flex items-center justify-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;">
+              <span aria-hidden="true">📋</span><span class="btn-copy-label">Copiar</span>
+            </button>
+          </div>
+          <div class="border rounded-xl p-3 space-y-2" style="background-color: var(--bg-card); border-color: var(--border-subtle);">
+            <div class="text-xs font-extrabold" style="color: var(--text-main);">🌊 Skin Maré</div>
+            <pre class="border p-2 rounded-lg text-[11px] font-mono whitespace-pre-wrap select-all max-h-40 overflow-y-auto" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Palette: body #2F9E9A, antennae #7FD6D0, cream eyes #F5F4ED, pupils #1A1A1A, one darker teal #23706D for shading.</pre>
+            <button type="button" class="btn-copy-action btn-smooth w-full px-2 py-1.5 rounded-lg font-bold text-[11px] flex items-center justify-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;">
+              <span aria-hidden="true">📋</span><span class="btn-copy-label">Copiar</span>
+            </button>
+          </div>
+          <div class="border rounded-xl p-3 space-y-2" style="background-color: var(--bg-card); border-color: var(--border-subtle);">
+            <div class="text-xs font-extrabold" style="color: var(--text-main);">👒 Skin Malungo</div>
+            <pre class="border p-2 rounded-lg text-[11px] font-mono whitespace-pre-wrap select-all max-h-40 overflow-y-auto" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Palette: body #8F9BAD, antennae #CFD6E0, cream eyes #F5F4ED, pupils #1A1A1A. Add a plain straw hat (#D9B45B) with a dark band sitting on top of the body between the antennae. No face on the hat, no sunglasses, no likeness of any real person, nothing but the hat.</pre>
+            <button type="button" class="btn-copy-action btn-smooth w-full px-2 py-1.5 rounded-lg font-bold text-[11px] flex items-center justify-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;">
+              <span aria-hidden="true">📋</span><span class="btn-copy-label">Copiar</span>
+            </button>
+          </div>
+          <div class="border rounded-xl p-3 space-y-2" style="background-color: var(--bg-card); border-color: var(--border-subtle);">
+            <div class="text-xs font-extrabold" style="color: var(--text-main);">🐚 Minis da frota</div>
+            <pre class="border p-2 rounded-lg text-[11px] font-mono whitespace-pre-wrap select-all max-h-40 overflow-y-auto" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">One creature per image, centered, ~24x24 blocks, silhouette different from the others; mapa: Explorar=siri azul, Planejar=garça lilás, Executar=guaiamum âmbar, Revisar=aratu verde, outros=caranguejinho cinza.</pre>
+            <button type="button" class="btn-copy-action btn-smooth w-full px-2 py-1.5 rounded-lg font-bold text-[11px] flex items-center justify-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;">
+              <span aria-hidden="true">📋</span><span class="btn-copy-label">Copiar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ==================================================== -->
+    <!-- 6. CONTAINER DE CARDS DE ASSETS POR CATEGORIA        -->
+    <!-- ==================================================== -->
+    <main id="prompts-container" class="space-y-8" role="main" aria-label="Coleção de Prompts por Categoria">
+      
+  <section class="category-block space-y-4" data-category="mangue" data-name="Skin Mangue (padrão)" data-icon="🦀" data-anchored="true">
+    <div class="flex items-center justify-between border-b pb-2.5" style="border-color: var(--border-subtle);">
+      <h2 class="text-lg font-extrabold flex items-center gap-2" style="color: var(--text-main);">
+        <span>🦀</span> Skin Mangue (padrão) (1:1)
+      </h2>
+      <span class="cat-progress-pill text-xs font-mono tabular-nums px-2 py-0.5 rounded border" style="background-color: var(--bg-card); color: var(--text-muted); border-color: var(--border-subtle);">0 de 9 validados</span>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mangue-idle" data-category="mangue" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mangue-idle" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Mangue (padrão): Idle</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mangue-idle.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: eyes open looking forward, claws low, relaxed. Palette: body and antennae #D97757, cream eyes #F5F4ED, pupils #1A1A1A, one darker coral #B85A40 for shading.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mangue-idle</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mangue-think" data-category="mangue" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mangue-think" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Mangue (padrão): Pensando</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mangue-think.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: eyes narrowed and looking up, small pause expression. Palette: body and antennae #D97757, cream eyes #F5F4ED, pupils #1A1A1A, one darker coral #B85A40 for shading.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mangue-think</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mangue-read" data-category="mangue" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mangue-read" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Mangue (padrão): Lendo</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mangue-read.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: eyes looking to one side as if scanning, claws low. Palette: body and antennae #D97757, cream eyes #F5F4ED, pupils #1A1A1A, one darker coral #B85A40 for shading.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mangue-read</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mangue-code" data-category="mangue" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mangue-code" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Mangue (padrão): Codando</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mangue-code.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: eyes looking down, tiny cyan (#7DD3FC) key sparks under the feet. Palette: body and antennae #D97757, cream eyes #F5F4ED, pupils #1A1A1A, one darker coral #B85A40 for shading.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mangue-code</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mangue-run" data-category="mangue" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mangue-run" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Mangue (padrão): Executando</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mangue-run.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: busy stance, eyes looking down, legs mid-step, claws slightly raised. Palette: body and antennae #D97757, cream eyes #F5F4ED, pupils #1A1A1A, one darker coral #B85A40 for shading.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mangue-run</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mangue-search" data-category="mangue" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mangue-search" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Mangue (padrão): Buscando</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mangue-search.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: eyes scanning to the side, head slightly tilted. Palette: body and antennae #D97757, cream eyes #F5F4ED, pupils #1A1A1A, one darker coral #B85A40 for shading.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mangue-search</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mangue-ok" data-category="mangue" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mangue-ok" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Mangue (padrão): Pronto</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mangue-ok.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: both claws raised high in celebration, happy arched eyes. Palette: body and antennae #D97757, cream eyes #F5F4ED, pupils #1A1A1A, one darker coral #B85A40 for shading.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mangue-ok</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mangue-err" data-category="mangue" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mangue-err" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Mangue (padrão): Erro</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mangue-err.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: eyes drawn as two small X marks, claws low. Palette: body and antennae #D97757, cream eyes #F5F4ED, pupils #1A1A1A, one darker coral #B85A40 for shading.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mangue-err</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mangue-alert" data-category="mangue" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mangue-alert" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Mangue (padrão): Alerta</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mangue-alert.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: one small amber (#F5B73D) exclamation mark floating above the head, eyes wide open. Palette: body and antennae #D97757, cream eyes #F5F4ED, pupils #1A1A1A, one darker coral #B85A40 for shading.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mangue-alert</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    </div>
+  </section>
+  <section class="category-block space-y-4" data-category="mare" data-name="Skin Maré" data-icon="🌊" data-anchored="true">
+    <div class="flex items-center justify-between border-b pb-2.5" style="border-color: var(--border-subtle);">
+      <h2 class="text-lg font-extrabold flex items-center gap-2" style="color: var(--text-main);">
+        <span>🌊</span> Skin Maré (1:1)
+      </h2>
+      <span class="cat-progress-pill text-xs font-mono tabular-nums px-2 py-0.5 rounded border" style="background-color: var(--bg-card); color: var(--text-muted); border-color: var(--border-subtle);">0 de 9 validados</span>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mare-idle" data-category="mare" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mare-idle" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Maré: Idle</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mare-idle.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: eyes open looking forward, claws low, relaxed. Palette: body #2F9E9A, antennae #7FD6D0, cream eyes #F5F4ED, pupils #1A1A1A, one darker teal #23706D for shading.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mare-idle</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mare-think" data-category="mare" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mare-think" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Maré: Pensando</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mare-think.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: eyes narrowed and looking up, small pause expression. Palette: body #2F9E9A, antennae #7FD6D0, cream eyes #F5F4ED, pupils #1A1A1A, one darker teal #23706D for shading.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mare-think</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mare-read" data-category="mare" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mare-read" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Maré: Lendo</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mare-read.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: eyes looking to one side as if scanning, claws low. Palette: body #2F9E9A, antennae #7FD6D0, cream eyes #F5F4ED, pupils #1A1A1A, one darker teal #23706D for shading.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mare-read</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mare-code" data-category="mare" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mare-code" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Maré: Codando</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mare-code.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: eyes looking down, tiny cyan (#7DD3FC) key sparks under the feet. Palette: body #2F9E9A, antennae #7FD6D0, cream eyes #F5F4ED, pupils #1A1A1A, one darker teal #23706D for shading.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mare-code</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mare-run" data-category="mare" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mare-run" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Maré: Executando</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mare-run.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: busy stance, eyes looking down, legs mid-step, claws slightly raised. Palette: body #2F9E9A, antennae #7FD6D0, cream eyes #F5F4ED, pupils #1A1A1A, one darker teal #23706D for shading.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mare-run</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mare-search" data-category="mare" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mare-search" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Maré: Buscando</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mare-search.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: eyes scanning to the side, head slightly tilted. Palette: body #2F9E9A, antennae #7FD6D0, cream eyes #F5F4ED, pupils #1A1A1A, one darker teal #23706D for shading.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mare-search</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mare-ok" data-category="mare" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mare-ok" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Maré: Pronto</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mare-ok.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: both claws raised high in celebration, happy arched eyes. Palette: body #2F9E9A, antennae #7FD6D0, cream eyes #F5F4ED, pupils #1A1A1A, one darker teal #23706D for shading.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mare-ok</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mare-err" data-category="mare" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mare-err" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Maré: Erro</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mare-err.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: eyes drawn as two small X marks, claws low. Palette: body #2F9E9A, antennae #7FD6D0, cream eyes #F5F4ED, pupils #1A1A1A, one darker teal #23706D for shading.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mare-err</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mare-alert" data-category="mare" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mare-alert" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Maré: Alerta</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mare-alert.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: one small amber (#F5B73D) exclamation mark floating above the head, eyes wide open. Palette: body #2F9E9A, antennae #7FD6D0, cream eyes #F5F4ED, pupils #1A1A1A, one darker teal #23706D for shading.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mare-alert</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    </div>
+  </section>
+  <section class="category-block space-y-4" data-category="malungo" data-name="Skin Malungo" data-icon="👒" data-anchored="true">
+    <div class="flex items-center justify-between border-b pb-2.5" style="border-color: var(--border-subtle);">
+      <h2 class="text-lg font-extrabold flex items-center gap-2" style="color: var(--text-main);">
+        <span>👒</span> Skin Malungo (1:1)
+      </h2>
+      <span class="cat-progress-pill text-xs font-mono tabular-nums px-2 py-0.5 rounded border" style="background-color: var(--bg-card); color: var(--text-muted); border-color: var(--border-subtle);">0 de 9 validados</span>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="malungo-idle" data-category="malungo" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="malungo-idle" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Malungo: Idle</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/malungo-idle.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: eyes open looking forward, claws low, relaxed. Palette: body #8F9BAD, antennae #CFD6E0, cream eyes #F5F4ED, pupils #1A1A1A. Add a plain straw hat (#D9B45B) with a dark band sitting on top of the body between the antennae. No face on the hat, no sunglasses, no likeness of any real person, nothing but the hat.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: malungo-idle</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="malungo-think" data-category="malungo" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="malungo-think" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Malungo: Pensando</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/malungo-think.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: eyes narrowed and looking up, small pause expression. Palette: body #8F9BAD, antennae #CFD6E0, cream eyes #F5F4ED, pupils #1A1A1A. Add a plain straw hat (#D9B45B) with a dark band sitting on top of the body between the antennae. No face on the hat, no sunglasses, no likeness of any real person, nothing but the hat.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: malungo-think</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="malungo-read" data-category="malungo" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="malungo-read" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Malungo: Lendo</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/malungo-read.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: eyes looking to one side as if scanning, claws low. Palette: body #8F9BAD, antennae #CFD6E0, cream eyes #F5F4ED, pupils #1A1A1A. Add a plain straw hat (#D9B45B) with a dark band sitting on top of the body between the antennae. No face on the hat, no sunglasses, no likeness of any real person, nothing but the hat.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: malungo-read</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="malungo-code" data-category="malungo" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="malungo-code" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Malungo: Codando</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/malungo-code.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: eyes looking down, tiny cyan (#7DD3FC) key sparks under the feet. Palette: body #8F9BAD, antennae #CFD6E0, cream eyes #F5F4ED, pupils #1A1A1A. Add a plain straw hat (#D9B45B) with a dark band sitting on top of the body between the antennae. No face on the hat, no sunglasses, no likeness of any real person, nothing but the hat.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: malungo-code</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="malungo-run" data-category="malungo" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="malungo-run" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Malungo: Executando</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/malungo-run.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: busy stance, eyes looking down, legs mid-step, claws slightly raised. Palette: body #8F9BAD, antennae #CFD6E0, cream eyes #F5F4ED, pupils #1A1A1A. Add a plain straw hat (#D9B45B) with a dark band sitting on top of the body between the antennae. No face on the hat, no sunglasses, no likeness of any real person, nothing but the hat.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: malungo-run</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="malungo-search" data-category="malungo" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="malungo-search" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Malungo: Buscando</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/malungo-search.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: eyes scanning to the side, head slightly tilted. Palette: body #8F9BAD, antennae #CFD6E0, cream eyes #F5F4ED, pupils #1A1A1A. Add a plain straw hat (#D9B45B) with a dark band sitting on top of the body between the antennae. No face on the hat, no sunglasses, no likeness of any real person, nothing but the hat.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: malungo-search</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="malungo-ok" data-category="malungo" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="malungo-ok" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Malungo: Pronto</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/malungo-ok.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: both claws raised high in celebration, happy arched eyes. Palette: body #8F9BAD, antennae #CFD6E0, cream eyes #F5F4ED, pupils #1A1A1A. Add a plain straw hat (#D9B45B) with a dark band sitting on top of the body between the antennae. No face on the hat, no sunglasses, no likeness of any real person, nothing but the hat.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: malungo-ok</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="malungo-err" data-category="malungo" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="malungo-err" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Malungo: Erro</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/malungo-err.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: eyes drawn as two small X marks, claws low. Palette: body #8F9BAD, antennae #CFD6E0, cream eyes #F5F4ED, pupils #1A1A1A. Add a plain straw hat (#D9B45B) with a dark band sitting on top of the body between the antennae. No face on the hat, no sunglasses, no likeness of any real person, nothing but the hat.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: malungo-err</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="malungo-alert" data-category="malungo" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="malungo-alert" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Malungo: Alerta</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/malungo-alert.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A1 (anchor-mangue-a1.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Keep the exact character of the reference image: flat rectangular body, two thin antennae, two round cream eyes with black pupils, two short legs, two small claws, same proportions and same block size. Pose: one small amber (#F5B73D) exclamation mark floating above the head, eyes wide open. Palette: body #8F9BAD, antennae #CFD6E0, cream eyes #F5F4ED, pupils #1A1A1A. Add a plain straw hat (#D9B45B) with a dark band sitting on top of the body between the antennae. No face on the hat, no sunglasses, no likeness of any real person, nothing but the hat.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: malungo-alert</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    </div>
+  </section>
+  <section class="category-block space-y-4" data-category="minis-frota" data-name="Minis da frota" data-icon="🐚" data-anchored="true">
+    <div class="flex items-center justify-between border-b pb-2.5" style="border-color: var(--border-subtle);">
+      <h2 class="text-lg font-extrabold flex items-center gap-2" style="color: var(--text-main);">
+        <span>🐚</span> Minis da frota (1:1)
+      </h2>
+      <span class="cat-progress-pill text-xs font-mono tabular-nums px-2 py-0.5 rounded border" style="background-color: var(--bg-card); color: var(--text-muted); border-color: var(--border-subtle);">0 de 5 validados</span>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mini-siri" data-category="minis-frota" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mini-siri" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Siri azul (Explorar)</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mini-siri.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A2 (anchor-criaturas-a2.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Use the sprite sheet reference for the exact style. Only one creature in the image, centered, large: a blue swimming crab (siri) with paddle-shaped back legs, body #5B8DEF. Two simple cream (#F5F4ED) eyes. The sprite fills about 24x24 blocks. Clearly readable silhouette.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mini-siri</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mini-garca" data-category="minis-frota" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mini-garca" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Garça lilás (Planejar)</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mini-garca.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A2 (anchor-criaturas-a2.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Use the sprite sheet reference for the exact style. Only one creature in the image, centered, large: a lilac egret (garça) standing on one long leg, long neck and beak, body #9B7FE0. Two simple cream (#F5F4ED) eyes. The sprite fills about 24x24 blocks. Clearly readable silhouette.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mini-garca</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mini-guaiamum" data-category="minis-frota" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mini-guaiamum" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Guaiamum âmbar (Executar)</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mini-guaiamum.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A2 (anchor-criaturas-a2.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Use the sprite sheet reference for the exact style. Only one creature in the image, centered, large: a amber land crab (guaiamum) with one oversized claw, body #E0A63A. Two simple cream (#F5F4ED) eyes. The sprite fills about 24x24 blocks. Clearly readable silhouette.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mini-guaiamum</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mini-aratu" data-category="minis-frota" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mini-aratu" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Aratu verde (Revisar)</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mini-aratu.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A2 (anchor-criaturas-a2.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Use the sprite sheet reference for the exact style. Only one creature in the image, centered, large: a small green tree crab (aratu) clinging to a thin brown root, body #4CAF7D. Two simple cream (#F5F4ED) eyes. The sprite fills about 24x24 blocks. Clearly readable silhouette.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mini-aratu</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    <article class="asset-card card-smooth border rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4"
+             data-id="mini-caranguejinho" data-category="minis-frota" data-ratio="1:1" data-anchored="true"
+             style="background-color: var(--bg-surface); border-color: var(--border-subtle);">
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-3">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" class="chk-asset custom-checkbox" data-id="mini-caranguejinho" />
+            <div>
+              <span class="text-sm font-extrabold block" style="color: var(--text-main);">Caranguejinho cinza (outros)</span>
+              <span class="text-[11px] font-mono" style="color: var(--text-muted);">assets/skins/mini-caranguejinho.png</span>
+            </div>
+          </label>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded font-mono border" style="background-color: var(--gold-surface); color: var(--gold-primary); border-color: var(--gold-primary);">⏹️ 1:1</span>
+        </div>
+        <p class="text-[11px]" style="color: var(--text-muted);">Referência no Flow: <strong>A2 (anchor-criaturas-a2.jpg)</strong></p>
+        <pre class="border p-3.5 rounded-xl text-xs font-mono overflow-x-auto whitespace-pre-wrap select-all max-h-40 leading-relaxed" style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-subtle);">Chunky 16-bit pixel art sprite, strict flat palette of at most 8 colors, hard pixel edges, no anti-aliasing, no gradients, no dithering, no outline glow, no drop shadow, no text, no border. Centered subject, front view, on a flat solid #1E1E1E background. 1:1 square, 1024x1024, every pixel block exactly 16x16 px so the sprite sits on a 32x24 block grid. Use the sprite sheet reference for the exact style. Only one creature in the image, centered, large: a tiny plain gray crab (caranguejinho), body #8F9BAD. Two simple cream (#F5F4ED) eyes. The sprite fills about 24x24 blocks. Clearly readable silhouette.</pre>
+      </div>
+      <div class="flex items-center justify-between pt-1 border-t" style="border-color: var(--border-subtle);">
+        <span class="text-[10px] font-mono" style="color: var(--text-dim);">ID: mini-caranguejinho</span>
+        <button type="button" class="btn-copy-action btn-smooth px-3 py-1.5 rounded-xl font-bold text-xs transition shadow-sm flex items-center gap-1.5" style="background-color: var(--gold-primary); color: #ffffff;" aria-label="Copiar prompt do asset">
+          <span aria-hidden="true">📋</span>
+          <span class="btn-copy-label">Copiar Prompt</span>
+        </button>
+      </div>
+    </article>
+    </div>
+  </section>
+    </main>
+
+    <!-- Empty State de Busca -->
+    <div id="empty-search-state" class="hidden border border-dashed rounded-2xl p-10 text-center space-y-3" style="background-color: var(--bg-card); border-color: var(--border-strong);">
+      <div class="text-3xl">🔍</div>
+      <h3 class="text-sm font-bold" style="color: var(--text-main);">Nenhum asset encontrado</h3>
+      <p class="text-xs max-w-sm mx-auto" style="color: var(--text-muted);">Não encontramos nenhum card correspondente aos filtros e busca selecionados. Verifique a digitação ou limpe os filtros.</p>
+      <button id="btn-clear-search" type="button" class="btn-smooth px-3.5 py-1.5 rounded-xl text-xs font-bold border transition" style="background-color: var(--bg-surface); color: var(--gold-primary); border-color: var(--gold-primary);">
+        Limpar Filtros &amp; Busca
+      </button>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center text-xs py-8 border-t space-y-1" style="color: var(--text-muted); border-color: var(--border-subtle);">
+      <p>Claudin: skins Mangue, Maré e Malungo &bull; Pipeline de Assets Google Flow &bull; Desenvolvido via Antigravity flow-assets skill</p>
+      <p class="text-[11px]" style="color: var(--text-dim);">Conformidade total com acessibilidade WCAG AA, design adaptável claro/escuro e taxonomia dinâmica de projeto.</p>
+    </footer>
+
+  </div>
+
+  <!-- ==================================================== -->
+  <!-- 7. LÓGICA CLIENT-SIDE DINÂMICA & AGNOSTA A PROJETO  -->
+  <!-- ==================================================== -->
+  <script>
+    (function() {
+      'use strict';
+
+      const STORAGE_KEY = 'flow_assets_state_claudin-skins-2026-11-18';
+      const THEME_KEY = 'flow_assets_theme';
+
+      // 1. Gerenciamento do Tema Claro / Escuro
+      const htmlElem = document.documentElement;
+      const btnThemeToggle = document.getElementById('btn-theme-toggle');
+      const themeIcon = document.getElementById('theme-icon');
+      const themeText = document.getElementById('theme-text');
+
+      function applyTheme(theme) {
+        htmlElem.setAttribute('data-theme', theme);
+        if (theme === 'light') {
+          if (themeIcon) themeIcon.textContent = '🌙';
+          if (themeText) themeText.textContent = 'Tema Escuro';
+        } else {
+          if (themeIcon) themeIcon.textContent = '☀️';
+          if (themeText) themeText.textContent = 'Tema Claro';
+        }
+        try {
+          localStorage.setItem(THEME_KEY, theme);
+        } catch (e) {}
+      }
+
+      let savedTheme = 'dark';
+      try {
+        savedTheme = localStorage.getItem(THEME_KEY) || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      } catch (e) {}
+      applyTheme(savedTheme);
+
+      if (btnThemeToggle) {
+        btnThemeToggle.addEventListener('click', () => {
+          const current = htmlElem.getAttribute('data-theme') || 'dark';
+          const next = current === 'dark' ? 'light' : 'dark';
+          applyTheme(next);
+        });
+      }
+
+      // 2. Storage Resiliente de Estado dos Checkboxes
+      let checkedSet = new Set();
+      function getStoredState() {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) return new Set(JSON.parse(saved));
+        } catch (e) {
+          console.warn('[flow-assets] localStorage indisponível ou restrito. Operando com armazenamento volátil.');
+        }
+        return new Set();
+      }
+
+      function persistState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(checkedSet)));
+        } catch (e) {
+          console.warn('[flow-assets] Não foi possível salvar o estado no localStorage:', e.message);
+        }
+      }
+
+      checkedSet = getStoredState();
+
+      // 3. Auto-Descoberta e Compilação Dinâmica de Abas de Categoria do Projeto
+      const filterButtonsContainer = document.getElementById('filter-buttons-container');
+      const categoryBlocks = document.querySelectorAll('.category-block');
+
+      categoryBlocks.forEach(block => {
+        const catSlug = block.dataset.category;
+        if (!catSlug || !filterButtonsContainer) return;
+
+        let existingBtn = filterButtonsContainer.querySelector(`.filter-btn[data-category="${catSlug}"]`);
+        if (!existingBtn) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'filter-btn btn-smooth px-3.5 py-1.5 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition shadow-xs';
+          btn.dataset.category = catSlug;
+          btn.setAttribute('role', 'tab');
+          btn.setAttribute('aria-selected', 'false');
+          btn.setAttribute('aria-pressed', 'false');
+          btn.style.backgroundColor = 'var(--bg-card)';
+          btn.style.color = 'var(--text-muted)';
+          btn.style.borderColor = 'var(--border-subtle)';
+
+          // Extração dinâmica de ícone e nome da categoria
+          const heading = block.querySelector('h2');
+          const icon = block.dataset.icon || (heading ? heading.querySelector('span')?.innerText.trim() : '📁') || '📁';
+          let name = block.dataset.name;
+          if (!name && heading) {
+            name = heading.innerText.replace(icon, '').split('(')[0].trim();
+          }
+          if (!name) name = catSlug;
+
+          btn.innerHTML = `<span>${icon}</span><span>${name}</span><span class="cat-count-badge ml-1 text-[10px] font-mono px-1.5 py-0.2 rounded bg-black/20 tabular-nums">0/0</span>`;
+          filterButtonsContainer.appendChild(btn);
+        }
+      });
+
+      // Elementos do DOM
+      const checkboxes = document.querySelectorAll('.chk-asset');
+      const txtProgressFraction = document.getElementById('txt-progress-fraction');
+      const txtProgressPercent = document.getElementById('txt-progress-percent');
+      const progressBar = document.getElementById('bar-progress');
+      const progressContainer = document.getElementById('bar-progress-container');
+      const statValidatedCount = document.getElementById('stat-validated-count');
+      const statPendingCount = document.getElementById('stat-pending-count');
+      const statPendingSubtext = document.getElementById('stat-pending-subtext');
+      const badgeTotalAssets = document.getElementById('badge-total-assets');
+      const badgeCatAllCount = document.getElementById('badge-cat-all-count');
+
+      const countRatio11 = document.getElementById('count-ratio-1-1');
+      const countRatio34 = document.getElementById('count-ratio-3-4');
+      const countRatio169 = document.getElementById('count-ratio-16-9');
+
+      const copyToast = document.getElementById('copy-toast');
+      const copyToastMsg = document.getElementById('copy-toast-msg');
+      let filterBtns = document.querySelectorAll('.filter-btn');
+      const statusTabs = document.querySelectorAll('.status-tab');
+      const selRatioFilter = document.getElementById('sel-ratio-filter');
+      const assetCards = document.querySelectorAll('.asset-card');
+      const searchInput = document.getElementById('inp-search');
+      const btnClearSearch = document.getElementById('btn-clear-search');
+      const emptySearchState = document.getElementById('empty-search-state');
+      const btnExportReport = document.getElementById('btn-export-status');
+      const btnExportFile = document.getElementById('btn-export-markdown-file');
+      const btnResetCache = document.getElementById('btn-reset-cache');
+
+      let currentCategory = 'all';
+      let currentStatus = 'all';
+      let currentRatio = 'all';
+      let currentSearchQuery = '';
+
+      // 4. Atualização Dinâmica de Métricas e Contadores (Totais e Parciais)
+      function updateMetrics() {
+        const total = checkboxes.length;
+        const checked = checkedSet.size;
+        const pending = Math.max(0, total - checked);
+        const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
+
+        if (badgeTotalAssets) badgeTotalAssets.textContent = total.toString();
+        if (txtProgressFraction) txtProgressFraction.textContent = `${checked} / ${total}`;
+        if (txtProgressPercent) txtProgressPercent.textContent = `${pct}%`;
+        if (progressBar) progressBar.style.width = `${pct}%`;
+        if (progressContainer) progressContainer.setAttribute('aria-valuenow', pct.toString());
+
+        if (statValidatedCount) statValidatedCount.textContent = checked.toString();
+        if (statPendingCount) statPendingCount.textContent = pending.toString();
+        if (statPendingSubtext) {
+          statPendingSubtext.textContent = pending === 0 && total > 0 ? '✓ Coleção 100% pronta!' : `${pending} pendentes de validação`;
+        }
+
+        if (badgeCatAllCount) badgeCatAllCount.textContent = `${checked}/${total}`;
+
+        // Contadores parciais por proporção de aspecto
+        let r11 = 0, r34 = 0, r169 = 0;
+        assetCards.forEach(card => {
+          const r = card.dataset.ratio;
+          if (r === '1:1') r11++;
+          else if (r === '3:4') r34++;
+          else if (r === '16:9') r169++;
+        });
+        if (countRatio11) countRatio11.textContent = r11.toString();
+        if (countRatio34) countRatio34.textContent = r34.toString();
+        if (countRatio169) countRatio169.textContent = r169.toString();
+
+        // Atualização de contadores parciais por categoria (nas abas e nos títulos de seção)
+        categoryBlocks.forEach(block => {
+          const cat = block.dataset.category;
+          const catCards = block.querySelectorAll('.asset-card');
+          const catTotal = catCards.length;
+          let catChecked = 0;
+          catCards.forEach(c => {
+            if (checkedSet.has(c.dataset.id)) catChecked++;
+          });
+
+          // Atualiza pill no header da categoria
+          const pill = block.querySelector('.cat-progress-pill');
+          if (pill) {
+            pill.textContent = `${catChecked} de ${catTotal} validados (${catTotal > 0 ? Math.round((catChecked/catTotal)*100) : 0}%)`;
+          }
+
+          // Atualiza pill na aba de filtro
+          const catBtn = document.querySelector(`.filter-btn[data-category="${cat}"]`);
+          if (catBtn) {
+            const badge = catBtn.querySelector('.cat-count-badge');
+            if (badge) badge.textContent = `${catChecked}/${catTotal}`;
+          }
+        });
+      }
+
+      // 5. Inicialização dos Checkboxes
+      checkboxes.forEach(chk => {
+        const id = chk.dataset.id;
+        const card = chk.closest('.asset-card');
+        
+        if (checkedSet.has(id)) {
+          chk.checked = true;
+          if (card) {
+            card.style.borderColor = 'var(--emerald-primary)';
+            card.style.backgroundColor = 'var(--emerald-surface)';
+          }
+        }
+
+        chk.addEventListener('change', () => {
+          if (chk.checked) {
+            checkedSet.add(id);
+            if (card) {
+              card.style.borderColor = 'var(--emerald-primary)';
+              card.style.backgroundColor = 'var(--emerald-surface)';
+            }
+          } else {
+            checkedSet.delete(id);
+            if (card) {
+              card.style.borderColor = 'var(--border-subtle)';
+              card.style.backgroundColor = 'var(--bg-surface)';
+            }
+          }
+          persistState();
+          updateMetrics();
+          applyAllFilters();
+        });
+      });
+
+      updateMetrics();
+
+      // 6. Cópia Resiliente com Feedback In-Place + Toast
+      let toastTimeout = null;
+
+      async function copyText(text, sourceBtn) {
+        let ok = false;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            ok = true;
+          }
+        } catch (e) {}
+
+        if (!ok) {
+          const area = document.createElement('textarea');
+          area.value = text;
+          area.style.position = 'fixed';
+          area.style.left = '-9999px';
+          document.body.appendChild(area);
+          area.select();
+          try {
+            ok = document.execCommand('copy');
+          } catch (err) {}
+          document.body.removeChild(area);
+        }
+
+        if (ok) {
+          if (sourceBtn) {
+            const labelSpan = sourceBtn.querySelector('.btn-copy-label');
+            const originalText = labelSpan ? labelSpan.textContent : sourceBtn.textContent;
+            const originalBg = sourceBtn.style.backgroundColor;
+
+            sourceBtn.style.backgroundColor = 'var(--emerald-primary)';
+            if (labelSpan) labelSpan.textContent = '✓ Copiado!';
+
+            setTimeout(() => {
+              sourceBtn.style.backgroundColor = originalBg;
+              if (labelSpan) labelSpan.textContent = originalText;
+            }, 2000);
+          }
+
+          if (copyToast) {
+            if (copyToastMsg) copyToastMsg.textContent = 'Prompt copiado para a área de transferência!';
+            copyToast.style.opacity = '1';
+            copyToast.style.transform = 'translateY(-4px)';
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+              copyToast.style.opacity = '0';
+              copyToast.style.transform = 'translateY(0)';
+            }, 2400);
+          }
+        }
+      }
+
+      document.body.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-copy-action, .btn-copy-agent, .btn-copy');
+        if (!btn) return;
+
+        const container = btn.closest('.asset-card') || btn.closest('.space-y-2') || btn.closest('div');
+        const pre = container ? container.querySelector('pre') : null;
+        if (pre) {
+          copyText(pre.innerText.trim(), btn);
+        }
+      });
+
+      // 7. Sistema de Filtros Combinados (Categoria, Status, Proporção, Busca)
+      function applyAllFilters() {
+        let visibleCount = 0;
+
+        assetCards.forEach(card => {
+          const cardCat = card.dataset.category || '';
+          const cardId = card.dataset.id || '';
+          const cardRatio = card.dataset.ratio || '';
+          const isChecked = checkedSet.has(cardId);
+          const cardText = card.innerText.toLowerCase();
+
+          const matchesCat = (currentCategory === 'all' || cardCat === currentCategory);
+          const matchesStatus = (currentStatus === 'all') ||
+                                (currentStatus === 'validated' && isChecked) ||
+                                (currentStatus === 'pending' && !isChecked);
+          const matchesRatio = (currentRatio === 'all' || cardRatio === currentRatio);
+          const matchesSearch = (!currentSearchQuery || cardText.includes(currentSearchQuery));
+
+          const isVisible = matchesCat && matchesStatus && matchesRatio && matchesSearch;
+          card.style.display = isVisible ? 'flex' : 'none';
+          if (isVisible) visibleCount++;
+        });
+
+        categoryBlocks.forEach(block => {
+          const hasVisibleCards = Array.from(block.querySelectorAll('.asset-card')).some(c => c.style.display !== 'none');
+          block.style.display = hasVisibleCards ? 'block' : 'none';
+        });
+
+        if (emptySearchState) {
+          emptySearchState.style.display = (visibleCount === 0 && assetCards.length > 0) ? 'block' : 'none';
+        }
+      }
+
+      // Re-vincula os botões de filtro (incluindo os descobertos dinamicamente)
+      filterBtns = document.querySelectorAll('.filter-btn');
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          filterBtns.forEach(b => {
+            b.style.backgroundColor = 'var(--bg-card)';
+            b.style.color = 'var(--text-muted)';
+            b.style.borderColor = 'var(--border-subtle)';
+            b.setAttribute('aria-selected', 'false');
+            b.setAttribute('aria-pressed', 'false');
+          });
+          btn.style.backgroundColor = 'var(--gold-primary)';
+          btn.style.color = '#ffffff';
+          btn.style.borderColor = 'var(--gold-primary)';
+          btn.setAttribute('aria-selected', 'true');
+          btn.setAttribute('aria-pressed', 'true');
+
+          currentCategory = btn.dataset.category;
+          applyAllFilters();
+        });
+      });
+
+      // Filtros de Status
+      statusTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          statusTabs.forEach(t => {
+            t.style.backgroundColor = 'transparent';
+            t.style.color = 'var(--text-muted)';
+          });
+          tab.style.backgroundColor = 'var(--bg-surface)';
+          tab.style.color = 'var(--text-main)';
+          currentStatus = tab.dataset.status;
+          applyAllFilters();
+        });
+      });
+
+      // Filtro de Ratio
+      if (selRatioFilter) {
+        selRatioFilter.addEventListener('change', (e) => {
+          currentRatio = e.target.value;
+          applyAllFilters();
+        });
+      }
+
+      // Debounce para Busca
+      function debounce(fn, ms) {
+        let timer;
+        return function(...args) {
+          clearTimeout(timer);
+          timer = setTimeout(() => fn.apply(this, args), ms);
+        };
+      }
+
+      if (searchInput) {
+        searchInput.addEventListener('input', debounce((e) => {
+          currentSearchQuery = e.target.value.toLowerCase().trim();
+          applyAllFilters();
+        }, 120));
+      }
+
+      if (btnClearSearch) {
+        btnClearSearch.addEventListener('click', () => {
+          if (searchInput) searchInput.value = '';
+          currentSearchQuery = '';
+          currentCategory = 'all';
+          currentStatus = 'all';
+          currentRatio = 'all';
+          if (selRatioFilter) selRatioFilter.value = 'all';
+
+          filterBtns.forEach(b => {
+            const isAll = b.dataset.category === 'all';
+            b.style.backgroundColor = isAll ? 'var(--gold-primary)' : 'var(--bg-card)';
+            b.style.color = isAll ? '#ffffff' : 'var(--text-muted)';
+            b.style.borderColor = isAll ? 'var(--gold-primary)' : 'var(--border-subtle)';
+          });
+
+          statusTabs.forEach(t => {
+            const isAll = t.dataset.status === 'all';
+            t.style.backgroundColor = isAll ? 'var(--bg-surface)' : 'transparent';
+            t.style.color = isAll ? 'var(--text-main)' : 'var(--text-muted)';
+          });
+
+          applyAllFilters();
+        });
+      }
+
+      // 8. Gerador de Markdown Padronizado e Agnóstico para o Google Flow
+      function generateFlowMarkdown() {
+        const total = checkboxes.length;
+        const checked = checkedSet.size;
+        const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
+
+        let md = `# Coleção de Prompts & Diretrizes — Claudin: skins Mangue, Maré e Malungo\n\n`;
+        md += `> **Especificação Técnica para Importação e Geração em Lote no Google Flow**\n\n`;
+        md += `- **Projeto**: Claudin: skins Mangue, Maré e Malungo\n`;
+        md += `- **Data de Exportação**: ${new Date().toISOString().split('T')[0]}\n`;
+        md += `- **Status Global**: ${checked} de ${total} assets validados (${pct}% concluído)\n`;
+        md += `- **Imagem Âncora (Style Anchor)**: \`assets/skins/anchors/anchor-mangue-a1.jpg (poses) + anchor-criaturas-a2.jpg (minis)\`\n\n`;
+
+        md += `## 1. Comando Mestre do Agente (Global Project Prompt)\n\n`;
+        md += `\`\`\`text\nYou are generating pixel-art sprites for Claudin, a small mascot shown inside a terminal app. Always attach the reference image named in the card. Same character, same proportions, same block size in every image. Only the pose, the palette and the one prop named in the card may change. Output one centered sprite per image on a flat solid #1E1E1E background. No text, no border, no shadow, no gradients, no anti-aliasing. Generate every card of the batch one after another without asking questions.\n\`\`\`\n\n`;
+
+        md += `## 2. Matriz Detalhada de Assets para Geração em Lote\n\n`;
+        md += `| ID | Nome do Asset | Categoria | Ratio | Âncora Ativa? | Status | Prompt Calibrado | Caminho Alvo |\n`;
+        md += `| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :--- |\n`;
+
+        checkboxes.forEach(chk => {
+          const card = chk.closest('.asset-card');
+          const id = chk.dataset.id;
+          const name = card ? card.querySelector('label span')?.innerText || id : id;
+          const cat = card ? card.dataset.category || 'Geral' : 'Geral';
+          const ratio = card ? card.dataset.ratio || '1:1' : '1:1';
+          const pathTarget = card ? card.querySelector('.font-mono')?.innerText || `assets/${cat}/${id}.jpg` : `assets/${cat}/${id}.jpg`;
+          const prompt = card ? card.querySelector('pre')?.innerText.replace(/\r?\n|\r/g, ' ').trim() || '' : '';
+          
+          // Detecção dinâmica de ancoragem para qualquer categoria
+          let isAnchored = 'NÃO (Desmarcar)';
+          if (card && card.dataset.anchored !== undefined) {
+            isAnchored = card.dataset.anchored === 'true' ? 'SIM' : 'NÃO (Desmarcar)';
+          } else {
+            const block = card ? card.closest('.category-block') : null;
+            if (block && block.dataset.anchored !== undefined) {
+              isAnchored = block.dataset.anchored === 'true' ? 'SIM' : 'NÃO (Desmarcar)';
+            } else {
+              const isCharType = /char|person|avatar|hero|monst|npc|boss|pilot|operad|capit/i.test(cat) || /portrait|face|rosto|busto/i.test(id);
+              isAnchored = isCharType ? 'SIM' : 'NÃO (Desmarcar)';
+            }
+          }
+
+          const status = chk.checked ? 'VALIDADO' : 'PENDENTE';
+          md += `| \`${id}\` | **${name}** | ${cat} | \`${ratio}\` | ${isAnchored} | ${status} | ${prompt} | \`${pathTarget}\` |\n`;
+        });
+
+        md += `\n## 3. Diretrizes de Ingestão e Governança\n\n`;
+        md += `1. **Isolamento de Heráldica e Objetos**: Desmarcar obrigatoriamente a foto da âncora ao gerar mapas, armas, emblemas, itens e cenários para evitar alucinação facial no relevo.\n`;
+        md += `2. **Nomenclatura**: Todos os arquivos salvos em minúsculas com separadores kebab-case conforme tabela acima.\n`;
+        md += `3. **Idioma**: Prompts em inglês para tração do difusor, mantendo textos gráficos inseridos rigorosamente em pt-BR.\n\n`;
+        md += `---\n*Exportado pela ferramenta flow-assets • Antigravity AI*\n`;
+
+        return md;
+      }
+
+      // Copiar Relatório Markdown
+      if (btnExportReport) {
+        btnExportReport.addEventListener('click', () => {
+          const md = generateFlowMarkdown();
+          copyText(md, btnExportReport);
+        });
+      }
+
+      // Baixar Arquivo .md Nativo
+      if (btnExportFile) {
+        btnExportFile.addEventListener('click', () => {
+          const md = generateFlowMarkdown();
+          const blob = new Blob([md], { type: 'text/markdown;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `google-flow-prompts-claudin-skins-2026-11-18.md`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+
+          if (copyToast) {
+            if (copyToastMsg) copyToastMsg.textContent = 'Arquivo Markdown baixado com sucesso!';
+            copyToast.style.opacity = '1';
+            copyToast.style.transform = 'translateY(-4px)';
+            setTimeout(() => {
+              copyToast.style.opacity = '0';
+              copyToast.style.transform = 'translateY(0)';
+            }, 2400);
+          }
+        });
+      }
+
+      // Reset de Cache
+      if (btnResetCache) {
+        btnResetCache.addEventListener('click', () => {
+          if (confirm('Deseja resetar todo o progresso de validação local deste projeto?')) {
+            checkedSet.clear();
+            persistState();
+            checkboxes.forEach(chk => {
+              chk.checked = false;
+              const card = chk.closest('.asset-card');
+              if (card) {
+                card.style.borderColor = 'var(--border-subtle)';
+                card.style.backgroundColor = 'var(--bg-surface)';
+              }
+            });
+            updateMetrics();
+            applyAllFilters();
+          }
+        });
+      }
+
+    })();
+  </script>
+</body>
+</html>
