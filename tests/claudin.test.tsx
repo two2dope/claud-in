@@ -608,3 +608,276 @@ test('caminho do Windows com barra invertida e barra final é normalizado', asyn
   expect((await ui.find({ key: 'sc4' }))?.props?.label).toMatch(/do usuário/)
   await ui.unmount()
 })
+
+// ── cofre, só leitura: a saudação do dia traz o próximo passo do Wiki/_hot.md ────
+const HOT_MD = ['# Hoje — 2026-11-19', '**Próximo passo:** rodar a compilação semanal', '## Prazos (14 dias)', '- 25/11 · Entrega do edital · email', '## Urgente', '- responder o parceiro', ''].join('\n')
+const COFRE_CFG = JSON.stringify({ path: 'C:/cofre' })
+const cofreFiles = (extra: Record<string, string> = {}) => ({ 'C:/u/.claude/claudin/cofre.json': COFRE_CFG, 'C:/cofre': '', 'C:/cofre/Wiki/_hot.md': HOT_MD, ...extra })
+
+test('com o cofre configurado, a saudação traz o próximo passo e os urgentes', async ($: any, on: any) => {
+  mock.clock(on, { now: 2_000_000 })
+  await bootFs($, on, cofreFiles(), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /cofre: rodar a compilação semanal · 1 urgente/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('sem cofre.json a saudação não fala do cofre', async ($: any, on: any) => {
+  mock.clock(on, { now: 2_000_000 })
+  await bootFs($, on, { 'C:/cofre': '', 'C:/cofre/Wiki/_hot.md': HOT_MD }, { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /Online/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('cofre apontando para pasta inexistente fica desligado, sem mensagem', async ($: any, on: any) => {
+  mock.clock(on, { now: 2_000_000 })
+  await bootFs($, on, { 'C:/u/.claude/claudin/cofre.json': COFRE_CFG, 'C:/cofre/Wiki/_hot.md': HOT_MD }, { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /Online/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('cofre sem _hot.md ou com _hot sem o que dizer fica calado', async ($: any, on: any) => {
+  mock.clock(on, { now: 2_000_000 })
+  await bootFs($, on, { 'C:/u/.claude/claudin/cofre.json': COFRE_CFG, 'C:/cofre': '', 'C:/cofre/Wiki/_hot.md': '# Hoje — 2026-11-19\n' }, { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /Online/ })).toBeDefined()
+  await ui.unmount()
+})
+
+// ── cofre, só leitura: avisos de saúde (hot velho, fila grande) vão na mesma saudação ────
+const NOV19 = new Date(2026, 10, 19, 12).getTime()
+const pendingMd = (n: number) => ['# Fila', ...Array.from({ length: n }, (_, i) => `- [ ] 2026-11-18 · Raw/Notas/n${i}.md · assunto`), ''].join('\n')
+
+test('hot de ontem e fila grande aparecem como avisos na saudação', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, cofreFiles({ 'C:/cofre/Wiki/_hot.md': HOT_MD.replace('2026-11-19', '2026-11-18'), 'C:/cofre/Raw/_pending.md': pendingMd(43) }), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /cofre: rodar a compilação semanal · 1 urgente · o hot é de ontem · fila com 43 itens/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('hot de hoje e fila pequena não geram aviso', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, cofreFiles({ 'C:/cofre/Raw/_pending.md': pendingMd(5) }), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /cofre: rodar a compilação semanal · 1 urgente\.$/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('a fila grande avisa mesmo com o hot sem próximo passo', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, cofreFiles({ 'C:/cofre/Wiki/_hot.md': '# Hoje — 2026-11-19\n', 'C:/cofre/Raw/_pending.md': pendingMd(41) }), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /cofre: fila com 41 itens/ })).toBeDefined()
+  await ui.unmount()
+})
+
+// ── balão: o botão de ação não fica colado na fala ───────────────────────────────
+test('o botão de ação do balão fica separado da fala por uma linha', async ($: any, on: any) => {
+  mock.clock(on, { now: 2_100_000 })
+  ids(on)
+  await $.agent.spawn(SPAWN('mapear hooks'))
+  await $.turn.complete(DONE('a1', 'error'))
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect((await ui.find({ key: 'act-row' }))?.props?.marginTop).toBe(1)
+  await ui.unmount()
+})
+
+// ── cofre, só leitura: botão que só preenche o prompt (quem envia é a pessoa) ────
+test('com o cofre ligado, a aba Ações tem o botão que preenche o prompt com o próximo passo', async ($: any, on: any) => {
+  mock.clock(on, { now: 2_000_000 })
+  let filled = ''
+  on('prompt.fill', (_: any, e: any) => {
+    filled = e.text
+    return { isFilled: true }
+  })
+  await bootFs($, on, cofreFiles(), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'tb' })
+  await ui.press({ key: 'cat-acoes' })
+  await ui.press({ key: 'a-cofre' })
+  expect(filled).toBe('Leia C:/cofre/Wiki/_hot.md e me ajude com o próximo passo.')
+  await ui.unmount()
+})
+
+test('sem o cofre ligado, o botão do cofre não aparece', async ($: any, on: any) => {
+  mock.clock(on, { now: 2_000_000 })
+  await bootFs($, on, { 'C:/cofre': '' }, { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'tb' })
+  await ui.press({ key: 'cat-acoes' })
+  expect(await ui.find({ key: 'a-cmd' })).toBeDefined()
+  expect(await ui.find({ key: 'a-cofre' })).toBeUndefined()
+  await ui.unmount()
+})
+
+// ── cofre, só leitura: os prazos do _hot aparecem na Agenda, marcados "do cofre" ────
+const HOT_PRAZOS = ['# Hoje — 2026-11-19', '**Próximo passo:** rodar a compilação semanal', '## Prazos (14 dias)', '- 19/11 · Entregar relatório · drive', '- 25/11 · Entrega do edital · email', '## Urgente', ''].join('\n')
+
+test('os prazos do cofre entram na Agenda como "do cofre", sem botão de apagar', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, cofreFiles({ 'C:/cofre/Wiki/_hot.md': HOT_PRAZOS }), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'tb' })
+  await ui.press({ key: 'cat-prazos' })
+  expect(await ui.find({ type: 'Text', text: /D-6 · Entrega do edital · do cofre/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /hoje · Entregar relatório · do cofre/ })).toBeDefined()
+  expect(await ui.find({ key: 'dl-cofre:2026-11-25:1-x' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('prazo digitado no Claudin segue local e convive com os do cofre', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, cofreFiles({ 'C:/cofre/Wiki/_hot.md': HOT_PRAZOS }), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'tb' })
+  await ui.press({ key: 'cat-prazos' })
+  await ui.input({ key: 'dq', text: '30/11 Reunião local' })
+  expect(await ui.find({ type: 'Text', text: /D-11 · Reunião local/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Reunião local · do cofre/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /D-6 · Entrega do edital · do cofre/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('sem cofre a Agenda não ganha prazos de fora', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, { 'C:/cofre': '', 'C:/cofre/Wiki/_hot.md': HOT_PRAZOS }, { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'tb' })
+  await ui.press({ key: 'cat-prazos' })
+  expect(await ui.find({ type: 'Text', text: /do cofre/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('a saudação do dia conta os prazos do cofre', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, cofreFiles({ 'C:/cofre/Wiki/_hot.md': HOT_PRAZOS }), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /hoje: Entregar relatório/ })).toBeDefined()
+  await ui.unmount()
+})
+
+// ── barra de abas só com ícone; a aba aberta mostra o nome; a aba Cofre só com o cofre ligado ────
+test('as abas fechadas mostram só o ícone e a aberta mostra ▸ ícone e nome', async ($: any) => {
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'tb' })
+  expect((await ui.find({ key: 'cat-prompts' }))?.props?.label).toBe('▸💬 Prompts')
+  expect((await ui.find({ key: 'cat-acoes' }))?.props?.label).toBe(' ⚡')
+  await ui.press({ key: 'cat-prazos' })
+  expect((await ui.find({ key: 'cat-prazos' }))?.props?.label).toBe('▸📅 Agenda')
+  expect((await ui.find({ key: 'cat-prompts' }))?.props?.label).toBe(' 💬')
+  await ui.unmount()
+})
+
+test('a aba Cofre só existe com o cofre ligado', async ($: any, on: any) => {
+  mock.clock(on, { now: 2_000_000 })
+  await bootFs($, on, cofreFiles(), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'tb' })
+  expect((await ui.find({ key: 'cat-cofre' }))?.props?.label).toBe(' 🔐')
+  await ui.unmount()
+})
+
+test('sem o cofre ligado a barra não tem a aba Cofre', async ($: any, on: any) => {
+  mock.clock(on, { now: 2_000_000 })
+  await bootFs($, on, { 'C:/cofre': '' }, { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'tb' })
+  expect(await ui.find({ key: 'cat-cofre' })).toBeUndefined()
+  await ui.unmount()
+})
+
+// ── aba Cofre: o _hot em leitura, com o botão que só preenche o prompt ───────────
+const HOT_FULL = ['# Hoje — 2026-11-18', '**Próximo passo:** rodar a compilação semanal', '## Prazos (14 dias)', '- 25/11 · Entrega do edital · email', '## Fios ativos', '- claudin: skins, falta o código', '- oficina: ok', '## Urgente', '- responder o parceiro', '- revisar o dream', ''].join('\n')
+const openCofre = async (ui: any) => {
+  await ui.press({ key: 'tb' })
+  await ui.press({ key: 'cat-cofre' })
+}
+
+test('a aba Cofre mostra próximo passo e urgentes; o botão só preenche o prompt', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  let filled = ''
+  on('prompt.fill', (_: any, e: any) => {
+    filled = e.text
+    return { isFilled: true }
+  })
+  await bootFs($, on, cofreFiles({ 'C:/cofre/Wiki/_hot.md': HOT_FULL }), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openCofre(ui)
+  expect(await ui.find({ type: 'Text', text: /próximo: rodar a compilação semanal/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /! responder o parceiro \(\+1\)/ })).toBeDefined()
+  await ui.press({ key: 'cf-fill' })
+  expect(filled).toBe('Leia C:/cofre/Wiki/_hot.md e me ajude com o próximo passo.')
+  await ui.unmount()
+})
+
+test('na segunda página da aba Cofre ficam os fios e os avisos de saúde', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, cofreFiles({ 'C:/cofre/Wiki/_hot.md': HOT_FULL }), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openCofre(ui)
+  await ui.press({ key: 'next' })
+  expect(await ui.find({ type: 'Text', text: /· claudin: skins, falta o código \(\+1\)/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /⚠ o hot é de ontem/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('cofre ligado mas sem _hot.md: a aba avisa em uma linha', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, { 'C:/u/.claude/claudin/cofre.json': COFRE_CFG, 'C:/cofre': '' }, { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openCofre(ui)
+  expect(await ui.find({ type: 'Text', text: /Sem Wiki\/_hot\.md ainda/ })).toBeDefined()
+  await ui.unmount()
+})
+
+// ── captura rápida: a única escrita no cofre é um arquivo NOVO em Raw/Notas ──────
+const bootCapture = async ($: any, on: any) => {
+  const files: Record<string, string> = cofreFiles({ 'C:/cofre/Wiki/_hot.md': HOT_FULL, 'C:/cofre/Raw/_pending.md': pendingMd(2) })
+  const written: Record<string, string> = {}
+  on('fs.write', (_: any, e: any) => {
+    const path = String(e.path).split(String.fromCharCode(92)).join('/')
+    written[path] = e.text
+    files[path] = e.text
+    return { value: undefined }
+  })
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, files, { USERPROFILE: 'C:/u' })
+  return written
+}
+
+test('capturar nota cria um arquivo novo em Raw/Notas e não toca em mais nada', async ($: any, on: any) => {
+  const written = await bootCapture($, on)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openCofre(ui)
+  await ui.input({ key: 'cf-note', text: 'Ideia sobre skins\nresto da nota' })
+  expect(Object.keys(written)).toEqual(['C:/cofre/Raw/Notas/2026-11-19 - Ideia sobre skins (claudin).md'])
+  expect(written['C:/cofre/Raw/Notas/2026-11-19 - Ideia sobre skins (claudin).md']).toBe('Ideia sobre skins\nresto da nota\n')
+  expect(await ui.find({ type: 'Text', text: /Nota guardada no cofre/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('uma segunda nota com o mesmo título vira (2) e nunca sobrescreve', async ($: any, on: any) => {
+  const written = await bootCapture($, on)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openCofre(ui)
+  await ui.input({ key: 'cf-note', text: 'Mesma ideia' })
+  await ui.input({ key: 'cf-note', text: 'Mesma ideia\noutro texto' })
+  expect(Object.keys(written)).toEqual([
+    'C:/cofre/Raw/Notas/2026-11-19 - Mesma ideia (claudin).md',
+    'C:/cofre/Raw/Notas/2026-11-19 - Mesma ideia (claudin) (2).md',
+  ])
+  expect(written['C:/cofre/Raw/Notas/2026-11-19 - Mesma ideia (claudin).md']).toBe('Mesma ideia\n')
+  await ui.unmount()
+})
+
+test('nota vazia não escreve nada', async ($: any, on: any) => {
+  const written = await bootCapture($, on)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openCofre(ui)
+  await ui.input({ key: 'cf-note', text: '   ' })
+  expect(Object.keys(written)).toEqual([])
+  await ui.unmount()
+})

@@ -1,8 +1,9 @@
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
-import type { Action, FleetRow, Mode, ModeKind, Mood, Say, TurnStats, Walk } from '../types'
-import { tabGap } from './abas'
+import type { Action, CofreView, FleetRow, Mode, ModeKind, Mood, Say, TurnStats, Walk } from '../types'
+import { tabLabel } from './abas'
+import { COFRE_FILE, HOT_FILE, NOTES_DIR, PENDING_FILE, countPending, freeNoteName, noteFileStem, healthNotes, hotLine, mergeDeadlines, parseHot, parseHotDeadlines, parseHotLists, resolveCofre } from './cofre'
 import { FLEET_MAX_ROWS, clip, failSay, finish, liveCount, orderRows, reconcile, revive, rowLine, shouldSaySpawn, spawnSay, summaryLine, upsert } from './frota'
 
 const say = atom({ plugin: 'claudin', key: 'say' } as const, {
@@ -44,7 +45,8 @@ const tick = atom({ plugin: 'claudin', key: 'tick' } as const, 0)
 const boxCat = atom({ plugin: 'claudin', key: 'boxCat' } as const, 'prompts')
 const CATS = ['prompts', 'acoes', 'comandos', 'ajustes', 'tempo', 'prazos']
 const FLEET_CAT = 'frota' // a aba só aparece enquanto há agentes, para não alargar o menu à toa
-const CAT_LABEL: Record<string, string> = { prompts: 'Prompts', acoes: 'Ações', comandos: 'Comandos', ajustes: 'Ajustes', tempo: 'Tempo', prazos: 'Agenda', frota: 'Frota' }
+const COFRE_CAT = 'cofre' // a aba só aparece com o cofre ligado
+const CAT_LABEL: Record<string, string> = { prompts: 'Prompts', acoes: 'Ações', comandos: 'Comandos', ajustes: 'Ajustes', tempo: 'Tempo', prazos: 'Agenda', frota: 'Frota', cofre: 'Cofre' }
 const SHORTCUTS: { label: string; text: string }[] = [
   { label: 'resumir', text: 'Resuma em poucas linhas o que você fez até agora.' },
   { label: 'explicar erro', text: 'Explique o último erro que apareceu e proponha o próximo passo.' },
@@ -60,6 +62,14 @@ const lastCmd = atom({ plugin: 'claudin', key: 'lastCmd' } as const, '')
 const lastFile = atom({ plugin: 'claudin', key: 'lastFile' } as const, '')
 const turn = atom({ plugin: 'claudin', key: 'turn' } as const, { files: [], cmds: 0, errors: 0, agents: 0 } as TurnStats)
 const fleet = atom({ plugin: 'claudin', key: 'fleet' } as const, [] as FleetRow[])
+// Caminho do cofre (só leitura), ou null com o recurso desligado.
+const cofre = atom({ plugin: 'claudin', key: 'cofre' } as const, null as string | null)
+// Prazos lidos do _hot do cofre: espelho só de leitura, sem gravar de volta (ids começam com "cofre:").
+// Vista da aba Cofre: o que o _hot diz hoje, já em texto curto. null até a primeira leitura.
+const cofreView = atom({ plugin: 'claudin', key: 'cofreView' } as const, null as CofreView | null)
+const noteText = atom({ plugin: 'claudin', key: 'noteText' } as const, '')
+const NOTE_MAX = 4000
+const cofreDeadlines = atom({ plugin: 'claudin', key: 'cofreDeadlines' } as const, [] as Deadline[])
 
 // Comandos que merecem um aviso antes de rodar. Lista curta; não substitui as permissões do app.
 const RISKY = /\brm\s+(-[a-z]*r|-[a-z]*f)|git\s+push\b.*(--force|\s-f\b)|git\s+reset\s+--hard|git\s+clean\s+-[a-z]*f|drop\s+(table|database)|remove-item\b.*-recurse|\bdel\s+\/[sq]|\bformat\s+[a-z]:|mkfs|:\(\)\s*\{/i
@@ -534,6 +544,85 @@ async function removeReminder($: any, id: string) {
   await saveReminders($, cur.filter(r => r.id !== id))
 }
 
+// Lê, só leitura, o que o cofre tem hoje: o texto do _hot (ou null) e quantos itens abertos a fila tem (ou null).
+async function readCofreFiles($: any): Promise<{ root: string; hot: string | null; pending: number | null } | null> {
+  const root = await read($, cofre)
+  if (!root) return null
+  let hot: string | null = null
+  let pending: number | null = null
+  try {
+    const hf = `${root}/${HOT_FILE}`
+    if (await $.fs.exists(hf)) hot = String(await $.fs.read(hf))
+  } catch {
+    hot = null
+  }
+  try {
+    const pf = `${root}/${PENDING_FILE}`
+    if (await $.fs.exists(pf)) pending = countPending(String(await $.fs.read(pf)))
+  } catch {
+    pending = null
+  }
+  return { root, hot, pending }
+}
+
+async function loadCofreDeadlines($: any) {
+  const c = await readCofreFiles($)
+  if (!c || c.hot === null) return update($, cofreDeadlines, () => [])
+  try {
+    const today = dayKey(new Date(await $.clock.now()))
+    const list = parseHotDeadlines(c.hot, today)
+    await update($, cofreDeadlines, () => list.map((d, i) => ({ id: `cofre:${d.date}:${i}`, date: d.date, title: d.title })))
+  } catch {
+    await update($, cofreDeadlines, () => [])
+  }
+}
+
+// Vista da aba Cofre: próximo passo, urgentes, fios e avisos de saúde, lidos do _hot e da fila.
+async function loadCofreView($: any) {
+  const c = await readCofreFiles($)
+  if (!c) return update($, cofreView, () => null)
+  if (c.hot === null) return update($, cofreView, () => ({ hasHot: false, next: null, urgent: [], fios: [], notes: [] }))
+  try {
+    const today = dayKey(new Date(await $.clock.now()))
+    const hot = parseHot(c.hot)
+    const lists = parseHotLists(c.hot)
+    await update($, cofreView, () => ({ hasHot: true, next: hot.next, urgent: lists.urgent, fios: lists.fios, notes: healthNotes(hot, today, c.pending) }))
+  } catch {
+    await update($, cofreView, () => ({ hasHot: false, next: null, urgent: [], fios: [], notes: [] }))
+  }
+}
+
+// Captura rápida: cria UM arquivo novo em <cofre>/Raw/Notas. É a única escrita do Claudin no cofre: nunca edita
+// nem apaga, e não mexe no _pending nem no selo (o ciclo diário enfileira e sela).
+async function captureNote($: any, raw: string) {
+  const root = await read($, cofre)
+  const text = raw.trim()
+  if (!root || !text) return
+  try {
+    const today = dayKey(new Date(await $.clock.now()))
+    const dir = `${root}/${NOTES_DIR}`
+    const name = await freeNoteName(noteFileStem(text, today), (n: string) => $.fs.exists(`${dir}/${n}`))
+    if (!name) return speak($, 'err', 'Não achei um nome livre para a nota.')
+    await $.fs.write(`${dir}/${name}`, `${text.slice(0, NOTE_MAX)}\n`)
+    await update($, noteText, () => '')
+    await speak($, 'ok', `Nota guardada no cofre: ${short(name, 30)}.`)
+  } catch {
+    await speak($, 'err', 'Não consegui guardar a nota no cofre.')
+  }
+}
+
+// Frase do cofre na saudação: próximo passo e urgentes do _hot, mais avisos de saúde. Sem o que dizer: nada, em silêncio.
+async function cofreHotLine($: any, today: string): Promise<string> {
+  try {
+    const c = await readCofreFiles($)
+    if (!c || c.hot === null) return ''
+    const hot = parseHot(c.hot)
+    return hotLine(hot, healthNotes(hot, today, c.pending)) ?? ''
+  } catch {
+    return ''
+  }
+}
+
 // Saudação do dia: prazos atrasados, de hoje e de amanhã, lembretes de hoje e timers pausados. Uma vez por dia.
 async function greetToday($: any, force: boolean) {
   const now = await $.clock.now()
@@ -541,7 +630,7 @@ async function greetToday($: any, force: boolean) {
   const today = dayKey(d)
   if (!force && (await $.store.get('lastGreeting')) === today) return
   await $.store.set('lastGreeting', today)
-  const dl = await read($, deadlines)
+  const dl = mergeDeadlines(await read($, deadlines), await read($, cofreDeadlines))
   const rm = await read($, reminders)
   const tm = await read($, timers)
   const over = dl.filter(x => daysUntil(x.date, now) < 0)
@@ -556,6 +645,7 @@ async function greetToday($: any, force: boolean) {
     amanha.length ? `amanhã: ${names(amanha)}` : '',
     rToday.length ? `${rToday.length} lembrete${rToday.length > 1 ? 's' : ''} hoje` : '',
     paused.length ? `${paused.length} timer pausado` : '',
+    await cofreHotLine($, today),
   ].filter(Boolean)
   if (parts.length === 0) {
     if (force) await speak($, 'idle', 'Nada pendente na agenda.')
@@ -588,6 +678,23 @@ async function userDir($: any): Promise<string | null> {
 async function dataRoots($: any): Promise<string[]> {
   const user = await userDir($)
   return user ? [user, $.plugin.root] : [$.plugin.root]
+}
+
+// Cofre: caminho em <config>/claudin/cofre.json (arquivo pessoal, nunca do plugin). Sem ele, ou com a pasta
+// inexistente, o recurso fica desligado em silêncio.
+async function loadCofre($: any) {
+  const user = await userDir($)
+  let home: string | undefined
+  try {
+    home = (await $.env.get('USERPROFILE')) ?? (await $.env.get('HOME')) ?? undefined
+  } catch {
+    home = undefined
+  }
+  const file = user ? `${user}/${COFRE_FILE}` : null
+  const path = file
+    ? await resolveCofre(async () => ((await $.fs.exists(file)) ? await $.fs.read(file) : null), (p: string) => $.fs.exists(p), home)
+    : null
+  await update($, cofre, () => path)
 }
 
 async function loadSprites($: any) {
@@ -692,14 +799,17 @@ async function draw($: any, e: any, next: any) {
   const q = await read($, query)
   const favList = await read($, favs)
   const activeTimers = await read($, timers)
-  const dls = await read($, deadlines)
+  const dls = mergeDeadlines(await read($, deadlines), await read($, cofreDeadlines))
   const rems = await read($, reminders)
   const ddq = await read($, ddText)
   const nowDl = dls.length > 0 ? await $.clock.now() : 0
+  const cofreRoot = await read($, cofre)
+  const cv = await read($, cofreView)
+  const noteTxt = await read($, noteText)
   const fleetRows = await read($, fleet)
   const nowF = fleetRows.length > 0 ? await $.clock.now() : 0
   const fleetLine = summaryLine(fleetRows, nowF)
-  const cats = fleetRows.length > 0 ? [...CATS, FLEET_CAT] : CATS
+  const cats = [...CATS, ...(fleetRows.length > 0 ? [FLEET_CAT] : []), ...(cofreRoot ? [COFRE_CAT] : [])]
   const nowT = activeTimers.length > 0 ? (await read($, tick)) || (await $.clock.now()) : 0
   const extras = await read($, extraShortcuts)
   const cmd = await read($, lastCmd)
@@ -731,6 +841,8 @@ async function draw($: any, e: any, next: any) {
     await update($, boxPage, () => 0)
     await update($, boxCat, () => c)
     if (c === 'comandos') await loadCommands($)
+    if (c === 'prazos') await loadCofreDeadlines($)
+    if (c === COFRE_CAT) await loadCofreView($)
   }
   const fill = (text: string) => () => $.prompt.fill({ text, mode: 'replace' })
 
@@ -767,6 +879,8 @@ async function draw($: any, e: any, next: any) {
                 await speak($, 'ok', 'Pasta aberta.')
               },
             },
+            // Só com o cofre ligado; preenche o prompt e quem envia é a pessoa.
+            ...(cofreRoot ? [{ key: 'a-cofre', label: 'próximo passo do cofre', onPress: fill(`Leia ${cofreRoot}/${HOT_FILE} e me ajude com o próximo passo.`) }] : []),
           ]
         : cat === 'ajustes'
           ? [
@@ -818,9 +932,12 @@ async function draw($: any, e: any, next: any) {
                       .sort((a, b) => a.date.localeCompare(b.date))
                       .map(d => {
                         const n = daysUntil(d.date, nowDl)
+                        const dot = n < 0 ? '🔴' : n <= 3 ? '🟡' : '🟢'
+                        // Prazo do cofre é espelho só de leitura: sem botão de apagar.
+                        if (d.id.startsWith('cofre:')) return { key: `dl-${d.id}`, label: `${dot} ${dayLabel(n)} · ${d.title} · do cofre`, text: true, onPress: () => {} }
                         return {
                           key: `dl-${d.id}`,
-                          label: `${n < 0 ? '🔴' : n <= 3 ? '🟡' : '🟢'} ${dayLabel(n)} · ${d.title}`,
+                          label: `${dot} ${dayLabel(n)} · ${d.title}`,
                           onPress: () => {},
                           onDelete: () => removeDeadline($, d.id),
                         }
@@ -834,6 +951,18 @@ async function draw($: any, e: any, next: any) {
                         onDelete: () => removeReminder($, r.id),
                       })),
                   ]
+                : cat === COFRE_CAT
+                  ? (() => {
+                      if (!cv || !cv.hasHot) return []
+                      const more = (l: string[]) => (l.length > 1 ? ` (+${l.length - 1})` : '')
+                      const rows: Item[] = []
+                      if (cv.next) rows.push({ key: 'cf-next', label: short(`próximo: ${cv.next}`, 46), text: true, onPress: () => {} })
+                      if (cv.urgent.length) rows.push({ key: 'cf-urg', label: short(`! ${cv.urgent[0]}`, 40) + more(cv.urgent), text: true, onPress: () => {} })
+                      rows.push({ key: 'cf-fill', label: 'próximo passo do cofre', onPress: fill(`Leia ${cofreRoot}/${HOT_FILE} e me ajude com o próximo passo.`) })
+                      if (cv.fios.length) rows.push({ key: 'cf-fio', label: short(`· ${cv.fios[0]}`, 40) + more(cv.fios), text: true, onPress: () => {} })
+                      cv.notes.forEach((n, i) => rows.push({ key: `cf-n${i}`, label: `⚠ ${n}`, text: true, onPress: () => {} }))
+                      return rows
+                    })()
                 : cat === FLEET_CAT
                   ? (() => {
                       const ordered = orderRows(fleetRows)
@@ -844,20 +973,20 @@ async function draw($: any, e: any, next: any) {
                   : []
 
   const placeholder =
-    cat === 'comandos' && items.length === 0 ? 'Nenhum comando encontrado.' : cat === 'prazos' && items.length === 0 ? 'Vazia. Prazo: 05/11 título. Lembrete: 09:00 título.' : cat === FLEET_CAT && items.length === 0 ? 'Nenhum agente por aqui.' : ''
+    cat === 'comandos' && items.length === 0 ? 'Nenhum comando encontrado.' : cat === 'prazos' && items.length === 0 ? 'Vazia. Ex.: 05/11 prazo · 09:00 lembrete' : cat === FLEET_CAT && items.length === 0 ? 'Nenhum agente por aqui.' : cat === COFRE_CAT && items.length === 0 ? 'Sem Wiki/_hot.md ainda.' : ''
 
   // Menu em estilo mIRC: barra de menus em texto, divisória e lista vertical paginada, uma coluna.
-  const size_ = cat === 'comandos' || cat === 'prazos' ? PAGE_CMD : PAGE
+  const size_ = cat === 'comandos' || cat === 'prazos' || cat === COFRE_CAT ? PAGE_CMD : PAGE
   const pages = Math.max(1, Math.ceil(items.length / size_))
   const pg = Math.min(page, pages - 1)
   const rows = items.slice(pg * size_, pg * size_ + size_)
-  const line = '─'.repeat(TOOLBOX_W - 12)
+  const line = '─'.repeat(TOOLBOX_W - 18)
   const body = (
     <Box flexDirection="column" alignItems="flex-start" width="100%">
       <Text dimColor>🧰 Caixa de ferramentas</Text>
-      <Box flexDirection="row" columnGap={tabGap(cats.map(c => CAT_LABEL[c] ?? c), TOOLBOX_W - 4)}>
+      <Box flexDirection="row">
         {cats.map(c => (
-          <Button key={`cat-${c}`} plain label={c === cat ? `▸${CAT_LABEL[c] ?? c}` : ` ${CAT_LABEL[c] ?? c}`} onPress={pick(c)} />
+          <Button key={`cat-${c}`} plain label={tabLabel(c, CAT_LABEL[c] ?? c, c === cat)} onPress={pick(c)} />
         ))}
       </Box>
       <Text dimColor>{line}</Text>
@@ -871,6 +1000,15 @@ async function draw($: any, e: any, next: any) {
             update($, query, () => v)
             update($, boxPage, () => 0)
           }}
+        />
+      ) : null}
+      {cat === COFRE_CAT && Input ? (
+        <Input
+          key="cf-note"
+          placeholder="capturar nota…"
+          value={noteTxt}
+          onSubmit={(v: string) => captureNote($, typeof v === 'string' && v ? v : noteTxt)}
+          onInput={(v: string) => update($, noteText, () => v)}
         />
       ) : null}
       {cat === 'prazos' && Input ? (
@@ -945,14 +1083,16 @@ async function draw($: any, e: any, next: any) {
               {fleetLine ? <Text key="fleet-line" dimColor>{`◆ ${fleetLine}`}</Text> : null}
               {first ? timerRow(first, 'bt') : null}
               {act ? (
-                <Button
-                  key="act"
-                  label={act.label}
-                  onPress={async () => {
-                    await $.prompt.fill({ text: act.text, mode: 'replace' })
-                    await update($, action, () => null)
-                  }}
-                />
+                <Box key="act-row" marginTop={1}>
+                  <Button
+                    key="act"
+                    label={act.label}
+                    onPress={async () => {
+                      await $.prompt.fill({ text: act.text, mode: 'replace' })
+                      await update($, action, () => null)
+                    }}
+                  />
+                </Box>
               ) : null}
             </Box>
           )}
@@ -1147,6 +1287,9 @@ export const register: Register = on => {
     if (await read($, isSide)) await placeClaudin($, true)
     await loadSprites($)
     await loadShortcuts($)
+    await loadCofre($)
+    await loadCofreDeadlines($)
+    await loadCofreView($)
     await loadFavs($)
     await loadTimers($)
     await loadDeadlines($)
