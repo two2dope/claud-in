@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { QG_ART } from './cenario-arte'
-import { QG_LIMIT, MONITORS, ambientSvg, SPOTS, kTokens, modelShort, panelSvg, STATIONS, composeQg, pct, pomodoroOf, skyAt, stationCol, withOutline } from './cenario'
+import { QG_LIMIT, MONITORS, ambientSvg, fleetPulse, SPOTS, kTokens, modelShort, panelSvg, STATIONS, composeQg, pct, pomodoroOf, skyAt, stationCol, withOutline } from './cenario'
 
 const HORA = (h: number, m = 0) => h * 60 + m
 
@@ -242,5 +242,16 @@ describe('QG: a vida do cenário', () => {
     const noite = composeQg(QG_ART.svg, { w: QG_ART.w, h: QG_ART.h, minutes: HORA(22), pomo: { fraction: 0.5 }, panel: { model: 'claude-opus-5-5', ctx: 99, tokens: 999_999, window: 1_000_000, usd: 999.99, limit5h: 99, limit7d: 99, agents: 9, tools: 99 }, working: true })
     expect(noite.length).toBeLessThanOrEqual(QG_LIMIT)
     expect(noite).toContain('class="vida"')
+  })
+})
+
+describe('QG: ícones nos pontos marcados', () => {
+  test('o centro marcado de cada ícone fica dentro do objeto', () => {
+    for (const sp of SPOTS) expect(sp.cx > sp.x0 && sp.cx < sp.x1 && sp.cy > sp.y0 && sp.cy < sp.y1).toBe(true)
+  })
+
+  test('o monitor do caranguejo pulsa só com agentes', () => {
+    expect(fleetPulse(0)).toBe('')
+    expect(fleetPulse(2)).toContain('<animate')
   })
 })

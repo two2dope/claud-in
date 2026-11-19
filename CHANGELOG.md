@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.6 — 2026-11-19
+
+- **O ícone é o botão.** As linhas de botão em branco que cobriam as zonas não respondiam no desktop e deixavam marcas (as reticências sobre o relógio, o cofre e o servidor): presas em colunas estreitas, encolhiam em `…`. Saíram todas: agora cada ponto do QG é um botão com o próprio ícone, numa coluna de largura fixa e desenhado por cima de tudo (o Claudin do QG deixou de ser um quadro interativo, que pegava o clique), posto exatamente onde foi marcado no print (Sobre na placa, Cola no canto dos livros, luz no poste, 🦀 no monitor de cima, cofre e servidor no meio, Agenda no canto do calendário, ⏱ no centro do relógio).
+- **Luz e frota acesas.** O 💡 (🌙 com a luz apagada) e o 🦀 ficam acesos; os outros ícones ficam apagados e acendem sob o ponteiro (sempre clicáveis, também pelo teclado). Com agentes vivos, o monitor do 🦀 pulsa em coral.
+- **Sem sombra de sobreposição.** O brilho de fundo das zonas saiu, junto com a marca deslocada do servidor; o relógio fica só com os ponteiros.
+- **Mais vaga-lumes** piscando pelas raízes dos dois lados (oito caminhos).
+- **Painel relido também no envio**, e as preferências por sessão não podem mais barrar o início da sessão.
+- **A crew cresce junto.** As miniaturas dos agentes nas bancadas seguem o tamanho do Claudin, na mesma proporção de antes.
+- **Conhecido:** o clique pelo ícone ainda precisa de conferência no desktop; sem LICENSE.
+
 ## 0.7.5 — 2026-11-19
 
 - **Clique nas zonas, de novo.** Na 0.7.4 as linhas de botão levavam só um espaço, e o desktop desenha um rótulo só de espaço sem largura: o clique caía no vazio (só a luz e o relógio, finos, pegavam). Agora cada linha leva caracteres em branco que não são espaço (U+2800), em 70% da largura da zona.

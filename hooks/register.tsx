@@ -5,7 +5,7 @@ import type { Action, CofreView, ColaView, FleetRow, Mode, ModeKind, Mood, Say, 
 import { tabLabel } from './abas'
 import { COLA_FILE, flattenCola, parseCatalogo, withClaudin } from './cola'
 import { QG_ART } from './cenario-arte'
-import { SPOTS, STATIONS, composeQg, pct, pomodoroOf, stationCol, withOutline, type Panel } from './cenario'
+import { ICON_HALF_H, SPOTS, STATIONS, composeQg, pct, pomodoroOf, stationCol, withOutline, type Panel } from './cenario'
 import { CONTEXT_PRESETS, DEFAULT_PRESET, contextLevel, contextLine, contextWarn, presetById, readPercent } from './contexto'
 import { CORAL, SKINS, lookFor, sprite } from './desenho'
 import { MINI_KINDS, parseFleetMap, pickMinis } from './minis'
@@ -55,7 +55,7 @@ const FLEET_CAT = 'frota' // a aba só aparece enquanto há agentes, para não a
 const COFRE_CAT = 'cofre' // a aba só aparece com o cofre ligado
 const SOBRE_CAT = 'sobre' // aba escondida: só a placa de madeira do QG abre
 const REPO_URL = 'https://github.com/two2dope/claud-in'
-const VERSION = '0.7.5' // igual ao plugin.json (um teste confere)
+const VERSION = '0.7.6' // igual ao plugin.json (um teste confere)
 const CAT_LABEL: Record<string, string> = { prompts: 'Prompts', acoes: 'Ações', comandos: 'Comandos', ajustes: 'Ajustes', tempo: 'Tempo', prazos: 'Agenda', frota: 'Frota', cofre: 'Cofre' }
 const SHORTCUTS: { label: string; text: string }[] = [
   { label: 'resumir', text: 'Resuma em poucas linhas o que você fez até agora.' },
@@ -70,12 +70,19 @@ const ROW_BG = '#242424'
 const ROW_HOVER = '#303030'
 // Recheio invisível de uma zona do QG: linhas de espaços duros, maiores que qualquer zona (a zona corta o excesso),
 // para o clique pegar em todo o retângulo do objeto e não só numa letra.
-// As zonas em ordem da esquerda para a direita (a camada as põe lado a lado).
-const ZONES = [...SPOTS].sort((a, b) => a.x0 - b.x0)
-const ZONE_ROWS = 16 // linhas de botão empilhadas; a zona corta as que sobram
-// Rótulo de uma linha de zona: caracteres em branco que não são espaço, em ~70% da largura da zona em colunas
-// (sem estourar: estourar desenharia reticências).
-const zoneLabel = (sp: { x0: number; x1: number }, cols: number): string => '\u2800'.repeat(Math.max(1, Math.floor((sp.x1 - sp.x0) * cols * 0.7)))
+// Os pontos do QG em ordem da esquerda para a direita, cada um numa coluna de ICON_COLS células no centro marcado.
+// Se dois centros caem perto demais, o da direita anda o que falta: as colunas nunca se cruzam.
+const ICON_COLS = 3
+const ICONS = [...SPOTS].sort((a, b) => a.cx - b.cx)
+function iconCols(cols: number): { sp: (typeof SPOTS)[number]; gap: number }[] {
+  let end = 0
+  return ICONS.map(sp => {
+    const start = Math.max(end, Math.round(sp.cx * cols) - 1)
+    const gap = start - end
+    end = start + ICON_COLS
+    return { sp, gap }
+  })
+}
 const PAGE = 4
 const PAGE_CMD = 3
 const PANE_RANGE = 14
@@ -942,15 +949,23 @@ async function sessionKey($: any, key: string): Promise<string | null> {
 }
 
 async function prefGet($: any, key: string): Promise<unknown> {
-  const sk = await sessionKey($, key)
-  const own = sk ? await $.store.get(sk) : undefined
-  return own !== undefined && own !== null ? own : await $.store.get(key)
+  try {
+    const sk = await sessionKey($, key)
+    const own = sk ? await $.store.get(sk) : undefined
+    return own !== undefined && own !== null ? own : await $.store.get(key)
+  } catch {
+    return undefined
+  }
 }
 
 async function prefSet($: any, key: string, value: unknown) {
-  const sk = await sessionKey($, key)
-  if (sk) await $.store.set(sk, value)
-  await $.store.set(key, value)
+  try {
+    const sk = await sessionKey($, key)
+    if (sk) await $.store.set(sk, value)
+    await $.store.set(key, value)
+  } catch {
+    // guardar é conforto; falhar não muda o que está na tela
+  }
 }
 
 async function loadSize($: any) {
@@ -1434,7 +1449,7 @@ async function draw($: any, e: any, next: any) {
   const mascotSrc = Svg ? ((m.kind === 'normal' ? skinSprites[s.mood] : undefined) ?? (skinDef ? undefined : custom[s.mood]) ?? sprite(s.mood, m.kind, lookFor(s.mood as Mood, w.dir, open), skinDef)) : ''
   const mascot = Svg ? <Svg source={mascotSrc} alt="Claudin, o mascote" width={size.w} height={size.h} isInteractive /> : null
   // No QG o Claudin ganha contorno e sombra para não se perder no fundo.
-  const sceneSprite = Svg ? <Svg source={withOutline(mascotSrc)} alt="Claudin, o mascote" width={size.w} height={size.h} isInteractive /> : null
+  const sceneSprite = Svg ? <Svg source={withOutline(mascotSrc)} alt="Claudin, o mascote" width={size.w} height={size.h} /> : null
   // Miniaturas da frota ao lado do mascote: até 2 criaturas (×n quando há vários do tipo) e +N nos agentes sem miniatura.
   // Em meditar e cigarro ficam de fora (modos calmos).
   const calm = m.kind === 'meditar' || m.kind === 'cigarro'
@@ -1481,40 +1496,28 @@ async function draw($: any, e: any, next: any) {
     qgNode = (
       <Box key="qg" position="relative" width="100%">
         <Svg key="qg-art" source={art} alt="QG do Claudin: a base dos caranguejos com cérebro, em uma cabana de palafita no mangue" />
-        {/* Zonas clicáveis numa camada só: colunas lado a lado (as zonas não se cruzam na horizontal), cada uma
-            com um espaçador até o topo do objeto. Camadas empilhadas cobriam umas às outras e engoliam o clique.
-            Em repouso nada aparece; sob o ponteiro a zona ganha um brilho e o nome do objeto. */}
-        <Box key="qg-zones" position="absolute" top={0} left={0} right={0} bottom={0} flexDirection="row">
-          {ZONES.flatMap((sp, i) => [
-            <Box key={`qg-gap-${sp.id}`} width={pct(sp.x0 - (i > 0 ? ZONES[i - 1]!.x1 : 0))} />,
-            <Box key={`qg-col-${sp.id}`} flexDirection="column" width={pct(sp.x1 - sp.x0)}>
-              <Box key={`qg-top-${sp.id}`} height={pct(sp.y0)} />
-              <Box key={`zone-${sp.id}`} position="relative" flexDirection="column" height={pct(sp.y1 - sp.y0)} overflow="hidden" hover={{ backgroundColor: '#ffd27a38' }}>
-                {/* Um botão só desenha uma linha, e um rótulo só de espaço some (fica sem largura). Cada linha leva
-                    caracteres em branco que não são espaço (U+2800), na largura da zona; empilhadas, cobrem o objeto. */}
-                {Array.from({ length: ZONE_ROWS }, (_, r) => (
-                  <Button key={r === 0 ? `spot-${sp.id}` : `spot-${sp.id}-${r}`} plain label={zoneLabel(sp, cols)} onPress={() => openSpot($, sp.id)} />
-                ))}
-                {/* O ícone aparece no hover, centrado no objeto (ou onde a zona pedir: a Cola no canto dos livros). */}
-                <Box position="absolute" top={0} left={0} right={0} bottom={0} flexDirection="column" display="none" hover={{ display: 'flex' }}>
-                  <Box height={pct(sp.iy ?? 0.38)} />
-                  <Box flexDirection="row">
-                    <Box width={pct(sp.ix ?? 0.36)} />
-                    <Text>{sp.id === 'luz' && lightsOffNow ? '🌙' : sp.pin}</Text>
-                  </Box>
-                </Box>
-              </Box>
-            </Box>,
-          ])}
-        </Box>
         <Box key="qg-claudin" position="absolute" bottom={0} left={Math.max(0, Math.min(x, cols - 8))}>
           {sceneSprite}
         </Box>
         {stationMinis.map((mm, i) => (
           <Box key={`qg-mini-${mm.kind}${mm.n ? `-${mm.n}` : ''}`} position="absolute" bottom={0} left={stationCol(i, cols)}>
-            <Svg source={withOutline(miniSprites[mm.kind] ?? '')} alt={`Agente: ${mm.role}`} width={26} height={26} />
+            <Svg source={withOutline(miniSprites[mm.kind] ?? '')} alt={`Agente: ${mm.role}`} width={miniPx} height={miniPx} />
           </Box>
         ))}
+        {/* Pontos do QG: o botão é o próprio ícone, numa camada só desenhada por último (nada por cima dele).
+            Cada ícone tem uma coluna de largura fixa em células, para o botão nunca encolher em "…"; as colunas
+            ficam lado a lado sem se cruzar. A luz e o 🦀 ficam acesos; os outros, apagados até o ponteiro passar. */}
+        <Box key="qg-zones" position="absolute" top={0} left={0} right={0} bottom={0} flexDirection="row">
+          {iconCols(cols).flatMap(({ sp, gap }) => [
+            <Box key={`qg-gap-${sp.id}`} width={gap} />,
+            <Box key={`qg-col-${sp.id}`} flexDirection="column" width={ICON_COLS} flexShrink={0}>
+              <Box key={`qg-top-${sp.id}`} height={pct(Math.max(0, sp.cy - ICON_HALF_H))} />
+              <Box key={`zone-${sp.id}`} flexDirection="row" flexShrink={0}>
+                <Button key={`spot-${sp.id}`} plain dimColor={!sp.always} label={sp.id === 'luz' && lightsOffNow ? '🌙' : sp.pin} onPress={() => openSpot($, sp.id)} />
+              </Box>
+            </Box>,
+          ])}
+        </Box>
       </Box>
     )
   }
@@ -1627,6 +1630,7 @@ export const register: Register = on => {
     try {
       await update($, turn, () => ({ files: [], cmds: 0, errors: 0, agents: 0 }))
       await speak($, 'think', 'Analisando.')
+      await refreshPanel($)
     } catch {
       // idem
     }

@@ -5,20 +5,29 @@
 
 export const QG_LIMIT = 131072 // caracteres que o Svg do mod aceita
 
-// Zona clicável: o retângulo do objeto na imagem (fração da largura e da altura), a aba que abre e o nome curto
-// que aparece no destaque quando o ponteiro passa por cima.
-export type Spot = { id: 'sobre' | 'cola' | 'luz' | 'frota' | 'cofre' | 'agenda' | 'tempo' | 'servidor'; tab: string; label: string; name: string; pin: string; ix?: number; iy?: number; x0: number; y0: number; x1: number; y1: number }
+// Ponto do QG: o retângulo do objeto na imagem (fração da largura e da altura), a aba que abre, o ícone que é o botão
+// e o centro onde ele fica (cx, cy). `always` deixa o ícone aceso; os outros ficam apagados até o ponteiro passar.
+export type Spot = { id: 'sobre' | 'cola' | 'luz' | 'frota' | 'cofre' | 'agenda' | 'tempo' | 'servidor'; tab: string; label: string; name: string; pin: string; cx: number; cy: number; always?: boolean; x0: number; y0: number; x1: number; y1: number }
 
 export const SPOTS: Spot[] = [
-  { id: 'sobre', tab: 'sobre', label: 'Placa de madeira: sobre o Claudin', name: 'Sobre', pin: 'ℹ️', x0: 0.1, y0: 0.12, x1: 0.158, y1: 0.62 },
-  { id: 'cola', tab: 'comandos', label: 'Livros e pastas de skills: a Cola da oficina', name: 'Cola', pin: '📚', ix: 0.86, iy: 0, x0: 0.16, y0: 0.113, x1: 0.27, y1: 0.279 },
-  { id: 'luz', tab: '', label: 'Lanterna: acende e apaga a luz da sala', name: 'Luz', pin: '💡', x0: 0.285, y0: 0.02, x1: 0.318, y1: 0.3 },
-  { id: 'frota', tab: 'frota', label: 'Monitores: a frota de agentes', name: 'Frota', pin: '🦀', ix: 0.08, iy: 0.12, x0: 0.326, y0: 0.108, x1: 0.521, y1: 0.69 },
-  { id: 'cofre', tab: 'cofre', label: 'Cofre: o cofre de contexto', name: 'Cofre', pin: '🔐', x0: 0.553, y0: 0.318, x1: 0.614, y1: 0.589 },
-  { id: 'agenda', tab: 'prazos', label: 'Calendário: a Agenda', name: 'Agenda', pin: '📅', x0: 0.6285, y0: 0.318, x1: 0.705, y1: 0.576 },
-  { id: 'servidor', tab: 'acoes', label: 'Servidor: ações e janela de contexto', name: 'Ações', pin: '⚡', x0: 0.725, y0: 0.252, x1: 0.797, y1: 0.935 },
-  { id: 'tempo', tab: 'tempo', label: 'Relógio: o pomodoro', name: 'Tempo', pin: '⏱', x0: 0.818, y0: 0.103, x1: 0.866, y1: 0.31 },
+  { id: 'sobre', tab: 'sobre', label: 'Placa de madeira: sobre o Claudin', name: 'Sobre', pin: 'ℹ️', cx: 0.117, cy: 0.177, x0: 0.1, y0: 0.12, x1: 0.158, y1: 0.62 },
+  { id: 'cola', tab: 'comandos', label: 'Livros e pastas de skills: a Cola da oficina', name: 'Cola', pin: '📚', cx: 0.263, cy: 0.127, x0: 0.16, y0: 0.113, x1: 0.27, y1: 0.279 },
+  { id: 'luz', tab: '', label: 'Lanterna: acende e apaga a luz da sala', name: 'Luz', pin: '💡', cx: 0.294, cy: 0.57, always: true, x0: 0.278, y0: 0.02, x1: 0.32, y1: 0.75 },
+  { id: 'frota', tab: 'frota', label: 'Monitores: a frota de agentes', name: 'Frota', pin: '🦀', cx: 0.35, cy: 0.234, always: true, x0: 0.326, y0: 0.108, x1: 0.521, y1: 0.69 },
+  { id: 'cofre', tab: 'cofre', label: 'Cofre: o cofre de contexto', name: 'Cofre', pin: '🔐', cx: 0.573, cy: 0.443, x0: 0.553, y0: 0.318, x1: 0.614, y1: 0.589 },
+  { id: 'agenda', tab: 'prazos', label: 'Calendário: a Agenda', name: 'Agenda', pin: '📅', cx: 0.685, cy: 0.36, x0: 0.6285, y0: 0.318, x1: 0.705, y1: 0.576 },
+  { id: 'servidor', tab: 'acoes', label: 'Servidor: ações e janela de contexto', name: 'Ações', pin: '⚡', cx: 0.752, cy: 0.563, x0: 0.725, y0: 0.252, x1: 0.797, y1: 0.935 },
+  { id: 'tempo', tab: 'tempo', label: 'Relógio: o pomodoro', name: 'Tempo', pin: '⏱', cx: 0.842, cy: 0.2, x0: 0.818, y0: 0.103, x1: 0.866, y1: 0.31 },
 ]
+
+// Onde fica o canto do ícone dentro da zona (fração da zona): o centro marcado menos meia célula de largura (~1% da
+// faixa) e meia linha de altura (~5,5% da faixa), sem sair da zona.
+export const ICON_HALF_W = 0.01
+export const ICON_HALF_H = 0.055
+export function iconAt(sp: Spot): { ix: number; iy: number } {
+  const clamp = (v: number) => Math.max(0, Math.min(0.95, v))
+  return { ix: clamp((sp.cx - ICON_HALF_W - sp.x0) / (sp.x1 - sp.x0)), iy: clamp((sp.cy - ICON_HALF_H - sp.y0) / (sp.y1 - sp.y0)) }
+}
 
 // Porcentagens CSS de uma zona, para o desktop pôr o retângulo clicável sobre o objeto.
 // Inteiro: o motor só aceita porcentagem inteira ("12%"), e 1% da faixa é menos de um objeto.
@@ -258,8 +267,12 @@ export function ambientSvg(w = 360, h = 76, night = false): string {
   const paths = [
     'M10 20 q8 -6 14 4 t10 8 t-12 10 t-10 -12z',
     'M20 50 q10 -8 16 2 t-4 12 t-14 -6z',
+    'M6 36 q6 -10 12 -2 t4 10 t-12 -2z',
+    'M28 10 q6 4 2 10 t-10 2 t8 -12z',
     'M335 18 q-8 8 -14 0 t-8 10 t12 8 t10 -18z',
     'M345 46 q-10 6 -16 -2 t2 -10 t14 12z',
+    'M352 30 q-6 -8 -12 -2 t-2 10 t14 -8z',
+    'M326 58 q8 -4 12 2 t-4 8 t-8 -10z',
   ]
   paths.forEach((d, i) => {
     const dur = 9 + i * 2.5
@@ -273,6 +286,13 @@ export const VEIL = 0.1
 
 // ── a imagem com luz e relógio ──
 export type QgState = { w: number; h: number; minutes: number; pomo: Pomo | null; lightsOff?: boolean; panel?: Panel | null; working?: boolean }
+
+// O monitor pequeno de cima à esquerda pulsa em coral enquanto há agentes.
+export function fleetPulse(agents: number, w = 360, h = 76): string {
+  if (!(agents > 0)) return ''
+  const [x0, y0, x1, y1] = MONITORS[0]!
+  return `<rect class="pulse" x="${(x0 * w).toFixed(1)}" y="${(y0 * h).toFixed(1)}" width="${((x1 - x0) * w).toFixed(1)}" height="${((y1 - y0) * h).toFixed(1)}" fill="#ff8a5c" opacity=".2" shape-rendering="auto"><animate attributeName="opacity" values=".1;.55;.1" dur="1.2s" repeatCount="indefinite"/></rect>`
+}
 
 function lightBody(w: number, h: number, sky0: Sky, lightsOff = false): string {
   // Luz apagada: de dia a sala escurece um pouco; à noite as lanternas não abrem a escuridão.
@@ -296,7 +316,7 @@ function lightBody(w: number, h: number, sky0: Sky, lightsOff = false): string {
 export function composeQg(base: string, s: QgState): string {
   const veil = `<rect width="${s.w}" height="${s.h}" fill="#140b05" opacity="${VEIL}"/>`
   const night = skyAt(s.minutes).dark >= 0.3 || !!s.lightsOff
-  const body = veil + ambientSvg(s.w, s.h, night) + lightBody(s.w, s.h, skyAt(s.minutes), s.lightsOff) + (s.panel ? panelSvg(s.panel, s.working, s.w, s.h) : '') + (s.pomo ? wedge(s.w, s.h, s.pomo.fraction) : hands(s.w, s.h, s.minutes))
+  const body = veil + ambientSvg(s.w, s.h, night) + lightBody(s.w, s.h, skyAt(s.minutes), s.lightsOff) + (s.panel ? panelSvg(s.panel, s.working, s.w, s.h) + fleetPulse(s.panel.agents ?? 0, s.w, s.h) : '') + (s.pomo ? wedge(s.w, s.h, s.pomo.fraction) : hands(s.w, s.h, s.minutes))
   const end = base.lastIndexOf('</svg>')
   if (end < 0) return base
   const out = base.slice(0, end) + body + base.slice(end)
