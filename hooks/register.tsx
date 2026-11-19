@@ -55,7 +55,7 @@ const FLEET_CAT = 'frota' // a aba só aparece enquanto há agentes, para não a
 const COFRE_CAT = 'cofre' // a aba só aparece com o cofre ligado
 const SOBRE_CAT = 'sobre' // aba escondida: só a placa de madeira do QG abre
 const REPO_URL = 'https://github.com/two2dope/claud-in'
-const VERSION = '0.7.4' // igual ao plugin.json (um teste confere)
+const VERSION = '0.7.5' // igual ao plugin.json (um teste confere)
 const CAT_LABEL: Record<string, string> = { prompts: 'Prompts', acoes: 'Ações', comandos: 'Comandos', ajustes: 'Ajustes', tempo: 'Tempo', prazos: 'Agenda', frota: 'Frota', cofre: 'Cofre' }
 const SHORTCUTS: { label: string; text: string }[] = [
   { label: 'resumir', text: 'Resuma em poucas linhas o que você fez até agora.' },
@@ -73,6 +73,9 @@ const ROW_HOVER = '#303030'
 // As zonas em ordem da esquerda para a direita (a camada as põe lado a lado).
 const ZONES = [...SPOTS].sort((a, b) => a.x0 - b.x0)
 const ZONE_ROWS = 16 // linhas de botão empilhadas; a zona corta as que sobram
+// Rótulo de uma linha de zona: caracteres em branco que não são espaço, em ~70% da largura da zona em colunas
+// (sem estourar: estourar desenharia reticências).
+const zoneLabel = (sp: { x0: number; x1: number }, cols: number): string => '\u2800'.repeat(Math.max(1, Math.floor((sp.x1 - sp.x0) * cols * 0.7)))
 const PAGE = 4
 const PAGE_CMD = 3
 const PANE_RANGE = 14
@@ -1487,12 +1490,18 @@ async function draw($: any, e: any, next: any) {
             <Box key={`qg-col-${sp.id}`} flexDirection="column" width={pct(sp.x1 - sp.x0)}>
               <Box key={`qg-top-${sp.id}`} height={pct(sp.y0)} />
               <Box key={`zone-${sp.id}`} position="relative" flexDirection="column" height={pct(sp.y1 - sp.y0)} overflow="hidden" hover={{ backgroundColor: '#ffd27a38' }}>
-                {/* Um botão só desenha uma linha: várias linhas de um espaço, empilhadas, cobrem o objeto inteiro. */}
+                {/* Um botão só desenha uma linha, e um rótulo só de espaço some (fica sem largura). Cada linha leva
+                    caracteres em branco que não são espaço (U+2800), na largura da zona; empilhadas, cobrem o objeto. */}
                 {Array.from({ length: ZONE_ROWS }, (_, r) => (
-                  <Button key={r === 0 ? `spot-${sp.id}` : `spot-${sp.id}-${r}`} plain label={'\u00a0'} onPress={() => openSpot($, sp.id)} />
+                  <Button key={r === 0 ? `spot-${sp.id}` : `spot-${sp.id}-${r}`} plain label={zoneLabel(sp, cols)} onPress={() => openSpot($, sp.id)} />
                 ))}
-                <Box position="absolute" top={0} left={0} display="none" hover={{ display: 'flex' }}>
-                  <Text>{sp.id === 'luz' && lightsOffNow ? '🌙' : sp.pin}</Text>
+                {/* O ícone aparece no hover, centrado no objeto (ou onde a zona pedir: a Cola no canto dos livros). */}
+                <Box position="absolute" top={0} left={0} right={0} bottom={0} flexDirection="column" display="none" hover={{ display: 'flex' }}>
+                  <Box height={pct(sp.iy ?? 0.38)} />
+                  <Box flexDirection="row">
+                    <Box width={pct(sp.ix ?? 0.36)} />
+                    <Text>{sp.id === 'luz' && lightsOffNow ? '🌙' : sp.pin}</Text>
+                  </Box>
                 </Box>
               </Box>
             </Box>,
