@@ -1761,15 +1761,15 @@ test('na linha do prompt a caixa continua com ícones; no painel, fichas com o n
 })
 
 // ── QG 0.7.4: zona inteira clicável, gadget Sobre, tamanhos maiores, preferências por sessão ───────
-test('cada zona é uma pilha de botões que cobre o objeto, e o hover mostra só o ícone', async ($: any, on: any) => {
+test('o botão de cada ponto é o próprio ícone, sem rótulo de texto', async ($: any, on: any) => {
   mock.clock(on, { now: NOV19 })
   await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
-  expect(await ui.find({ key: 'spot-tempo-5' })).toBeDefined()
+  expect((await ui.find({ key: 'spot-tempo' }))?.props?.label).toBe('⏱')
   const zona = JSON.stringify(await ui.find({ key: 'zone-tempo' }))
   expect(zona).toContain('⏱')
   expect(zona).not.toContain('Relógio')
-  await ui.press({ key: 'spot-tempo-7' })
+  await ui.press({ key: 'spot-tempo' })
   expect((await ui.find({ key: 'chip-tempo' }))?.props?.backgroundColor).toBe('#D97757')
   await ui.unmount()
 })
@@ -1779,7 +1779,7 @@ test('a placa de madeira abre o Sobre, com a versão e os links do projeto', asy
   await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
   await ui.press({ key: 'spot-sobre' })
-  expect(await ui.find({ type: 'Text', text: /Claudin 0\.7\.5/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Claudin 0\.7\.6/ })).toBeDefined()
   expect(JSON.stringify(await ui.find({ key: 'sb-git' }))).toContain('https://github.com/two2dope/claud-in')
   await ui.unmount()
 })
@@ -1792,13 +1792,16 @@ test('o tamanho cresceu: médio é o antigo grande e o grande passou dele', asyn
   await ui.unmount()
 })
 
-test('a linha de botão da zona tem caracteres em branco que não são espaço, na largura da zona', async ($: any, on: any) => {
+test('a luz e o caranguejo ficam acesos, os outros apagados; cada ícone tem coluna fixa e nada interativo por cima', async ($: any, on: any) => {
   mock.clock(on, { now: NOV19 })
   await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
-  const label = (await ui.find({ key: 'spot-cofre' }))?.props?.label as string
-  expect(label.length).toBeGreaterThan(1)
-  expect(label.trim()).toBe(label)
-  expect(/^⠀+$/.test(label)).toBe(true)
+  expect((await ui.find({ key: 'spot-luz' }))?.props?.dimColor).toBeFalsy()
+  expect((await ui.find({ key: 'spot-frota' }))?.props?.dimColor).toBeFalsy()
+  expect((await ui.find({ key: 'spot-cofre' }))?.props?.dimColor).toBe(true)
+  const col = JSON.stringify(await ui.find({ key: 'qg-col-cofre' }))
+  expect(col).toContain('"width":3')
+  expect(JSON.stringify(await ui.find({ key: 'qg-claudin' }))).not.toContain('isInteractive')
+  expect(JSON.stringify(await ui.find({ key: 'qg' }))).not.toContain('⠀')
   await ui.unmount()
 })
