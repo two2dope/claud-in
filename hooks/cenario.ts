@@ -7,28 +7,21 @@ export const QG_LIMIT = 131072 // caracteres que o Svg do mod aceita
 
 // Ponto do QG: o retângulo do objeto na imagem (fração da largura e da altura), a aba que abre, o ícone que é o botão
 // e o centro onde ele fica (cx, cy). `always` deixa o ícone aceso; os outros ficam apagados até o ponteiro passar.
-export type Spot = { id: 'sobre' | 'cola' | 'luz' | 'neon' | 'frota' | 'cofre' | 'agenda' | 'tempo' | 'servidor'; tab: string; label: string; name: string; pin: string; cx: number; cy: number; always?: boolean; x0: number; y0: number; x1: number; y1: number }
+export type Spot = { id: 'sobre' | 'cola' | 'ajustes' | 'prompts' | 'luz' | 'neon' | 'frota' | 'cofre' | 'agenda' | 'tempo' | 'servidor'; tab: string; label: string; name: string; pin: string; cx: number; cy: number; always?: boolean; tag?: [number, number]; x0: number; y0: number; x1: number; y1: number }
 
 export const SPOTS: Spot[] = [
-  { id: 'sobre', tab: 'sobre', label: 'Placa de madeira: sobre o Claudin', name: 'Sobre', pin: 'ℹ️', cx: 0.117, cy: 0.177, x0: 0.1, y0: 0.12, x1: 0.158, y1: 0.62 },
+  { id: 'sobre', tab: 'sobre', label: 'Placa de madeira: sobre o Claudin', name: 'Sobre', pin: 'ℹ️', cx: 0.123, cy: 0.37, x0: 0.1, y0: 0.12, x1: 0.158, y1: 0.62 },
   { id: 'cola', tab: 'comandos', label: 'Livros e pastas de skills: a Cola da oficina', name: 'Cola', pin: '📚', cx: 0.254, cy: 0.127, x0: 0.16, y0: 0.113, x1: 0.27, y1: 0.279 },
-  { id: 'luz', tab: '', label: 'Lanterna: acende e apaga a luz da sala', name: 'Luz', pin: '💡', cx: 0.294, cy: 0.57, always: true, x0: 0.278, y0: 0.02, x1: 0.32, y1: 0.75 },
+  { id: 'ajustes', tab: 'ajustes', label: 'Bancada de ferramentas: os ajustes do Claudin', name: 'Ajustes', pin: '⚙️', cx: 0.236, cy: 0.5, x0: 0.165, y0: 0.33, x1: 0.27, y1: 0.66 },
+  { id: 'luz', tab: '', label: 'Lanterna: acende e apaga a luz da sala', name: 'Luz', pin: '💡', cx: 0.293, cy: 0.585, always: true, x0: 0.278, y0: 0.02, x1: 0.32, y1: 0.75 },
   { id: 'frota', tab: 'frota', label: 'Monitores: a frota de agentes', name: 'Frota', pin: '🦀', cx: 0.35, cy: 0.234, always: true, x0: 0.326, y0: 0.108, x1: 0.521, y1: 0.69 },
-  { id: 'neon', tab: '', label: 'Segundo interruptor: o modo neon', name: 'Neon', pin: '🔮', cx: 0.537, cy: 0.57, always: true, x0: 0.523, y0: 0.02, x1: 0.551, y1: 0.75 },
+  { id: 'neon', tab: '', label: 'Globo na ponta da mesa da direita: o modo neon', name: 'Neon', pin: '🔮', cx: 0.557, cy: 0.655, always: true, x0: 0.545, y0: 0.55, x1: 0.575, y1: 0.75 },
   { id: 'cofre', tab: 'cofre', label: 'Cofre: o cofre de contexto', name: 'Cofre', pin: '🔐', cx: 0.573, cy: 0.443, x0: 0.553, y0: 0.318, x1: 0.614, y1: 0.589 },
-  { id: 'agenda', tab: 'prazos', label: 'Calendário: a Agenda', name: 'Agenda', pin: '📅', cx: 0.685, cy: 0.36, x0: 0.6285, y0: 0.318, x1: 0.705, y1: 0.576 },
-  { id: 'servidor', tab: 'acoes', label: 'Servidor: ações e janela de contexto', name: 'Ações', pin: '⚡', cx: 0.752, cy: 0.563, x0: 0.725, y0: 0.252, x1: 0.797, y1: 0.935 },
-  { id: 'tempo', tab: 'tempo', label: 'Relógio: o pomodoro', name: 'Tempo', pin: '⏱', cx: 0.842, cy: 0.2, x0: 0.818, y0: 0.103, x1: 0.866, y1: 0.31 },
+  { id: 'agenda', tab: 'prazos', label: 'Calendário: a Agenda', name: 'Agenda', pin: '📅', cx: 0.636, cy: 0.374, x0: 0.6285, y0: 0.318, x1: 0.705, y1: 0.576 },
+  { id: 'prompts', tab: 'prompts', label: 'Livros deitados da prateleira: os prompts prontos', name: 'Prompts', pin: '💬', cx: 0.68, cy: 0.11, x0: 0.64, y0: 0.04, x1: 0.71, y1: 0.25 },
+  { id: 'servidor', tab: 'acoes', label: 'Servidor: ações e janela de contexto', name: 'Ações', pin: '⚡', cx: 0.78, cy: 0.326, x0: 0.725, y0: 0.252, x1: 0.797, y1: 0.935 },
+  { id: 'tempo', tab: 'tempo', label: 'Relógio: o pomodoro', name: 'Tempo', pin: '⏱', cx: 0.842, cy: 0.2, tag: [0.836, 0.052], x0: 0.818, y0: 0.103, x1: 0.866, y1: 0.31 },
 ]
-
-// Onde fica o canto do ícone dentro da zona (fração da zona): o centro marcado menos meia célula de largura (~1% da
-// faixa) e meia linha de altura (~5,5% da faixa), sem sair da zona.
-export const ICON_HALF_W = 0.01
-export const ICON_HALF_H = 0.055
-export function iconAt(sp: Spot): { ix: number; iy: number } {
-  const clamp = (v: number) => Math.max(0, Math.min(0.95, v))
-  return { ix: clamp((sp.cx - ICON_HALF_W - sp.x0) / (sp.x1 - sp.x0)), iy: clamp((sp.cy - ICON_HALF_H - sp.y0) / (sp.y1 - sp.y0)) }
-}
 
 // Porcentagens CSS de uma zona, para o desktop pôr o retângulo clicável sobre o objeto.
 // Inteiro: o motor só aceita porcentagem inteira ("12%"), e 1% da faixa é menos de um objeto.
@@ -230,11 +223,10 @@ export function panelSvg(p: Panel, working = false, w = 360, h = 76): string {
 }
 
 // ── a vida do cenário: tudo animado dentro do SVG, sem custo de redesenho ──
-// Desenhada por cima da escuridão: linhas de "código" nas telas da esquerda, LEDs do servidor, a lua da prateleira
-// (só no escuro, quando dá para vê-la) e vaga-lumes verdes piscando pelas raízes do mangue.
+// Desenhada por cima da escuridão: linhas de "código" nas telas da esquerda, LEDs do servidor e vaga-lumes verdes
+// piscando pelas raízes do mangue.
 const SMALL_SCREENS = [MONITORS[1]!, MONITORS[5]!]
 const SERVER = [0.737, 0.3, 0.785, 0.88] // área dos LEDs no rack
-const MOON = [0.5715, 0.15] // centro da lua na prateleira
 
 export function ambientSvg(w = 360, h = 76, night = false): string {
   const f = (n: number) => n.toFixed(1)
@@ -260,10 +252,6 @@ export function ambientSvg(w = 360, h = 76, night = false): string {
       out += `<rect x="${f(x)}" y="${f(y)}" width="0.9" height="0.9" fill="${color}"><animate attributeName="opacity" values="1;.15;1" dur="${dur.toFixed(2)}s" repeatCount="indefinite"/></rect>`
     }
   }
-  if (night) {
-    out += `<circle class="lua" cx="${f(MOON[0]! * w)}" cy="${f(MOON[1]! * h)}" r="4.6" fill="#fff1b0" opacity=".6" filter="url(#glow)"><animate attributeName="opacity" values=".35;.95;.35" dur="4s" repeatCount="indefinite"/></circle>`
-    out += `<circle cx="${f(MOON[0]! * w)}" cy="${f(MOON[1]! * h)}" r="1.8" fill="#fffbe6" opacity=".85"><animate attributeName="opacity" values=".55;1;.55" dur="4s" repeatCount="indefinite"/></circle>`
-  }
   // Vaga-lumes verdes: um halo borrado e um ponto, piscando fora de compasso; de dia, mais discretos.
   const paths = [
     'M10 20 q8 -6 14 4 t10 8 t-12 10 t-10 -12z',
@@ -288,6 +276,16 @@ export function ambientSvg(w = 360, h = 76, night = false): string {
 
 // ── modo neon: o segundo interruptor deixa a sala com cara de laboratório ──
 // Um tom roxo por cima e tiras de neon (ciano e magenta) na prateleira, nas bancadas, no rack e no chão, pulsando.
+// Trechos de neon na borda das bancadas (fração da largura), com vãos nas quatro cadeiras.
+export const NEON_DESK: [number, number][] = [
+  [0.315, 0.361],
+  [0.409, 0.444],
+  [0.491, 0.518],
+  [0.532, 0.538],
+  [0.584, 0.635],
+  [0.683, 0.72],
+]
+
 export function neonSvg(w = 360, h = 76): string {
   const f = (n: number) => n.toFixed(1)
   const strip = (x0: number, y: number, x1: number, color: string, dur: number) =>
@@ -295,13 +293,15 @@ export function neonSvg(w = 360, h = 76): string {
     `<line x1="${f(x0 * w)}" y1="${f(y * h)}" x2="${f(x1 * w)}" y2="${f(y * h)}" stroke="${color}" stroke-width="3" opacity=".45" filter="url(#neonglow)"/>`
   let out = `<g class="neon" shape-rendering="auto"><defs><filter id="neonglow" x="-20%" y="-300%" width="140%" height="700%"><feGaussianBlur stdDeviation="1.4"/></filter></defs>`
   out += `<rect width="${w}" height="${h}" fill="#3b0a6e" opacity=".22"/>`
-  out += strip(0.548, 0.255, 0.7, '#00f0ff', 2.4)
-  out += strip(0.165, 0.29, 0.27, '#ff2bd6', 2.9)
-  out += strip(0.33, 0.715, 0.52, '#ff2bd6', 2.1)
-  out += strip(0.55, 0.715, 0.72, '#00f0ff', 2.7)
+  // Sob as duas prateleiras.
+  out += strip(0.159, 0.33, 0.274, '#00f0ff', 2.6)
+  out += strip(0.55, 0.28, 0.7, '#00f0ff', 2.4)
+  // Borda das bancadas, com vãos onde ficam as cadeiras.
+  for (const [a, b] of NEON_DESK) out += strip(a, 0.766, b, '#ff2bd6', 2.1)
+  // Faixas horizontais no rack do servidor.
+  for (const y of [0.47, 0.56, 0.655, 0.75, 0.85]) out += strip(0.743, y, 0.786, '#00f0ff', 1.8)
+  // Rodapé.
   out += strip(0.03, 0.965, 0.97, '#a84bff', 3.3)
-  const [sx0, sy0, sx1, sy1] = [0.727, 0.255, 0.795, 0.93]
-  out += `<rect x="${f(sx0 * w)}" y="${f(sy0 * h)}" width="${f((sx1 - sx0) * w)}" height="${f((sy1 - sy0) * h)}" fill="none" stroke="#00f0ff" stroke-width="0.7"><animate attributeName="opacity" values=".5;1;.5" dur="1.8s" repeatCount="indefinite"/></rect>`
   return out + '</g>'
 }
 

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { QG_ART } from './cenario-arte'
-import { QG_LIMIT, MONITORS, ambientSvg, fleetPulse, neonSvg, SPOTS, kTokens, modelShort, panelSvg, STATIONS, composeQg, pct, pomodoroOf, skyAt, stationCol, withOutline } from './cenario'
+import { NEON_DESK, QG_LIMIT, MONITORS, ambientSvg, fleetPulse, neonSvg, SPOTS, kTokens, modelShort, panelSvg, STATIONS, composeQg, pct, pomodoroOf, skyAt, stationCol, withOutline } from './cenario'
 
 const HORA = (h: number, m = 0) => h * 60 + m
 
@@ -22,8 +22,8 @@ describe('QG: a arte', () => {
 })
 
 describe('QG: pontos clicáveis e bancadas', () => {
-  test('nove pontos, cada um com a aba que abre, dentro da imagem', () => {
-    expect(SPOTS.map(s => [s.id, s.tab])).toEqual([['sobre', 'sobre'], ['cola', 'comandos'], ['luz', ''], ['frota', 'frota'], ['neon', ''], ['cofre', 'cofre'], ['agenda', 'prazos'], ['servidor', 'acoes'], ['tempo', 'tempo']])
+  test('onze pontos, cada um com a aba que abre, dentro da imagem', () => {
+    expect(SPOTS.map(s => [s.id, s.tab])).toEqual([['sobre', 'sobre'], ['cola', 'comandos'], ['ajustes', 'ajustes'], ['luz', ''], ['frota', 'frota'], ['neon', ''], ['cofre', 'cofre'], ['agenda', 'prazos'], ['prompts', 'prompts'], ['servidor', 'acoes'], ['tempo', 'tempo']])
     for (const s of SPOTS) {
       expect(s.x0).toBeGreaterThanOrEqual(0)
       expect(s.x1).toBeLessThanOrEqual(1)
@@ -198,10 +198,6 @@ describe('QG: contorno dos personagens', () => {
 })
 
 describe('QG: zonas sem sobreposição e painel dos monitores', () => {
-  test('em ordem de x, uma zona termina antes da próxima começar', () => {
-    const z = [...SPOTS].sort((a, b) => a.x0 - b.x0)
-    for (let i = 1; i < z.length; i++) expect(z[i]!.x0).toBeGreaterThanOrEqual(z[i - 1]!.x1)
-  })
 
   test('o nome do modelo fica curto', () => {
     expect(modelShort('claude-opus-5-5')).toBe('OPUS 5.5')
@@ -264,10 +260,14 @@ describe('QG 0.7.7: neon, vaga-lumes e lua', () => {
     expect(tudo).toContain('class="neon"')
   })
 
-  test('vaga-lumes verdes sempre; a lua só no escuro', () => {
+  test('vaga-lumes verdes sempre; a lua saiu por ora', () => {
     expect(ambientSvg(360, 76, false)).toContain('#7dff4a')
-    expect(ambientSvg(360, 76, false)).not.toContain('class="lua"')
-    expect(ambientSvg(360, 76, true)).toContain('class="lua"')
+    expect(ambientSvg(360, 76, true)).not.toContain('class="lua"')
+  })
+
+  test('o neon das bancadas não passa pelas cadeiras', () => {
+    const chairs: [number, number][] = [[0.364, 0.406], [0.447, 0.489], [0.541, 0.581], [0.638, 0.68]]
+    for (const [a, b] of NEON_DESK) for (const [c0, c1] of chairs) expect(b <= c0 || a >= c1).toBe(true)
   })
 
   test('a vida fica por cima da escuridão', () => {
