@@ -1,9 +1,10 @@
 # Changelog
 
-## Não lançado
+## 0.3.0 — 2026-11-19
 
 - **Skins.** Três pacotes de arte original, **Mangue**, **Maré** e **Malungo** (chapéu de palha), com as nove poses em `sprites/<skin>/<pose>.png`. O botão `skin:` em Ajustes alterna entre o desenho padrão e as skins; a escolha fica guardada entre sessões, e uma pasta sua em `<config>/claudin/sprites/<nome>/` também vira skin. Pose ausente cai para o desenho padrão. Nos modos com adereço o desenho padrão continua valendo.
 - **Miniaturas da frota.** Com subagentes vivos, até duas criaturas do mangue aparecem ao lado do mascote, uma por tipo (siri = explorar, garça = planejar, guaiamum = executar, aratu = revisar, caranguejinho = o resto), com `×n` e `+N`. Somem quando a frota esvazia e ficam de fora em `meditar` e `cigarro`. `<config>/claudin/fleet-map.json` troca a criatura de um tipo.
+- **Conhecido:** as skins e as miniaturas foram testadas só nos testes do plugin (181 passando) e a arte foi conferida em prévias; a conferência visual no app desktop ainda está pendente, assim como a da barra de abas, da aba Cofre e da frota (veja a 0.2.1 e a 0.2.0). O desenho padrão continua o antigo; nos modos com adereço (café, cigarro, meditar, thug life) vale o desenho padrão, porque a arte ainda não tem adereços. Sem LICENSE por enquanto.
 
 ## 0.2.1 — 2026-11-19
 
