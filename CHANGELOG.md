@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 — 2026-11-19
+
+- **QG do Claudin no Mangue (opcional).** O botão 🏝, ao lado da 🧰, liga uma faixa de pixel art acima do mascote: a base dos caranguejos com cérebro, numa cabana de palafita entre raízes de mangue. A faixa se ajusta à largura da janela, na linha acima do prompt e no painel lateral, e a escolha fica guardada. No terminal, que não desenha imagem, o botão não aparece.
+- **Os objetos abrem as abas.** Cinco pinos sobre a imagem: as pastas abrem a Cola (a lista da oficina, se o `cola.json` estiver ligado), os monitores abrem a frota, o cofre abre a aba Cofre, o calendário abre a Agenda e o relógio de parede abre o Tempo. Sem o que abrir (frota vazia, cofre desligado), o Claudin só avisa.
+- **A hora do dia vem do relógio do computador.** A faixa escurece no fim da tarde, fica de noite com as lanternas acesas (a luz recorta a escuridão e as telas brilham) e clareia de manhã, com tom quente no amanhecer e no entardecer.
+- **O relógio de parede só mostra o pomodoro:** com um pomodoro rodando, uma fatia vermelha mostra o que falta; sem ele, o mostrador fica vazio.
+- **As miniaturas da frota ficam nas bancadas da faixa** (até quatro), em vez de ao lado do mascote.
+- **Tudo num único SVG** (a imagem, a luz e o relógio), com 24 cores e cerca de 108 mil caracteres, porque o desktop deixa uma emenda entre elementos empilhados. `scripts/qg-para-svg.py` converte a arte (recorta a faixa, realça a saturação, trava a paleta, apaga os ponteiros do relógio) e gera `hooks/cenario-arte.ts`.
+- **Conhecido:** o visual no app desktop da faixa dentro do Claudin (pinos, miniaturas nas bancadas, luz da noite) ainda não foi conferido; o Claudin ainda anda na linha abaixo da faixa, não dentro dela; sem LICENSE.
+
 ## 0.6.0 — 2026-11-19
 
 - **Aviso de contexto.** Ao fim de cada turno o Claudin lê a ocupação da janela (`$.session.usage()`) e avisa uma vez ao passar de 50%, 70% e 85%, no mesmo balão do `Pronto:`, sugerindo `/compact` (e `/clear` no último nível). O botão `compactar` do balão só preenche o prompt; o aviso se rearma depois de compactar ou limpar. Os limites se ajustam em Ajustes (botão `contexto:`): `50/70/85%`, `60/80/90%`, `70/85/95%` ou `desligado`, guardado entre sessões. A aba Ações ganha `contexto: N% da janela` e os botões `compactar (/compact)` e `limpar contexto (/clear)`, que também só preenchem. O Claudin nunca compacta nem limpa sozinho.
