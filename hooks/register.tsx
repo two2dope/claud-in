@@ -5,6 +5,7 @@ import type { Action, CofreView, FleetRow, Mode, ModeKind, Mood, Say, TurnStats,
 import { tabLabel } from './abas'
 import { CORAL, SKINS, lookFor, sprite } from './desenho'
 import { MINI_KINDS, parseFleetMap, pickMinis } from './minis'
+import { miniSvg } from './minis-arte'
 import { COFRE_FILE, HOT_FILE, NOTES_DIR, isSafeNoteName, PENDING_FILE, countPending, freeNoteName, noteFileStem, healthNotes, hotLine, mergeDeadlines, parseHot, parseHotDeadlines, parseHotLists, resolveCofre } from './cofre'
 import { FLEET_MAX_ROWS, clip, failSay, finish, liveCount, orderRows, reconcile, revive, rowLine, shouldSaySpawn, spawnSay, summaryLine, upsert } from './frota'
 
@@ -720,6 +721,7 @@ async function loadMinis($: any) {
       }
     }
   }
+  for (const kind of MINI_KINDS) found[kind] ??= miniSvg(kind) // sem arquivo do usuário, a criatura sai do código
   await update($, miniArt, () => found)
   let map: Record<string, string> = {}
   for (const root of roots) {

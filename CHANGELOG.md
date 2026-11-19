@@ -2,9 +2,10 @@
 
 ## 0.3.2 — 2026-11-19
 
-- **Skins refeitas como variações do Claudin.** A arte parada do Flow saiu do pacote: Mangue, Maré e Malungo agora são o desenho do Claudin com outra paleta e luz (realce no alto, sombra e fio escuro embaixo), e o Malungo ganha chapéu de palha. Mantêm o piscar, o olhar, o andar e todos os modos com adereço. O `padrão` continua o Claudin chapado. O código do desenho foi para `hooks/desenho.ts`; `scripts/previa-skins.mjs` gera uma página de conferência.
+- **Skins refeitas como variações do Claudin.** A arte parada do Flow saiu do pacote: Mangue, Maré e Malungo agora são o desenho do Claudin com outra paleta e luz de borda (realce claro em cima e à esquerda, sombra embaixo e à direita, fio escuro no canto, sombra no chão; o rosto fica limpo, sem faixa sob os olhos), e o Malungo ganha chapéu de palha. Mantêm o piscar, o olhar, o andar e todos os modos com adereço. O `padrão` continua o Claudin chapado. O código do desenho foi para `hooks/desenho.ts`; `scripts/previa-skins.mjs` gera uma página de conferência.
 - **Correções da auditoria.** Captura de nota: o título com `\` podia levar o arquivo para fora de `Raw/Notas`; a barra agora sai do nome, `..` vira `.`, o nome passa por uma checagem e uma trava impede dois envios ao mesmo tempo. `cofre.json` só aceita caminho absoluto ou `~/`. Um prazo do cofre não fura `meditar` nem `cigarro` pela saudação, e uma saudação engolida por esses modos volta na próxima sessão. DD/MM muito à frente cai no ano anterior. A aba que some não prende a caixa; criatura sem arte entra no `+N`; o `alt` da miniatura diz tipo e quantidade; skins e miniaturas só carregam SVG.
-- **Conhecido:** a conferência visual no app desktop ainda está pendente. As miniaturas da frota continuam com a arte do Flow (`sprites/frota/`) e podem destoar do Claudin; sem LICENSE.
+- **Miniaturas da frota redesenhadas em código** (`hooks/minis-arte.ts`): siri, garça, guaiamum, aratu e caranguejinho no mesmo estilo e com a mesma luz do Claudin, com olhos que piscam e um balanço de meio pixel. A arte do Flow saiu do pacote; um SVG em `<config>/claudin/sprites/frota/<criatura>.svg` substitui a criatura do plugin.
+- **Conhecido:** a conferência visual no app desktop ainda está pendente; sem LICENSE.
 
 ## 0.3.1 — 2026-11-19
 

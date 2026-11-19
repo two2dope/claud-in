@@ -85,4 +85,4 @@ Painel `projeto/skins-ar-board/ar-board-skins-arte.html`. PNGs finais em `assets
 ## Virada de 2026-11-19: skins como variações do Claudin
 - Thomáz viu as skins do Flow no app (poses paradas, PNG vira SVG de retângulos) e decidiu **voltar atrás do Flow para o mascote**: "o Claudin original tem mais personalidade e movimento". Ele imaginava elevar um pouco o visual chapado, algo como o `Gemini_Generated_Image_8dsz…` (realce no alto, sombra e fio escuro embaixo).
 - **Decisão:** Mangue, Maré e Malungo viram o próprio Claudin com paleta e luz (`hooks/desenho.ts`), herdando piscar, olhar, andar e modos; o Malungo leva o chapéu de palha. A arte parada do Flow das poses saiu do pacote (continua no histórico, v0.3.0 e v0.3.1).
-- **Em aberto:** as miniaturas da frota seguem com a arte do Flow (`sprites/frota/`) e podem destoar; refazer em código no mesmo estilo está a decidir.
+- **Luz mais forte, sem "barba por fazer":** a luz é só de borda (fina); uma faixa de sombra sob os olhos parecia barba, e um teste a proíbe. As miniaturas da frota foram redesenhadas em código no mesmo estilo (a arte do Flow saiu).

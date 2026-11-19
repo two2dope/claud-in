@@ -35,11 +35,52 @@ export const mix = (c: string, to: string, t: number) => {
 
 export const palOf = (base: string, ant: string = base): Pal => ({
   base,
-  hi: mix(base, '#ffffff', 0.3),
-  shade: mix(base, '#000000', 0.2),
-  deep: mix(base, '#000000', 0.4),
+  hi: mix(base, '#ffffff', 0.45),
+  shade: mix(base, '#000000', 0.3),
+  deep: mix(base, '#000000', 0.55),
   ant,
 })
+
+// ── Luz de borda: o Claudin vira uma grade de células cheias e só a BORDA recebe luz, de cima e da esquerda ──
+// (realce) e de baixo e da direita (sombra, com o fio escuro no canto). O rosto fica da cor base, sem faixa
+// de sombra embaixo dos olhos, que pareceria barba por fazer.
+export type Grid = boolean[][]
+export const newGrid = (): Grid => Array.from({ length: 12 }, () => Array<boolean>(16).fill(false))
+export const fillCells = (g: Grid, x: number, y: number, w = 1, h = 1) => {
+  for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) if (g[yy] && xx >= 0 && xx < 16) g[yy]![xx] = true
+}
+
+// Junta células vizinhas em corridas, para a luz virar poucos retângulos.
+const runs = (flags: boolean[]): [number, number][] => {
+  const out: [number, number][] = []
+  let start = -1
+  flags.forEach((on, i) => {
+    if (on && start < 0) start = i
+    if (!on && start >= 0) {
+      out.push([start, i - start])
+      start = -1
+    }
+  })
+  if (start >= 0) out.push([start, flags.length - start])
+  return out
+}
+
+export const rim = (g: Grid, pal: Pal, t = 0.5): string => {
+  const at = (x: number, y: number) => !!g[y]?.[x]
+  const rows = g.length
+  const cols = g[0]!.length
+  let out = ''
+  for (let y = 0; y < rows; y++) {
+    for (const [x, n] of runs(Array.from({ length: cols }, (_, x) => at(x, y) && !at(x, y - 1)))) out += px(x, y, n, t, pal.hi)
+    for (const [x, n] of runs(Array.from({ length: cols }, (_, x) => at(x, y) && !at(x, y + 1)))) out += px(x, y + 1 - t, n, t, pal.shade)
+  }
+  for (let x = 0; x < cols; x++) {
+    for (const [y, n] of runs(Array.from({ length: rows }, (_, y) => at(x, y) && !at(x - 1, y)))) out += px(x, y, t, n, pal.hi)
+    for (const [y, n] of runs(Array.from({ length: rows }, (_, y) => at(x, y) && !at(x + 1, y)))) out += px(x + 1 - t, y, t, n, pal.shade)
+  }
+  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) if (at(x, y) && !at(x, y + 1) && !at(x + 1, y)) out += px(x + 1 - t, y + 1 - t, t, t, pal.deep)
+  return out
+}
 
 const STRAW = { base: '#d9b45b', hi: '#eccf85', shade: '#b08f3f', band: '#6b4a2a' }
 
@@ -56,8 +97,7 @@ export const sprite = (mood: Mood, kind: ModeKind = 'normal', look: Look = 'cent
   const busy = mood === 'code' || mood === 'run' || mood === 'read' || mood === 'search'
   const body = px(3, 3, 10, 5, c) + px(2, 4, 12, 3, c)
   const antennae = [px(4, 1, 1, 1, pal?.ant ?? c), px(4, 2, 1, 1, pal?.ant ?? c), px(11, 1, 1, 1, pal?.ant ?? c), px(11, 2, 1, 1, pal?.ant ?? c)].join('')
-  const legColor = pal?.shade ?? c
-  const legs = [3, 5, 10, 12].map(x => px(x, 8, 1, 2, legColor) + (pal ? px(x, 9.5, 1, 0.5, pal.deep) : '')).join('')
+  const legs = [3, 5, 10, 12].map(x => px(x, 8, 1, 2, c)).join('')
   const legAnim = busy
     ? `<animateTransform attributeName="transform" type="translate" values="0 0;0 .6;0 0" dur=".35s" repeatCount="indefinite"/>`
     : ''
@@ -65,15 +105,24 @@ export const sprite = (mood: Mood, kind: ModeKind = 'normal', look: Look = 'cent
     mood === 'ok'
       ? px(0, 2, 2, 1, c) + px(0, 3, 1, 1, c) + px(14, 2, 2, 1, c) + px(15, 3, 1, 1, c)
       : px(0, 5, 2, 1, c) + px(14, 5, 2, 1, c)
-  // Luz e sombra: só com paleta. O realce corre pelo alto, a sombra e o fio escuro pela borda de baixo.
-  const light = pal
-    ? px(3, 3, 10, 0.5, pal.hi) + px(2, 4, 1, 0.5, pal.hi) + px(13, 4, 1, 0.5, pal.hi) +
-      px(4, 1, 1, 0.5, pal.hi) + px(11, 1, 1, 0.5, pal.hi) +
-      (mood === 'ok' ? px(0, 2, 2, 0.5, pal.hi) + px(14, 2, 2, 0.5, pal.hi) : px(0, 5, 2, 0.5, pal.hi) + px(14, 5, 2, 0.5, pal.hi)) +
-      px(3, 6.5, 10, 1.5, pal.shade) + px(2, 6.5, 1, 0.5, pal.shade) + px(13, 6.5, 1, 0.5, pal.shade) +
-      px(3, 7.6, 10, 0.4, pal.deep) +
-      (mood === 'ok' ? '' : px(0, 5.5, 2, 0.5, pal.shade) + px(14, 5.5, 2, 0.5, pal.shade))
-    : ''
+  // Luz de borda sobre a silhueta (com paleta); o padrão chapado não leva nada.
+  const grid = newGrid()
+  fillCells(grid, 3, 3, 10, 5)
+  fillCells(grid, 2, 4, 12, 3)
+  for (const [ax, ay] of [[4, 1], [4, 2], [11, 1], [11, 2]] as const) fillCells(grid, ax, ay)
+  for (const lx of [3, 5, 10, 12]) fillCells(grid, lx, 8, 1, 2)
+  if (mood === 'ok') {
+    fillCells(grid, 0, 2, 2, 1)
+    fillCells(grid, 0, 3)
+    fillCells(grid, 14, 2, 2, 1)
+    fillCells(grid, 15, 3)
+  } else {
+    fillCells(grid, 0, 5, 2, 1)
+    fillCells(grid, 14, 5, 2, 1)
+  }
+  const light = pal ? rim(grid, pal) : ''
+  // Sombra no chão, só com paleta: um traço escuro e translúcido sob as pernas.
+  const ground = pal ? `<rect x="3" y="10.1" width="10" height="0.4" fill="#000000" opacity=".28"/>` : ''
   const blink = busy ? '' : `<animate attributeName="height" values="2;2;2;.3;2" dur="4s" repeatCount="indefinite"/>`
   const eyes =
     kind === 'meditar'
@@ -130,5 +179,5 @@ export const sprite = (mood: Mood, kind: ModeKind = 'normal', look: Look = 'cent
           : kind === 'meditar'
             ? px(12.5, 0.2, 3, 1.2, '#d64545') + px(13.2, 0.4, 0.6, 0.6, '#f5f4ed') + px(14.4, 0.6, 0.5, 0.5, '#f5f4ed') + px(13.2, 1.4, 1.1, 1.3, '#f5f4ed')
             : ''
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 12" shape-rendering="crispEdges">${antennae}${body}${arms}${light}<g>${legs}${legAnim}</g>${eyes}${keys}${hat}${prop}</svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 12" shape-rendering="crispEdges">${ground}${antennae}${body}${arms}<g>${legs}${legAnim}</g>${light}${eyes}${keys}${hat}${prop}</svg>`
 }

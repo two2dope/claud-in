@@ -9,5 +9,6 @@ Poses soltas (um arquivo por pose, .svg, 64x48), valem para o desenho padrao:
 
 Skin propria: <config>/claudin/sprites/<nome>/ com as poses em SVG. Escolha em Ajustes > skin.
 
-sprites/frota/ guarda as miniaturas da frota (siri, garca, guaiamum, aratu, caranguejinho), uma por tipo de agente; nao e skin.
+As miniaturas da frota (siri, garca, guaiamum, aratu, caranguejinho) tambem sao desenhadas em codigo (hooks/minis-arte.ts).
+Para trocar uma: <config>/claudin/sprites/frota/<criatura>.svg (12x12). Nao e skin.
 <config>/claudin/fleet-map.json troca a criatura de um tipo: { "Explore": "aratu" }.
