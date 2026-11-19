@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 — 2026-11-19
+
+- **A Mangue é o padrão.** O Claudin agora nasce com a luz de borda; o chapado de antes virou a skin `clássico`, a última do botão `skin:`. Quem tinha sprites soltos próprios em `<config>/claudin/sprites/` e nunca escolheu skin começa no clássico, para não perder os seus, e o `padrão` guardado vira Mangue.
+- **Skin Lama.** O Claudin cor de lama (a que ficou de fora da primeira rodada), com um brotinho de cannabis nascendo da cabeça, entre as antenas, que balança de leve. Mantém o piscar, o olhar, o andar e todos os modos; o ponto de exclamação do alerta passa para a direita, como no chapéu do Malungo.
+- **Cola da Oficina com descrição.** A lista abre recolhida (um botão por plugin, com a contagem), então cabe em poucas páginas; abrir um plugin mostra só as skills dele e clicar em outra vez recolhe. Clicar numa skill preenche o prompt e o Claudin diz a descrição e o exemplo de uso que estão no `catalogo.json`. Os `comandos` de cada plugin (como o `/achado`) aparecem na lista, e a chave `scripts` do catálogo vira o grupo `oficina.py`, cujos itens preenchem o prompt com o comando. A busca olha nome, descrição e exemplo.
+- **Conhecido:** o comando `eval [plugin]` do grupo `oficina.py` preenche o prompt com o `[plugin]` literal, para você trocar pelo nome; conferência visual no app desktop pendente (a Lama e o broto só foram vistos na prévia); sem LICENSE.
+
 ## 0.4.0 — 2026-11-19
 
 - **Cola da Oficina (opcional, só leitura).** Com `<config>/claudin/cola.json` apontando para o `catalogo.json` da oficina de skills (`{ "path": "~/oficina-skills/catalogo.json" }`), a aba Comandos ganha o botão 📋 ao lado da busca: ele alterna para a lista da oficina, com as skills agrupadas por plugin (com a versão), busca própria, marca `beta` e, ao clicar, o prompt é preenchido com `/plugin:skill ` (quem envia é você). Trocar de aba volta para a lista normal de comandos. O catálogo é relido toda vez que a aba abre, então skill nova da oficina aparece sem reiniciar. Só entram as skills que rodam no Claude Code, e nome fora do padrão é ignorado. Sem o arquivo, ou com o caminho inexistente, o botão não existe. Nada do catálogo vive neste repositório.
