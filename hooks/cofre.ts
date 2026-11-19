@@ -23,7 +23,8 @@ export function parseCofreConfig(text: string, home?: string): string | null {
     if (!home) return null
     return `${slashes(home)}${path.slice(1)}`
   }
-  return path
+  // Caminho relativo dependeria da pasta do processo, que pode ser o projeto aberto: só absoluto vale.
+  return /^[A-Za-z]:\//.test(path) || path.startsWith('/') ? path : null
 }
 
 // Devolve o caminho do cofre só se a configuração for válida e a pasta existir. Nunca lança.
@@ -144,6 +145,7 @@ export function parseHotDeadlines(text: string, today: string): HotDeadline[] {
         const year = Number(today.slice(0, 4))
         date = validDate(year, month, day)
         if (date && daysBetween(today, date) < -60) date = validDate(year + 1, month, day)
+        else if (date && daysBetween(today, date) > 300) date = validDate(year - 1, month, day)
       }
     }
     if (!date) continue
@@ -194,12 +196,17 @@ const NAME_TRIES = 50
 // "AAAA-MM-DD - <título> (claudin)": título da primeira linha, sem caractere proibido no Windows, com até 60 caracteres.
 export function noteFileStem(text: string, today: string): string {
   const first = text.split(/\r?\n/).find(l => l.trim()) ?? ''
-  const clean = first.replace(/[<>:"/\|?*\u0000-\u001f]/g, '').replace(/\s+/g, ' ').trim()
+  const clean = first.replace(/[<>:"/\\|?*\u0000-\u001f]/g, '').replace(/\s+/g, ' ').replace(/\.{2,}/g, '.').trim()
   const title = clean.slice(0, TITLE_MAX).replace(/[. ]+$/, '') || 'nota'
   return `${today} - ${title} (claudin)`
 }
 
 // Primeiro nome livre: "<stem>.md", depois "<stem> (2).md"... Nunca devolve um que já existe; null se desistir.
+// O nome do arquivo nunca pode virar caminho: sem separador de pasta, sem "..", não vazio.
+export function isSafeNoteName(name: string): boolean {
+  return name !== '' && !name.includes('/') && !name.includes(String.fromCharCode(92)) && !name.includes('..')
+}
+
 export async function freeNoteName(stem: string, exists: (name: string) => Promise<boolean>): Promise<string | null> {
   for (let n = 1; n <= NAME_TRIES; n++) {
     const name = n === 1 ? `${stem}.md` : `${stem} (${n}).md`

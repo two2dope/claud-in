@@ -1,14 +1,14 @@
 Sprites do Claudin.
 
-Poses soltas (um arquivo por pose, .svg ou .png, até ~90 KB, 64x48), valem para o desenho padrão.
-Prefira SVG: o app desktop nao desenha PNG embutido. python scripts/png-para-svg.py <pasta> converte pixel art PNG em SVG (o mod carrega .svg antes de .png):
+O Claudin e as skins Mangue, Mare e Malungo sao desenhados em codigo (hooks/desenho.ts); nao ha arquivo de pose para elas.
+
+Poses soltas (um arquivo por pose, .svg, 64x48), valem para o desenho padrao:
   idle  think  read  code  run  search  ok  err  alert
-  Ex.: sprites/code.png. Pose sem arquivo usa o desenho padrão.
+  Ex.: sprites/code.svg. Pose sem arquivo usa o desenho padrao.
+  PNG so funciona fora do app desktop; python scripts/png-para-svg.py <pasta> converte pixel art PNG em SVG.
 
-Skins (uma pasta por skin, com as mesmas poses):
-  sprites/mangue/  sprites/mare/  sprites/malungo/   (do plugin)
-  <config>/claudin/sprites/<nome>/                   (as suas)
-  Escolha em Ajustes > skin. Pose ausente usa o desenho padrão.
+Skin propria: <config>/claudin/sprites/<nome>/ com as poses em SVG. Escolha em Ajustes > skin.
 
-sprites/frota/ guarda as miniaturas da frota (siri, garca, guaiamum, aratu, caranguejinho), uma por tipo de agente; nao e skin.
+As miniaturas da frota (siri, garca, guaiamum, aratu, caranguejinho) tambem sao desenhadas em codigo (hooks/minis-arte.ts).
+Para trocar uma: <config>/claudin/sprites/frota/<criatura>.svg (12x12). Nao e skin.
 <config>/claudin/fleet-map.json troca a criatura de um tipo: { "Explore": "aratu" }.

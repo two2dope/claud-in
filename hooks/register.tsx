@@ -3,8 +3,10 @@ import type { Register } from 'claude-code'
 
 import type { Action, CofreView, FleetRow, Mode, ModeKind, Mood, Say, TurnStats, Walk } from '../types'
 import { tabLabel } from './abas'
+import { CORAL, SKINS, lookFor, sprite } from './desenho'
 import { MINI_KINDS, parseFleetMap, pickMinis } from './minis'
-import { COFRE_FILE, HOT_FILE, NOTES_DIR, PENDING_FILE, countPending, freeNoteName, noteFileStem, healthNotes, hotLine, mergeDeadlines, parseHot, parseHotDeadlines, parseHotLists, resolveCofre } from './cofre'
+import { miniSvg } from './minis-arte'
+import { COFRE_FILE, HOT_FILE, NOTES_DIR, isSafeNoteName, PENDING_FILE, countPending, freeNoteName, noteFileStem, healthNotes, hotLine, mergeDeadlines, parseHot, parseHotDeadlines, parseHotLists, resolveCofre } from './cofre'
 import { FLEET_MAX_ROWS, clip, failSay, finish, liveCount, orderRows, reconcile, revive, rowLine, shouldSaySpawn, spawnSay, summaryLine, upsert } from './frota'
 
 const say = atom({ plugin: 'claudin', key: 'say' } as const, {
@@ -74,6 +76,7 @@ const skinArt = atom({ plugin: 'claudin', key: 'skinArt' } as const, {} as Recor
 // Miniaturas da frota: arte por criatura (sprites/frota/<criatura>) e o mapa tipo -> criatura do usuário (fleet-map.json).
 const miniArt = atom({ plugin: 'claudin', key: 'miniArt' } as const, {} as Record<string, string>)
 const fleetMap = atom({ plugin: 'claudin', key: 'fleetMap' } as const, {} as Record<string, string>)
+const MINI_ROLE: Record<string, string> = { siri: 'explorar', garca: 'planejar', guaiamum: 'executar', aratu: 'revisar', caranguejinho: 'outros' }
 const skinNames = atom({ plugin: 'claudin', key: 'skinNames' } as const, [] as string[])
 const noteText = atom({ plugin: 'claudin', key: 'noteText' } as const, '')
 const NOTE_MAX = 4000
@@ -82,9 +85,6 @@ const cofreDeadlines = atom({ plugin: 'claudin', key: 'cofreDeadlines' } as cons
 // Comandos que merecem um aviso antes de rodar. Lista curta; não substitui as permissões do app.
 const RISKY = /\brm\s+(-[a-z]*r|-[a-z]*f)|git\s+push\b.*(--force|\s-f\b)|git\s+reset\s+--hard|git\s+clean\s+-[a-z]*f|drop\s+(table|database)|remove-item\b.*-recurse|\bdel\s+\/[sq]|\bformat\s+[a-z]:|mkfs|:\(\)\s*\{/i
 const SLOW_MS = 30000
-
-const CORAL = '#D97757'
-const INK = '#1a1a1a'
 
 const baseName = (n: string) => n.split(':').pop() ?? n
 
@@ -107,86 +107,6 @@ const short = (s: unknown, n = 38) =>
   typeof s === 'string' ? (s.length > n ? s.slice(0, n - 1) + '…' : s) : ''
 const base = (p: unknown) => short(typeof p === 'string' ? p.split(/[\\/]/).pop() : '')
 
-const px = (x: number, y: number, w = 1, h = 1, f = CORAL) =>
-  `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}"/>`
-
-// Claudin em grade 16x12; cada mood muda olhos, braços e pernas.
-type Look = 'left' | 'right' | 'up' | 'down' | 'center' | 'sweep'
-
-// Para onde o Claudin olha: para a cartola quando ela está aberta, para onde anda quando está parado,
-// para cima ao pensar, para baixo ao codar e varrendo de lado ao ler ou buscar.
-const lookFor = (mood: Mood, dir: number, boxOpen_: boolean): Look =>
-  boxOpen_ ? 'right'
-  : mood === 'think' ? 'up'
-  : mood === 'code' || mood === 'run' ? 'down'
-  : mood === 'read' || mood === 'search' ? 'sweep'
-  : mood === 'alert' || mood === 'err' ? 'center'
-  : dir < 0 ? 'left' : 'right'
-
-const sprite = (mood: Mood, kind: ModeKind = 'normal', look: Look = 'center') => {
-  const busy = mood === 'code' || mood === 'run' || mood === 'read' || mood === 'search'
-  const body = px(3, 3, 10, 5) + px(2, 4, 12, 3)
-  const antennae = px(4, 1) + px(4, 2) + px(11, 1) + px(11, 2)
-  const legs = [3, 5, 10, 12].map(x => px(x, 8, 1, 2)).join('')
-  const legAnim = busy
-    ? `<animateTransform attributeName="transform" type="translate" values="0 0;0 .6;0 0" dur=".35s" repeatCount="indefinite"/>`
-    : ''
-  const arms =
-    mood === 'ok'
-      ? px(0, 2, 2, 1) + px(0, 3) + px(14, 2, 2, 1) + px(15, 3)
-      : px(0, 5, 2, 1) + px(14, 5, 2, 1)
-  const blink = busy ? '' : `<animate attributeName="height" values="2;2;2;.3;2" dur="4s" repeatCount="indefinite"/>`
-  const eyes =
-    kind === 'meditar'
-      ? px(5, 5, 2, 0.4, INK) + px(10, 5, 2, 0.4, INK)
-      : kind === 'thuglife' && mood !== 'err'
-        ? px(4.5, 4, 3, 2.2, '#111111') + px(9.5, 4, 3, 2.2, '#111111') + px(7.5, 4.4, 2, 0.5, '#111111') +
-          px(3, 4.4, 1.5, 0.5, '#111111') + px(12.5, 4.4, 1.5, 0.5, '#111111') +
-          px(5, 4.3, 0.9, 0.5, '#6f6f6f') + px(10, 4.3, 0.9, 0.5, '#6f6f6f')
-        : kind === 'cafe' && mood !== 'err' && mood !== 'think'
-          ? [4.5, 9.5].map(ex => {
-              const dx = look === 'left' ? 0 : look === 'right' ? 1 : 0.5
-              const dy = look === 'up' ? 0 : look === 'down' ? 1 : 0.5
-              return (
-                `<rect x="${ex}" y="3.5" width="3" height="3" fill="#f5f4ed"/>` +
-                `<rect x="${ex + dx}" y="${3.5 + dy}" width="2" height="2" fill="${INK}"/>` +
-                `<rect x="${ex + dx + 0.3}" y="${3.5 + dy + 0.3}" width="0.5" height="0.5" fill="#f5f4ed"/>`
-              )
-            }).join('')
-      : mood === 'err'
-        ? px(5, 4, 1, 1, INK) + px(7, 4, 1, 1, INK) + px(6, 5, 1, 1, INK) + px(5, 6, 1, 1, INK) + px(7, 6, 1, 1, INK) +
-          px(9, 4, 1, 1, INK) + px(11, 4, 1, 1, INK) + px(10, 5, 1, 1, INK) + px(9, 6, 1, 1, INK) + px(11, 6, 1, 1, INK)
-        : mood === 'think'
-          ? px(6, 4, 1, 2, INK) + px(10, 4, 1, 2, INK) + px(7, 4, 1, 1, INK)
-          : [5, 10].map(ex => {
-              const dx = look === 'left' ? 0 : look === 'right' ? 1 : 0.5
-              const dy = look === 'up' ? 0 : look === 'down' ? 1 : 0.5
-              const sweep = look === 'sweep' ? `<animate attributeName="x" values="${ex};${ex + 1};${ex}" dur="1.4s" repeatCount="indefinite"/>` : ''
-              const sclera = `<rect x="${ex}" y="4" width="2" height="2" fill="#f5f4ed">${blink}</rect>`
-              const pupil = `<rect x="${ex + dx}" y="${4 + dy}" width="1" height="1" fill="${INK}">${sweep}${busy ? '' : `<animate attributeName="height" values="1;1;1;.2;1" dur="4s" repeatCount="indefinite"/>`}</rect>`
-              return sclera + pupil
-            }).join('')
-  const keys =
-    mood === 'code'
-      ? `<g fill="#7dd3fc"><rect x="3" y="10.5" width="1" height="1"><animate attributeName="opacity" values="1;0;1" dur=".3s" repeatCount="indefinite"/></rect><rect x="7" y="10.5" width="1" height="1"><animate attributeName="opacity" values="0;1;0" dur=".3s" repeatCount="indefinite"/></rect><rect x="11" y="10.5" width="1" height="1"><animate attributeName="opacity" values="1;0;1" dur=".45s" repeatCount="indefinite"/></rect></g>`
-      : ''
-  const fade = (dur: string, from: number, to: number) =>
-    `<animate attributeName="opacity" values="${from};${to};${from}" dur="${dur}" repeatCount="indefinite"/>`
-  const prop =
-    mood === 'alert'
-      ? px(7.5, 0, 1, 1.6, '#f5b73d') + px(7.5, 2, 1, 0.6, '#f5b73d')
-      : kind === 'cafe'
-        ? px(14, 3, 2, 2, '#f5f4ed') + px(14, 3, 2, 0.7, '#6b4423') +
-          `<rect x="14.7" y="1.6" width="0.6" height="1" fill="#cfcfcf">${fade('1.2s', 0.2, 0.9)}</rect>`
-        : kind === 'cigarro'
-          ? px(0, 4, 2, 0.6, '#f5f4ed') + px(0, 4, 0.6, 0.6, '#ff6a3d') +
-            `<rect x="0.2" y="2.6" width="0.6" height="1" fill="#9a9a9a">${fade('1.6s', 0.1, 0.8)}</rect>`
-          : kind === 'meditar'
-            ? px(12.5, 0.2, 3, 1.2, '#d64545') + px(13.2, 0.4, 0.6, 0.6, '#f5f4ed') + px(14.4, 0.6, 0.5, 0.5, '#f5f4ed') + px(13.2, 1.4, 1.1, 1.3, '#f5f4ed')
-            : ''
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 12" shape-rendering="crispEdges">${antennae}${body}${arms}<g>${legs}${legAnim}</g>${eyes}${keys}${prop}</svg>`
-}
-
 const MOODS = ['idle', 'think', 'read', 'code', 'run', 'search', 'ok', 'err', 'alert']
 const MAX_X = 36
 
@@ -204,12 +124,14 @@ const MODE_LINE: Record<ModeKind, string> = {
 const BREAK_MS = 10 * 60 * 1000
 
 // Em meditar e cigarro o Claudin só fala de erro ou risco; o resto vai só para o histórico.
-async function speak($: any, mood: Mood, text: string, act: Action | null = null) {
+// Devolve true quando a fala saiu; nos modos calmos só erro e alerta falam, o resto fica só no histórico.
+async function speak($: any, mood: Mood, text: string, act: Action | null = null): Promise<boolean> {
   await update($, log, (l: string[]) => [...l, text].slice(-6))
   const m = await read($, mode)
-  if ((m.kind === 'meditar' || m.kind === 'cigarro') && mood !== 'err' && mood !== 'alert') return
+  if ((m.kind === 'meditar' || m.kind === 'cigarro') && mood !== 'err' && mood !== 'alert') return false
   await update($, action, () => act)
   await update($, say, (s: Say) => ({ mood, text, seq: s.seq + 1 }))
+  return true
 }
 
 async function setMode($: any, kind: ModeKind) {
@@ -602,20 +524,27 @@ async function loadCofreView($: any) {
 
 // Captura rápida: cria UM arquivo novo em <cofre>/Raw/Notas. É a única escrita do Claudin no cofre: nunca edita
 // nem apaga, e não mexe no _pending nem no selo (o ciclo diário enfileira e sela).
+let capturing = false
 async function captureNote($: any, raw: string) {
   const root = await read($, cofre)
   const text = raw.trim()
-  if (!root || !text) return
+  if (!root || !text || capturing) return
+  capturing = true // dois envios seguidos não podem escolher o mesmo nome
   try {
     const today = dayKey(new Date(await $.clock.now()))
     const dir = `${root}/${NOTES_DIR}`
     const name = await freeNoteName(noteFileStem(text, today), (n: string) => $.fs.exists(`${dir}/${n}`))
-    if (!name) return speak($, 'err', 'Não achei um nome livre para a nota.')
-    await $.fs.write(`${dir}/${name}`, `${text.slice(0, NOTE_MAX)}\n`)
+    if (!name || !isSafeNoteName(name)) {
+      await speak($, 'err', 'Não achei um nome seguro para a nota.')
+      return
+    }
     await update($, noteText, () => '')
+    await $.fs.write(`${dir}/${name}`, `${text.slice(0, NOTE_MAX)}\n`)
     await speak($, 'ok', `Nota guardada no cofre: ${short(name, 30)}.`)
   } catch {
     await speak($, 'err', 'Não consegui guardar a nota no cofre.')
+  } finally {
+    capturing = false
   }
 }
 
@@ -637,8 +566,8 @@ async function greetToday($: any, force: boolean) {
   const d = new Date(now)
   const today = dayKey(d)
   if (!force && (await $.store.get('lastGreeting')) === today) return
-  await $.store.set('lastGreeting', today)
-  const dl = mergeDeadlines(await read($, deadlines), await read($, cofreDeadlines))
+  const local = await read($, deadlines)
+  const dl = mergeDeadlines(local, await read($, cofreDeadlines))
   const rm = await read($, reminders)
   const tm = await read($, timers)
   const over = dl.filter(x => daysUntil(x.date, now) < 0)
@@ -656,12 +585,17 @@ async function greetToday($: any, force: boolean) {
     await cofreHotLine($, today),
   ].filter(Boolean)
   if (parts.length === 0) {
+    await $.store.set('lastGreeting', today)
     if (force) await speak($, 'idle', 'Nada pendente na agenda.')
     return
   }
   const hour = d.getHours()
   const hi = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
-  await speak($, over.length || hoje.length ? 'alert' : 'idle', `${hi}. ${parts.join(' · ')}.`)
+  // O alerta vem só dos prazos digitados no Claudin; um prazo do cofre (espelho) não fura meditar nem cigarro.
+  const urgent = local.some(x => daysUntil(x.date, now) <= 0)
+  const spoken = await speak($, urgent ? 'alert' : 'idle', `${hi}. ${parts.join(' · ')}.`)
+  // Saudação engolida por um modo calmo não conta como dada: volta na próxima sessão.
+  if (spoken) await $.store.set('lastGreeting', today)
 }
 
 const fmtLeft = (ms: number) => {
@@ -728,8 +662,9 @@ async function loadSprites($: any) {
   await update($, sprites, () => found)
 }
 
-// Skins: cada pasta de sprites/ (do usuário ou do plugin) é uma skin; "frota" guarda as miniaturas, não é skin.
-const SKIN_BUILTIN = ['mangue', 'mare', 'malungo']
+// Skins: as do plugin (Mangue, Maré, Malungo) são o mesmo Claudin com outra paleta e vêm do código, então herdam
+// movimento, olhar e modos. Cada pasta de <config>/claudin/sprites/<nome>/ com poses em SVG vira uma skin de arte própria.
+// "frota" guarda as miniaturas, não é skin.
 const SKIN_RESERVED = ['frota']
 const SKIN_LABEL: Record<string, string> = { mare: 'maré' }
 const skinLabel = (name: string) => (name ? SKIN_LABEL[name] ?? name : 'padrão')
@@ -738,22 +673,22 @@ async function listSkins($: any): Promise<string[]> {
   const found = new Set<string>()
   for (const root of await dataRoots($)) {
     try {
-      for (const e of await $.fs.list(`${root}/sprites`)) if (e.kind === 'dir' && !SKIN_RESERVED.includes(e.name)) found.add(e.name)
+      for (const e of await $.fs.list(`${root}/sprites`)) if (e.kind === 'dir' && !SKIN_RESERVED.includes(e.name) && !SKINS[e.name]) found.add(e.name)
     } catch {
       // pasta sem sprites/: nenhuma skin ali
     }
   }
-  return [...SKIN_BUILTIN.filter(n => found.has(n)), ...[...found].filter(n => !SKIN_BUILTIN.includes(n)).sort()]
+  return [...Object.keys(SKINS), ...[...found].sort()]
 }
 
 // Pose que a skin não tem fica de fora e o desenho padrão cobre.
 async function loadSkinArt($: any, name: string) {
   const found: Record<string, string> = {}
-  if (name) {
+  if (name && !SKINS[name]) {
     const roots = await dataRoots($)
     for (const m of MOODS) {
       done: for (const root of roots) {
-        for (const ext of ['svg', 'png']) {
+        for (const ext of ['svg']) { // o desktop não desenha PNG embutido: skins só em SVG
           const path = `${root}/sprites/${name}/${m}.${ext}`
           try {
             if (!(await $.fs.exists(path))) continue
@@ -774,7 +709,7 @@ async function loadMinis($: any) {
   const roots = await dataRoots($)
   for (const kind of MINI_KINDS) {
     done: for (const root of roots) {
-      for (const ext of ['svg', 'png']) {
+      for (const ext of ['svg']) {
         const path = `${root}/sprites/frota/${kind}.${ext}`
         try {
           if (!(await $.fs.exists(path))) continue
@@ -786,6 +721,7 @@ async function loadMinis($: any) {
       }
     }
   }
+  for (const kind of MINI_KINDS) found[kind] ??= miniSvg(kind) // sem arquivo do usuário, a criatura sai do código
   await update($, miniArt, () => found)
   let map: Record<string, string> = {}
   for (const root of roots) {
@@ -893,7 +829,7 @@ async function draw($: any, e: any, next: any) {
   const m = await read($, mode)
   const act = await read($, action)
   const open = await read($, boxOpen)
-  const cat = await read($, boxCat)
+  const catRaw = await read($, boxCat)
   const page = await read($, boxPage)
   const allCmds = await read($, cmds)
   const q = await read($, query)
@@ -907,6 +843,7 @@ async function draw($: any, e: any, next: any) {
   const cv = await read($, cofreView)
   const skinSel = await read($, skin)
   const skinSprites = await read($, skinArt)
+  const skinDef = SKINS[skinSel]
   const miniSprites = await read($, miniArt)
   const userFleetMap = await read($, fleetMap)
   const noteTxt = await read($, noteText)
@@ -914,6 +851,7 @@ async function draw($: any, e: any, next: any) {
   const nowF = fleetRows.length > 0 ? await $.clock.now() : 0
   const fleetLine = summaryLine(fleetRows, nowF)
   const cats = [...CATS, ...(fleetRows.length > 0 ? [FLEET_CAT] : []), ...(cofreRoot ? [COFRE_CAT] : [])]
+  const cat = cats.includes(catRaw) ? catRaw : 'prompts' // aba que sumiu (frota vazia, cofre desligado) não prende a caixa
   const nowT = activeTimers.length > 0 ? (await read($, tick)) || (await $.clock.now()) : 0
   const extras = await read($, extraShortcuts)
   const cmd = await read($, lastCmd)
@@ -995,7 +933,7 @@ async function draw($: any, e: any, next: any) {
               { key: 'quiet', label: quiet ? 'ver tools' : 'ocultar tools', onPress: () => update($, isQuiet, (v: boolean) => !v) },
               { key: 'log', label: showLog ? 'fechar histórico' : 'histórico', onPress: () => update($, isLogOpen, (v: boolean) => !v) },
               { key: 'sep2', label: '', sep: true, onPress: () => {} },
-              { key: 'greet', label: 'saudação do dia', onPress: () => greetToday($, true) },
+              { key: 'greet', label: 'saudação do dia', onPress: async () => { await loadCofreDeadlines($); await greetToday($, true) } },
               { key: 'pet', label: 'afagar', onPress: () => speak($, 'ok', PETS[Math.floor(Math.random() * PETS.length)] ?? 'Presente.') },
               {
                 key: 'side',
@@ -1170,19 +1108,21 @@ async function draw($: any, e: any, next: any) {
   )
 
   const mascot = Svg ? (
-    <Svg source={(m.kind === 'normal' ? skinSprites[s.mood] : undefined) ?? custom[s.mood] ?? sprite(s.mood, m.kind, lookFor(s.mood as Mood, w.dir, open))} alt="Claudin, o mascote" width={size.w} height={size.h} isInteractive />
+    <Svg source={(m.kind === 'normal' ? skinSprites[s.mood] : undefined) ?? (skinDef ? undefined : custom[s.mood]) ?? sprite(s.mood, m.kind, lookFor(s.mood as Mood, w.dir, open), skinDef)} alt="Claudin, o mascote" width={size.w} height={size.h} isInteractive />
   ) : null
   // Miniaturas da frota ao lado do mascote: até 2 criaturas (×n quando há vários do tipo) e +N nos agentes sem miniatura.
   // Em meditar e cigarro ficam de fora (modos calmos).
   const calm = m.kind === 'meditar' || m.kind === 'cigarro'
-  const picked = calm || !Svg ? { shown: [], extra: 0 } : pickMinis(fleetRows, 2, userFleetMap)
+  const picked0 = calm || !Svg ? { shown: [], extra: 0 } : pickMinis(fleetRows, 2, userFleetMap)
+  const lost = picked0.shown.filter(x => !miniSprites[x.kind]).reduce((n, x) => n + x.count, 0) // sem arte: entra no +N
+  const picked = { shown: picked0.shown.filter(x => miniSprites[x.kind]), extra: picked0.extra + lost }
   const miniPx = Math.max(10, Math.round(size.h * 0.6))
   const miniRow = [
     ...picked.shown.flatMap(x =>
       miniSprites[x.kind]
         ? [
             <Box key={`mini-${x.kind}`} flexDirection="row" alignItems="flex-end">
-              <Svg source={miniSprites[x.kind]} alt={`miniatura: ${x.kind}`} width={miniPx} height={miniPx} />
+              <Svg source={miniSprites[x.kind]} alt={`${x.count} agente${x.count > 1 ? 's' : ''}: ${MINI_ROLE[x.kind]}`} width={miniPx} height={miniPx} />
               {x.count > 1 ? <Text dimColor>{`×${x.count}`}</Text> : null}
             </Box>,
           ]
