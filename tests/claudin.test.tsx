@@ -835,7 +835,7 @@ test('cofre ligado mas sem _hot.md: a aba avisa em uma linha', async ($: any, on
 
 // ── captura rápida: a única escrita no cofre é um arquivo NOVO em Raw/Notas ──────
 const bootCapture = async ($: any, on: any) => {
-  const files = cofreFiles({ 'C:/cofre/Wiki/_hot.md': HOT_FULL, 'C:/cofre/Raw/_pending.md': pendingMd(2) })
+  const files: Record<string, string> = cofreFiles({ 'C:/cofre/Wiki/_hot.md': HOT_FULL, 'C:/cofre/Raw/_pending.md': pendingMd(2) })
   const written: Record<string, string> = {}
   on('fs.write', (_: any, e: any) => {
     const path = String(e.path).split(String.fromCharCode(92)).join('/')

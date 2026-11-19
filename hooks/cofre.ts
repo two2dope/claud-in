@@ -56,7 +56,7 @@ export function parseHot(text: string): Hot {
   for (const line of text.split(/\r?\n/)) {
     const h = /^##\s+(.*)$/.exec(line)
     if (h) {
-      const name = h[1].trim().toLowerCase()
+      const name = (h[1] ?? '').trim().toLowerCase()
       section = name.startsWith('prazos') ? 'deadlines' : name.startsWith('urgente') ? 'urgent' : null
       continue
     }
@@ -125,7 +125,7 @@ export function parseHotDeadlines(text: string, today: string): HotDeadline[] {
   for (const line of text.split(/\r?\n/)) {
     const h = /^##\s+(.*)$/.exec(line)
     if (h) {
-      inSection = h[1].trim().toLowerCase().startsWith('prazos')
+      inSection = (h[1] ?? '').trim().toLowerCase().startsWith('prazos')
       continue
     }
     if (!inSection) continue
@@ -147,9 +147,9 @@ export function parseHotDeadlines(text: string, today: string): HotDeadline[] {
       }
     }
     if (!date) continue
-    const pieces = m[7].split('·').map(x => x.trim()).filter(Boolean)
-    if (pieces.length === 0) continue
-    out.push(pieces[1] ? { date, title: pieces[0], source: pieces[1] } : { date, title: pieces[0] })
+    const [title, source] = (m[7] ?? '').split('·').map(x => x.trim()).filter(Boolean)
+    if (!title) continue
+    out.push(source ? { date, title, source } : { date, title })
     if (out.length >= DEADLINES_MAX) break
   }
   return out
@@ -174,7 +174,7 @@ export function parseHotLists(text: string): HotLists {
   for (const line of text.split(/\r?\n/)) {
     const h = /^##\s+(.*)$/.exec(line)
     if (h) {
-      const name = h[1].trim().toLowerCase()
+      const name = (h[1] ?? '').trim().toLowerCase()
       section = name.startsWith('fios') ? 'fios' : name.startsWith('urgente') ? 'urgent' : null
       continue
     }
