@@ -528,7 +528,8 @@ test('texto longo do spawn é cortado, na frase e no prompt do investigar', asyn
 // ── dados do usuário fora da pasta do plugin (instalação por marketplace) ───────
 // Uma atualização do plugin substitui a pasta dele; sprites, atalhos e semente de favoritos do usuário
 // moram em <config>/claudin (CLAUDE_CONFIG_DIR, ou ~/.claude) e vencem os arquivos que o plugin traz.
-const bootFs = async ($: any, on: any, files: Record<string, string>, env: Record<string, string>, stored: Record<string, unknown> = {}) => {
+// failRead: caminhos que casam com ele dão erro ao ler, como um disco com problema.
+const bootFs = async ($: any, on: any, files: Record<string, string>, env: Record<string, string>, stored: Record<string, unknown> = {}, failRead?: RegExp) => {
   mock.store(on, stored)
   mock.env(on, env)
   // Chave absoluta (C:/...) casa o caminho exato; chave relativa casa o arquivo do plugin, nunca os da pasta do usuário.
@@ -537,7 +538,10 @@ const bootFs = async ($: any, on: any, files: Record<string, string>, env: Recor
     return Object.keys(files).find(k => (/^[A-Za-z]:\//.test(k) ? path === k : !/^(C:\/u|D:\/cfg)/.test(path) && path.endsWith(`/${k}`)))
   }
   on('fs.exists', (_: any, e: any) => ({ value: hit(e.path) !== undefined }))
-  on('fs.read', (_: any, e: any) => ({ value: files[hit(e.path) ?? ''] ?? '' }))
+  on('fs.read', (_: any, e: any) => {
+    if (failRead?.test(String(e.path))) throw new Error('disco com problema')
+    return { value: files[hit(e.path) ?? ''] ?? '' }
+  })
   on('command.list', () => ({ value: [] }))
   on('command.register', () => ({ value: { command: 'claudin' } }))
   on('ui.status', () => ({ value: undefined }))
@@ -1255,6 +1259,7 @@ test('os scripts da oficina (oficina.py) são um grupo; clicar preenche o prompt
   await bootFs($, on, colaFiles(), { USERPROFILE: 'C:/u' })
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
   await openCola(ui)
+  await ui.press({ key: 'next' }) // com o grupo do Claudin são quatro grupos, e três por página
   await ui.press({ key: 'cl-g-@scripts' })
   await ui.press({ key: 'cl-s-0' })
   expect(filled).toBe('python scripts/oficina.py lint ')
@@ -1295,5 +1300,215 @@ test('catálogo ilegível mostra aviso em vez de lista vazia', async ($: any, on
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
   await openCola(ui)
   expect(await ui.find({ type: 'Text', text: /catálogo ilegível/ })).toBeDefined()
+  await ui.unmount()
+})
+
+// ── Cola: os comandos do próprio Claudin entram como um grupo, além dos do catálogo ───────
+test('a Cola traz o grupo Claudin com /claudin e os argumentos, que só preenchem o prompt', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  let filled = ''
+  on('prompt.fill', (_: any, e: any) => {
+    filled = e.text
+    return { isFilled: true }
+  })
+  await bootFs($, on, colaFiles(), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openCola(ui)
+  expect((await ui.find({ key: 'cl-g-claudin' }))?.props?.label).toMatch(/▸ Claudin · 4/)
+  await ui.press({ key: 'cl-g-claudin' })
+  await ui.press({ key: 'cl-c-claudin:1' })
+  expect(filled).toBe('/claudin lateral ')
+  expect(await ui.find({ type: 'Text', text: /Põe o Claudin no painel lateral/ })).toBeDefined()
+  await ui.unmount()
+})
+
+// ── contexto: o Claudin avisa quando a janela enche e sugere /compact ou /clear ───────
+const usageAt = (on: any, percent: number | (() => number)) => {
+  on('turn.complete', () => ({ text: '' }))
+  on('session.usage', () => ({ value: { startedAt: 0, context: { window: 200000, tokens: 1, percent: typeof percent === 'function' ? percent() : percent }, rateLimits: [] } }))
+}
+const doneTurn = ($: any) => $.turn.complete({ answer: '', reason: 'answer', durationMs: 1, isAborted: false, turnId: 'main' })
+
+test('com a janela em 55% o fim do turno avisa e oferece o botão compactar', async ($: any, on: any) => {
+  mock.clock(on, { now: 3_000_000 })
+  let filled = ''
+  on('prompt.fill', (_: any, e: any) => {
+    filled = e.text
+    return { isFilled: true }
+  })
+  usageAt(on, 55)
+  await doneTurn($)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /Pronto\. Nada a reportar\. Contexto em 55%\. Se a conversa vai longe, vale um \/compact\./ })).toBeDefined()
+  expect((await ui.find({ key: 'act' }))?.props?.label).toBe('compactar')
+  await ui.press({ key: 'act' })
+  expect(filled).toBe('/compact ')
+  await ui.unmount()
+})
+
+test('abaixo de 50% o balão não fala de contexto', async ($: any, on: any) => {
+  mock.clock(on, { now: 3_100_000 })
+  usageAt(on, 49)
+  await doneTurn($)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /Pronto\. Nada a reportar\./ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Contexto em/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('o aviso vem uma vez por nível: o segundo turno no mesmo nível fica calado, e o próximo nível avisa de novo', async ($: any, on: any) => {
+  mock.clock(on, { now: 3_200_000 })
+  let pct = 55
+  usageAt(on, () => pct)
+  await doneTurn($)
+  pct = 62
+  await doneTurn($)
+  let ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /Contexto em/ })).toBeUndefined()
+  await ui.unmount()
+  pct = 75
+  await doneTurn($)
+  ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /Contexto em 75%\. Compacte agora/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('depois de compactar o aviso se rearma e volta quando a janela enche de novo', async ($: any, on: any) => {
+  mock.clock(on, { now: 3_300_000 })
+  let pct = 90
+  usageAt(on, () => pct)
+  await doneTurn($)
+  pct = 25
+  await doneTurn($)
+  pct = 90
+  await doneTurn($)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /Contexto em 90%/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('no último nível o aviso lembra do /clear', async ($: any, on: any) => {
+  mock.clock(on, { now: 3_400_000 })
+  usageAt(on, 97)
+  await doneTurn($)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /Hora de \/compact, ou \/clear/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('falha ao ler a janela não derruba o fim do turno', async ($: any, on: any) => {
+  mock.clock(on, { now: 3_500_000 })
+  on('turn.complete', () => ({ text: '' }))
+  on('session.usage', () => {
+    throw new Error('sem leitura')
+  })
+  await doneTurn($)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /Pronto\. Nada a reportar\./ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('a aba Ações mostra o contexto e tem os botões compactar e limpar, que só preenchem o prompt', async ($: any, on: any) => {
+  mock.clock(on, { now: 3_600_000 })
+  const filled: string[] = []
+  on('prompt.fill', (_: any, e: any) => {
+    filled.push(e.text)
+    return { isFilled: true }
+  })
+  usageAt(on, 74)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'tb' })
+  await ui.press({ key: 'cat-acoes' })
+  expect(await ui.find({ type: 'Text', text: /contexto: 74% da janela · vale compactar/ })).toBeDefined()
+  await ui.press({ key: 'next' })
+  await ui.press({ key: 'a-compact' })
+  await ui.press({ key: 'a-clear' })
+  expect(filled).toEqual(['/compact ', '/clear '])
+  await ui.unmount()
+})
+
+// ── auditoria: BOM, fs que falha e prazo repetido ───────
+test('cofre.json salvo com BOM (o Bloco de Notas do Windows) liga o cofre mesmo assim', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, cofreFiles({ 'C:/u/.claude/claudin/cofre.json': '\uFEFF' + COFRE_CFG }), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'tb' })
+  expect(await ui.find({ key: 'cat-cofre' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('leitura do _hot que falha deixa o cofre calado, sem derrubar o Claudin', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, cofreFiles(), { USERPROFILE: 'C:/u' }, {}, /_hot\.md|_pending\.md/)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /Online/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /cofre:/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('o mesmo prazo digitado duas vezes na Agenda fica uma só vez', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, {}, { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'tb' })
+  await ui.press({ key: 'cat-prazos' })
+  await ui.input({ key: 'dq', text: '25/11 Entrega do edital' })
+  await ui.input({ key: 'dq', text: '25/11 entrega do edital' })
+  expect(await ui.find({ type: 'Text', text: /Esse prazo já está na Agenda/ })).toBeDefined()
+  await ui.unmount()
+})
+
+// ── contexto: a faixa dos avisos se ajusta em Ajustes e fica guardada ───────
+test('o botão de contexto em Ajustes percorre as faixas e o desligado, e volta', async ($: any, on: any) => {
+  await bootSkins($, on)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openAjustes(ui)
+  await ui.press({ key: 'next' })
+  await ui.press({ key: 'next' }) // o botão de contexto fica na terceira página de Ajustes
+  const veja = async (label: RegExp) => {
+    await ui.press({ key: 'ctx' })
+    expect((await ui.find({ key: 'ctx' }))?.props?.label).toMatch(label)
+  }
+  expect((await ui.find({ key: 'ctx' }))?.props?.label).toMatch(/contexto: 50\/70\/85%/)
+  await veja(/60\/80\/90%/)
+  await veja(/70\/85\/95%/)
+  await veja(/desligado/)
+  await veja(/50\/70\/85%/)
+  await ui.unmount()
+})
+
+test('na faixa 70/85/95 a janela em 60% não avisa, e a escolha guardada volta na sessão seguinte', async ($: any, on: any) => {
+  usageAt(on, 60)
+  await bootSkins($, on, {}, [], { ctxPreset: 'tarde' })
+  await doneTurn($)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /Pronto\. Nada a reportar\./ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Contexto em/ })).toBeUndefined()
+  await openAjustes(ui)
+  await ui.press({ key: 'next' })
+  await ui.press({ key: 'next' }) // o botão de contexto fica na terceira página de Ajustes
+  expect((await ui.find({ key: 'ctx' }))?.props?.label).toMatch(/70\/85\/95%/)
+  await ui.unmount()
+})
+
+test('desligado, a janela em 99% não avisa, mas a aba Ações ainda mostra o número', async ($: any, on: any) => {
+  usageAt(on, 99)
+  await bootSkins($, on, {}, [], { ctxPreset: 'off' })
+  await doneTurn($)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /Contexto em/ })).toBeUndefined()
+  await ui.press({ key: 'tb' })
+  await ui.press({ key: 'cat-acoes' })
+  expect(await ui.find({ type: 'Text', text: /contexto: 99% da janela$/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('faixa guardada que não existe mais cai na padrão', async ($: any, on: any) => {
+  await bootSkins($, on, {}, [], { ctxPreset: 'apagada' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openAjustes(ui)
+  await ui.press({ key: 'next' })
+  await ui.press({ key: 'next' }) // o botão de contexto fica na terceira página de Ajustes
+  expect((await ui.find({ key: 'ctx' }))?.props?.label).toMatch(/50\/70\/85%/)
   await ui.unmount()
 })

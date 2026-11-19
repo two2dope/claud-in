@@ -16,7 +16,7 @@ export type Cola = { groups: ColaGroup[]; scripts: ColaCmd[] }
 export type ColaRow = { kind: 'group' | 'head' | 'item' | 'note'; key: string; label: string; group?: string; command?: string; say?: string }
 
 const SAFE_NAME = /^[A-Za-z0-9][A-Za-z0-9_-]*$/
-const SAFE_SLASH = /^\/[A-Za-z0-9][A-Za-z0-9:_-]*$/
+const SAFE_SLASH = /^\/[A-Za-z0-9][A-Za-z0-9:_-]*(?: [A-Za-z0-9_-]+)*$/ // /comando, com argumentos simples
 const CONTROL = /[\u0000-\u001f]/
 const PLATFORM = 'claude-code'
 const TEXT_MAX = 300
@@ -85,6 +85,24 @@ export function parseCatalogo(text: string): Cola | null {
   return filled.length > 0 ? { groups: filled, scripts: cmds(data.scripts) } : null // catálogo sem nenhuma skill utilizável não serve
 }
 
+// Os comandos do próprio Claudin, sempre na Cola (depois dos plugins do catálogo), porque não moram no catálogo da oficina.
+export const CLAUDIN_GROUP: ColaGroup = {
+  plugin: 'claudin',
+  titulo: 'Claudin',
+  versao: '',
+  lead: '',
+  descricao: 'Comandos do mascote: onde ele fica na tela.',
+  comandos: [
+    { nome: '/claudin', descricao: 'Traz o Claudin de volta onde estava.', exemplo: '' },
+    { nome: '/claudin lateral', descricao: 'Põe o Claudin no painel lateral.', exemplo: '' },
+    { nome: '/claudin prompt', descricao: 'Põe o Claudin acima do prompt.', exemplo: '' },
+    { nome: '/claudin ocultar', descricao: 'Esconde o Claudin; /claudin traz de volta.', exemplo: '' },
+  ],
+  skills: [],
+}
+
+export const withClaudin = (cola: Cola): Cola => (cola.groups.some(g => g.plugin === CLAUDIN_GROUP.plugin) ? cola : { ...cola, groups: [...cola.groups, CLAUDIN_GROUP] })
+
 // O comando que vai ao prompt, com espaço no fim para a pessoa continuar a digitar.
 export const colaCommand = (plugin: string, skill: string): string => `/${plugin}:${skill} `
 
@@ -143,7 +161,7 @@ export function flattenCola(cola: Cola, open: string, q: string): ColaRow[] {
   for (const g of cola.groups) {
     if (active && active !== g.plugin) continue
     const isOpen = open === g.plugin
-    rows.push({ kind: 'group', key: `cl-g-${g.plugin}`, group: g.plugin, label: `${isOpen ? '▾' : '▸'} ${headLabel(g)} · ${g.skills.length}` })
+    rows.push({ kind: 'group', key: `cl-g-${g.plugin}`, group: g.plugin, label: `${isOpen ? '▾' : '▸'} ${headLabel(g)} · ${g.skills.length || g.comandos.length}` })
     if (isOpen) rows.push(...cmdRows(`cl-c-${g.plugin}:`, g.comandos, true), ...skillRows(g))
   }
   if (cola.scripts.length > 0 && (!active || active === SCRIPTS_ID)) {

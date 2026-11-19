@@ -344,3 +344,52 @@ describe('prazo de dezembro visto em janeiro', () => {
     expect(parseHotDeadlines(t, '2026-12-20')[0]?.date).toBe('2026-12-28')
   })
 })
+
+describe('auditoria: cofre.json do jeito que o Windows escreve', () => {
+  test('BOM no começo do arquivo não desliga o cofre', () => {
+    expect(parseCofreConfig('\uFEFF{ "path": "C:/cofre" }')).toBe('C:/cofre')
+  })
+
+  test('caminho do Windows colado sem escapar a barra ainda vale', () => {
+    expect(parseCofreConfig('{ "path": "C:\\Users\\Thomáz\\cofre" }')).toBe('C:/Users/Thomáz/cofre')
+  })
+
+  test('barra que o JSON leria como \\n ou \\t não vira quebra de linha no meio do caminho', () => {
+    expect(parseCofreConfig('{ "path": "C:\\novo\\tudo" }')).toBe('C:/novo/tudo')
+  })
+
+  test('o que não é um objeto com path continua desligando o cofre', () => {
+    expect(parseCofreConfig('C:\\cofre')).toBeNull()
+    expect(parseCofreConfig('{ "outro": "C:\\cofre" }')).toBeNull()
+    expect(parseCofreConfig('{ "path": 7 }')).toBeNull()
+  })
+})
+
+describe('auditoria: o hot velho que o fim de semana explica não avisa', () => {
+  const hot = (date: string) => ({ date, next: null, deadlines: 0, urgent: 0 })
+
+  test('de terça a sexta o hot de ontem avisa, como antes', () => {
+    expect(healthNotes(hot('2026-11-18'), '2026-11-19', null)).toEqual(['o hot é de ontem']) // quinta
+    expect(healthNotes(hot('2026-11-19'), '2026-11-20', null)).toEqual(['o hot é de ontem']) // sexta
+    expect(healthNotes(hot('2026-11-16'), '2026-11-17', null)).toEqual(['o hot é de ontem']) // terça
+  })
+
+  test('sábado, domingo e segunda aceitam o hot da sexta, porque o ciclo roda de segunda a sexta', () => {
+    expect(healthNotes(hot('2026-11-20'), '2026-11-21', null)).toEqual([]) // sábado, hot de sexta
+    expect(healthNotes(hot('2026-11-20'), '2026-11-22', null)).toEqual([]) // domingo
+    expect(healthNotes(hot('2026-11-20'), '2026-11-23', null)).toEqual([]) // segunda, antes do ciclo
+  })
+
+  test('mas um hot ainda mais velho avisa mesmo no fim de semana', () => {
+    expect(healthNotes(hot('2026-11-19'), '2026-11-22', null)).toEqual(['o hot tem 3 dias']) // domingo, hot de quinta
+    expect(healthNotes(hot('2026-11-19'), '2026-11-23', null)).toEqual(['o hot tem 4 dias']) // segunda, hot de quinta
+    expect(healthNotes(hot('2026-11-18'), '2026-11-21', null)).toEqual(['o hot tem 3 dias']) // sábado, hot de quarta
+  })
+})
+
+describe('auditoria: prazo repetido no _hot aparece uma vez', () => {
+  test('a mesma data e o mesmo título, ainda que com outra fonte ou caixa, não repetem', () => {
+    const hot = ['## Prazos (14 dias)', '- 25/11 · Entrega do edital · email', '- 25/11 · entrega do edital · drive', '- 26/11 · Outra coisa'].join('\n')
+    expect(parseHotDeadlines(hot, '2026-11-19').map(d => `${d.date} ${d.title}`)).toEqual(['2026-11-25 Entrega do edital', '2026-11-26 Outra coisa'])
+  })
+})
