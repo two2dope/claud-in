@@ -23,7 +23,7 @@ export const lookFor = (mood: Mood, dir: number, boxOpen_: boolean): Look =>
 
 // ── Skins: o mesmo Claudin, com luz. A cor base ganha um realce no alto, uma sombra embaixo e um fio escuro. ──
 export type Pal = { base: string; hi: string; shade: string; deep: string; ant: string }
-export type SkinDef = { pal: Pal; hat?: boolean }
+export type SkinDef = { pal: Pal; hat?: boolean; sprout?: boolean }
 
 const hex = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0')
 // Mistura `c` com `to` (#rrggbb) na proporção t (0 a 1).
@@ -83,12 +83,15 @@ export const rim = (g: Grid, pal: Pal, t = 0.5): string => {
 }
 
 const STRAW = { base: '#d9b45b', hi: '#eccf85', shade: '#b08f3f', band: '#6b4a2a' }
+// Brotinho da Lama: uma folha de cannabis de cinco pontas nascendo do alto da cabeça, entre as antenas.
+const LEAF = { base: '#4fae4a', hi: '#8ad77a', stem: '#2f7d32' }
 
-// As skins do plugin; o resto vem de pastas sprites/<nome>/ do usuário. O padrão (sem skin) é o Claudin chapado de sempre.
+// As skins do plugin; o resto vem de pastas sprites/<nome>/ do usuário. Sem skin (o "clássico") o Claudin é o chapado de sempre.
 export const SKINS: Record<string, SkinDef> = {
   mangue: { pal: palOf(CORAL) },
   mare: { pal: palOf('#2f9e9a', '#7fd6d0') },
   malungo: { pal: palOf('#8f9bad', '#cfd6e0'), hat: true },
+  lama: { pal: palOf('#7d6b43', '#a89968'), sprout: true },
 }
 
 export const sprite = (mood: Mood, kind: ModeKind = 'normal', look: Look = 'center', skin?: SkinDef) => {
@@ -165,9 +168,16 @@ export const sprite = (mood: Mood, kind: ModeKind = 'normal', look: Look = 'cent
     ? px(5, 0.4, 6, 2.2, STRAW.base) + px(5, 0.4, 6, 0.5, STRAW.hi) + px(5, 1.7, 6, 0.6, STRAW.band) +
       px(2.2, 2.4, 11.6, 0.7, STRAW.base) + px(2.2, 2.4, 11.6, 0.3, STRAW.hi) + px(2.2, 2.9, 11.6, 0.3, STRAW.shade)
     : ''
+  // Brotinho: haste no alto da cabeça e folha de cinco pontas, com um balanço leve.
+  const sprout = skin?.sprout
+    ? `<g>` +
+      px(7.5, 2, 1, 1, LEAF.stem) + px(7.5, 0, 1, 1, LEAF.base) + px(7.5, 1, 1, 1, LEAF.hi) +
+      px(5.5, 1, 1, 1, LEAF.base) + px(9.5, 1, 1, 1, LEAF.base) + px(6.5, 2, 1, 1, LEAF.base) + px(8.5, 2, 1, 1, LEAF.base) +
+      `<animateTransform attributeName="transform" type="rotate" values="-4 8 3;4 8 3;-4 8 3" dur="3.2s" repeatCount="indefinite"/></g>`
+    : ''
   const prop =
     mood === 'alert'
-      ? skin?.hat
+      ? skin?.hat || skin?.sprout
         ? px(14.5, 0, 1, 1.6, '#f5b73d') + px(14.5, 2, 1, 0.6, '#f5b73d')
         : px(7.5, 0, 1, 1.6, '#f5b73d') + px(7.5, 2, 1, 0.6, '#f5b73d')
       : kind === 'cafe'
@@ -179,5 +189,5 @@ export const sprite = (mood: Mood, kind: ModeKind = 'normal', look: Look = 'cent
           : kind === 'meditar'
             ? px(12.5, 0.2, 3, 1.2, '#d64545') + px(13.2, 0.4, 0.6, 0.6, '#f5f4ed') + px(14.4, 0.6, 0.5, 0.5, '#f5f4ed') + px(13.2, 1.4, 1.1, 1.3, '#f5f4ed')
             : ''
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 12" shape-rendering="crispEdges">${ground}${antennae}${body}${arms}<g>${legs}${legAnim}</g>${light}${eyes}${keys}${hat}${prop}</svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 12" shape-rendering="crispEdges">${ground}${antennae}${body}${arms}<g>${legs}${legAnim}</g>${light}${eyes}${keys}${hat}${sprout}${prop}</svg>`
 }

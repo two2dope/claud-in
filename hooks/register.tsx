@@ -3,7 +3,7 @@ import type { Register } from 'claude-code'
 
 import type { Action, CofreView, ColaView, FleetRow, Mode, ModeKind, Mood, Say, TurnStats, Walk } from '../types'
 import { tabLabel } from './abas'
-import { COLA_FILE, filterCola, flattenCola, parseCatalogo } from './cola'
+import { COLA_FILE, flattenCola, parseCatalogo } from './cola'
 import { CORAL, SKINS, lookFor, sprite } from './desenho'
 import { MINI_KINDS, parseFleetMap, pickMinis } from './minis'
 import { miniSvg } from './minis-arte'
@@ -77,8 +77,12 @@ const cola = atom({ plugin: 'claudin', key: 'cola' } as const, null as string | 
 const colaView = atom({ plugin: 'claudin', key: 'colaView' } as const, null as ColaView | null)
 const colaQuery = atom({ plugin: 'claudin', key: 'colaQuery' } as const, '')
 const colaOpen = atom({ plugin: 'claudin', key: 'colaOpen' } as const, false)
-// Skins: pacote sprites/<skin>/<pose> (svg ou png). '' é o desenho padrão; a escolha fica em $.store.
-const skin = atom({ plugin: 'claudin', key: 'skin' } as const, '')
+const colaGroup = atom({ plugin: 'claudin', key: 'colaGroup' } as const, '') // plugin aberto na lista (um de cada vez)
+// Skins: o padrão é a Mangue. 'classico' é o Claudin chapado de antes (e o único que usa os sprites soltos do usuário).
+// Pastas sprites/<skin>/<pose>.svg do usuário viram skins de arte própria. A escolha fica em $.store.
+const DEFAULT_SKIN = 'mangue'
+const CLASSIC_SKIN = 'classico'
+const skin = atom({ plugin: 'claudin', key: 'skin' } as const, DEFAULT_SKIN)
 const skinArt = atom({ plugin: 'claudin', key: 'skinArt' } as const, {} as Record<string, string>)
 // Miniaturas da frota: arte por criatura (sprites/frota/<criatura>) e o mapa tipo -> criatura do usuário (fleet-map.json).
 const miniArt = atom({ plugin: 'claudin', key: 'miniArt' } as const, {} as Record<string, string>)
@@ -667,9 +671,9 @@ async function loadColaView($: any) {
   if (!path) return update($, colaView, () => null)
   try {
     const parsed = parseCatalogo(await $.fs.read(path))
-    await update($, colaView, () => ({ readable: parsed !== null, groups: parsed?.groups ?? [] }))
+    await update($, colaView, () => ({ readable: parsed !== null, groups: parsed?.groups ?? [], scripts: parsed?.scripts ?? [] }))
   } catch {
-    await update($, colaView, () => ({ readable: false, groups: [] }))
+    await update($, colaView, () => ({ readable: false, groups: [], scripts: [] }))
   }
 }
 
@@ -699,9 +703,9 @@ async function loadSprites($: any) {
 // Skins: as do plugin (Mangue, Maré, Malungo) são o mesmo Claudin com outra paleta e vêm do código, então herdam
 // movimento, olhar e modos. Cada pasta de <config>/claudin/sprites/<nome>/ com poses em SVG vira uma skin de arte própria.
 // "frota" guarda as miniaturas, não é skin.
-const SKIN_RESERVED = ['frota']
-const SKIN_LABEL: Record<string, string> = { mare: 'maré' }
-const skinLabel = (name: string) => (name ? SKIN_LABEL[name] ?? name : 'padrão')
+const SKIN_RESERVED = ['frota', CLASSIC_SKIN]
+const SKIN_LABEL: Record<string, string> = { mare: 'maré', [CLASSIC_SKIN]: 'clássico' }
+const skinLabel = (name: string) => SKIN_LABEL[name] ?? (name || DEFAULT_SKIN)
 
 async function listSkins($: any): Promise<string[]> {
   const found = new Set<string>()
@@ -712,13 +716,13 @@ async function listSkins($: any): Promise<string[]> {
       // pasta sem sprites/: nenhuma skin ali
     }
   }
-  return [...Object.keys(SKINS), ...[...found].sort()]
+  return [...Object.keys(SKINS), ...[...found].sort(), CLASSIC_SKIN]
 }
 
 // Pose que a skin não tem fica de fora e o desenho padrão cobre.
 async function loadSkinArt($: any, name: string) {
   const found: Record<string, string> = {}
-  if (name && !SKINS[name]) {
+  if (name && name !== CLASSIC_SKIN && !SKINS[name]) {
     const roots = await dataRoots($)
     for (const m of MOODS) {
       done: for (const root of roots) {
@@ -775,14 +779,15 @@ async function loadSkin($: any) {
   const names = await listSkins($)
   await update($, skinNames, () => names)
   const saved = await $.store.get('skin')
-  const chosen = typeof saved === 'string' && names.includes(saved) ? saved : ''
+  const hasOwnSprites = Object.keys(await read($, sprites)).length > 0
+  const chosen = typeof saved === 'string' && names.includes(saved) ? saved : hasOwnSprites ? CLASSIC_SKIN : DEFAULT_SKIN
   await update($, skin, () => chosen)
   await loadSkinArt($, chosen)
 }
 
 async function cycleSkin($: any) {
-  const all = ['', ...(await read($, skinNames))]
-  const next = all[(all.indexOf(await read($, skin)) + 1) % all.length] ?? ''
+  const all = await read($, skinNames)
+  const next = all[(all.indexOf(await read($, skin)) + 1) % all.length] ?? DEFAULT_SKIN
   await $.store.set('skin', next)
   await update($, skin, () => next)
   await loadSkinArt($, next)
@@ -878,6 +883,7 @@ async function draw($: any, e: any, next: any) {
   const colaPath = await read($, cola)
   const colaV = await read($, colaView)
   const colaQ = await read($, colaQuery)
+  const colaG = await read($, colaGroup)
   const colaShown = !!colaPath && (await read($, colaOpen))
   const skinSel = await read($, skin)
   const skinSprites = await read($, skinArt)
@@ -928,6 +934,7 @@ async function draw($: any, e: any, next: any) {
   const toggleCola = async () => {
     await update($, boxPage, () => 0)
     if (!colaShown) await loadColaView($)
+    await update($, colaGroup, () => '')
     await update($, colaOpen, () => !colaShown)
   }
   const fill = (text: string) => () => $.prompt.fill({ text, mode: 'replace' })
@@ -935,9 +942,28 @@ async function draw($: any, e: any, next: any) {
   type Item = { key: string; label: string; onPress: (p: any) => void; sep?: boolean; text?: boolean; starred?: boolean; onStar?: () => void; onDelete?: () => void }
   const colaItems: Item[] =
     colaShown && colaV?.readable
-      ? flattenCola(filterCola({ groups: colaV.groups }, colaQ)).map(r =>
-          r.kind === 'head' ? { key: r.key, label: r.label, text: true, onPress: () => {} } : { key: r.key, label: r.label, onPress: fill(r.command ?? '') },
-        )
+      ? flattenCola({ groups: colaV.groups, scripts: colaV.scripts }, colaG, colaQ).map((r): Item => {
+          if (r.kind === 'head' || r.kind === 'note') return { key: r.key, label: r.kind === 'note' ? `  ${r.label}` : r.label, text: true, onPress: () => {} }
+          if (r.kind === 'group') {
+            return {
+              key: r.key,
+              label: r.label,
+              onPress: async () => {
+                await update($, boxPage, () => 0)
+                await update($, colaGroup, (v: string) => (v === r.group ? '' : r.group ?? ''))
+              },
+            }
+          }
+          // Preenche o prompt e o Claudin diz o que a skill faz; quem envia é a pessoa.
+          return {
+            key: r.key,
+            label: `  ${r.label}`,
+            onPress: async () => {
+              await fill(r.command ?? '')()
+              if (r.say) await speak($, 'idle', short(r.say, 220))
+            },
+          }
+        })
       : []
   const items: Item[] =
     cat === 'prompts'

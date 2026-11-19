@@ -1,5 +1,5 @@
 // Uso: node scripts/previa-skins.mjs <pasta-do-plugin> <saida.html>
-// Gera uma página com o Claudin padrão e as três skins em várias poses e modos, e as cinco miniaturas da frota,
+// Gera uma página com o Claudin clássico e as quatro skins em várias poses e modos, e as cinco miniaturas da frota,
 // para conferir o visual. O mascote aparece grande e também no tamanho real (44 px) ao lado das miniaturas (26 px).
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -20,7 +20,7 @@ const { sprite, SKINS } = await import(pathToFileURL(join(tmp, 'desenho.ts')).hr
 const { miniSvg } = await import(pathToFileURL(join(tmp, 'minis-arte.ts')).href)
 
 const poses = ['idle', 'think', 'read', 'code', 'run', 'search', 'ok', 'err', 'alert']
-const skins = [['padrão', undefined], ...Object.entries(SKINS)]
+const skins = [['clássico', undefined], ...Object.entries(SKINS)]
 const kinds = ['siri', 'garca', 'guaiamum', 'aratu', 'caranguejinho']
 const bloco = (svg, w) => `<div class="c"><div class="s" style="width:${w}px">${svg}</div></div>`
 

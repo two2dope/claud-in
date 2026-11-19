@@ -60,6 +60,30 @@ describe('a luz do Claudin é uma borda fina, não uma faixa', () => {
     }
   })
 
+  test('a Lama é o Claudin de lama com um brotinho de cannabis nascendo da cabeça, e só ela', () => {
+    const lama = sprite('idle', 'normal', 'center', SKINS.lama)
+    expect(lama).toContain('#7d6b43')
+    expect(lama).toContain('#4fae4a')
+    expect(lama).toContain('rotate')
+    for (const outra of [SKINS.mangue, SKINS.mare, SKINS.malungo]) expect(sprite('idle', 'normal', 'center', outra)).not.toContain('#4fae4a')
+    expect(sprite('idle', 'normal', 'center')).not.toContain('#4fae4a')
+  })
+
+  test('o brotinho fica entre as antenas e acima do corpo, sem tocar o rosto', () => {
+    const folhas = rects(sprite('idle', 'normal', 'center', SKINS.lama)).filter(r => ['#4fae4a', '#8ad77a', '#2f7d32'].includes(r.fill))
+    expect(folhas.length).toBeGreaterThanOrEqual(7)
+    for (const r of folhas) {
+      expect(r.x).toBeGreaterThanOrEqual(5.5)
+      expect(r.x + r.w).toBeLessThanOrEqual(10.5)
+      expect(r.y + r.h).toBeLessThanOrEqual(3)
+    }
+  })
+
+  test('com o brotinho o ponto de exclamação do alerta vai para a direita, como no chapéu', () => {
+    const alerta = rects(sprite('alert', 'normal', 'center', SKINS.lama)).filter(r => r.fill === '#f5b73d')
+    expect(alerta.every(r => r.x === 14.5)).toBe(true)
+  })
+
   test('cada skin usa a sua cor e o Malungo leva o chapéu', () => {
     expect(sprite('idle', 'normal', 'center', SKINS.mare)).toContain('#2f9e9a')
     expect(sprite('idle', 'normal', 'center', SKINS.malungo)).toContain('#d9b45b')

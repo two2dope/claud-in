@@ -906,20 +906,37 @@ const sprite = async (ui: any) => JSON.stringify(await ui.find({ type: 'Svg' }))
 const COR = palOf(CORAL)
 const MARE = { base: '#2f9e9a', ant: '#7fd6d0' }
 const MALUNGO = { base: '#8f9bad', ant: '#cfd6e0', hat: '#d9b45b' }
+const LAMA = { base: '#7d6b43', ant: '#a89968', leaf: '#4fae4a' }
 
-test('sem skin escolhida o Claudin é o desenho chapado de sempre', async ($: any, on: any) => {
+test('sem skin escolhida o Claudin é a Mangue, com luz', async ($: any, on: any) => {
   await bootSkins($, on)
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
   const svg = await sprite(ui)
   expect(svg).toContain(CORAL)
-  expect(svg).not.toContain(COR.hi)
-  expect(svg).not.toContain(COR.shade)
+  expect(svg).toContain(COR.hi)
+  expect(svg).toContain(COR.shade)
   await openAjustes(ui)
-  expect((await ui.find({ key: 'skin' }))?.props?.label).toMatch(/skin: padrão/)
+  expect((await ui.find({ key: 'skin' }))?.props?.label).toMatch(/skin: mangue/)
   await ui.unmount()
 })
 
-test('o botão de skin percorre padrão, mangue, maré, malungo e volta, sem repetir nem listar a frota', async ($: any, on: any) => {
+test('o padrão antigo guardado (vazio) vira a Mangue', async ($: any, on: any) => {
+  await bootSkins($, on, {}, [], { skin: '' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await sprite(ui)).toContain(COR.hi)
+  await ui.unmount()
+})
+
+test('quem já tem sprites soltos próprios e nunca escolheu skin continua vendo os seus', async ($: any, on: any) => {
+  await bootSkins($, on, { 'C:/u/.claude/claudin/sprites/idle.svg': '<svg id="meu-solto"/>' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await sprite(ui)).toContain('meu-solto')
+  await openAjustes(ui)
+  expect((await ui.find({ key: 'skin' }))?.props?.label).toMatch(/skin: clássico/)
+  await ui.unmount()
+})
+
+test('o botão de skin percorre mangue, maré, malungo, lama, clássico e volta, sem repetir nem listar a frota', async ($: any, on: any) => {
   await bootSkins($, on)
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
   await openAjustes(ui)
@@ -929,11 +946,15 @@ test('o botão de skin percorre padrão, mangue, maré, malungo e volta, sem rep
     const svg = await sprite(ui)
     for (const parte of partes) expect(svg).toContain(parte)
   }
-  await veja(/skin: mangue/, COR.hi, COR.shade, COR.deep)
   await veja(/skin: maré/, MARE.base, MARE.ant)
   await veja(/skin: malungo/, MALUNGO.base, MALUNGO.ant, MALUNGO.hat)
-  await veja(/skin: padrão/)
-  expect(await sprite(ui)).not.toContain(MALUNGO.hat)
+  await veja(/skin: lama/, LAMA.base, LAMA.ant, LAMA.leaf)
+  await veja(/skin: clássico/)
+  const classico = await sprite(ui)
+  expect(classico).toContain(CORAL)
+  expect(classico).not.toContain(COR.hi)
+  expect(classico).not.toContain(LAMA.leaf)
+  await veja(/skin: mangue/, COR.hi, COR.shade, COR.deep)
   await ui.unmount()
 })
 
@@ -946,11 +967,11 @@ test('a skin guardada volta na sessão seguinte', async ($: any, on: any) => {
   await ui.unmount()
 })
 
-test('skin guardada que não existe mais cai para o padrão', async ($: any, on: any) => {
+test('skin guardada que não existe mais cai para a Mangue', async ($: any, on: any) => {
   await bootSkins($, on, {}, [], { skin: 'apagada' })
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
   await openAjustes(ui)
-  expect((await ui.find({ key: 'skin' }))?.props?.label).toMatch(/skin: padrão/)
+  expect((await ui.find({ key: 'skin' }))?.props?.label).toMatch(/skin: mangue/)
   await ui.unmount()
 })
 
@@ -958,7 +979,6 @@ test('a skin é só paleta: olhos, piscar e modos continuam os do Claudin', asyn
   await bootSkins($, on)
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
   await openAjustes(ui)
-  await ui.press({ key: 'skin' })
   await ui.press({ key: 'skin' })
   const parado = await sprite(ui)
   expect(parado).toContain(MARE.base)
@@ -974,6 +994,18 @@ test('o Malungo põe o chapéu entre as antenas e muda a exclamação de lugar',
   await bootSkins($, on, {}, [], { skin: 'malungo' })
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
   expect(await sprite(ui)).toContain(MALUNGO.hat)
+  await ui.unmount()
+})
+
+test('a Lama leva o brotinho de cannabis também nos modos, e a guardada volta', async ($: any, on: any) => {
+  await bootSkins($, on, {}, [], { skin: 'lama' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await sprite(ui)).toContain(LAMA.leaf)
+  await openAjustes(ui)
+  await ui.press({ key: 'mode' }) // café
+  const cafe = await sprite(ui)
+  expect(cafe).toContain(LAMA.leaf)
+  expect(cafe).toContain('#6b4423')
   await ui.unmount()
 })
 
@@ -1145,7 +1177,12 @@ test('a miniatura diz o tipo e a quantidade no alt', async ($: any, on: any) => 
 // ── Cola da Oficina: o botão 📋 dentro de Comandos abre o catalogo.json em leitura, com busca e clique que só preenche o prompt ───────
 const COLA_CAT = JSON.stringify({
   plugins: { pedagogico: { versao: '3.1.0', descricao: 'Ciclo pedagógico.' }, produtividade: { versao: '1.1.0', descricao: 'Método e qualidade.' } },
-  skills: { 'lesson-plan': { plugin: 'pedagogico', plataformas: ['claude-code'], status: 'estavel' }, rubric: { plugin: 'pedagogico', plataformas: ['claude-code'], status: 'beta' }, 'ar-board': { plugin: 'produtividade', plataformas: ['claude-code'], status: 'estavel' } },
+  skills: {
+    'lesson-plan': { plugin: 'pedagogico', plataformas: ['claude-code'], status: 'estavel', descricao: 'Plano de aula pronto.', exemplo: 'plano de frações' },
+    rubric: { plugin: 'pedagogico', plataformas: ['claude-code'], status: 'beta' },
+    'ar-board': { plugin: 'produtividade', plataformas: ['claude-code'], status: 'estavel' },
+  },
+  scripts: [{ nome: 'python scripts/oficina.py lint', descricao: 'Confere o repositório.' }],
 })
 const colaFiles = (extra: Record<string, string> = {}) => ({ 'C:/u/.claude/claudin/cola.json': JSON.stringify({ path: 'C:/oficina/catalogo.json' }), 'C:/oficina/catalogo.json': COLA_CAT, ...extra })
 const openCola = async (ui: any) => {
@@ -1185,10 +1222,43 @@ test('a Cola agrupa por plugin; clicar numa skill só preenche o prompt', async 
   await bootFs($, on, colaFiles(), { USERPROFILE: 'C:/u' })
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
   await openCola(ui)
-  expect(await ui.find({ type: 'Text', text: /pedagogico · v3\.1\.0/ })).toBeDefined()
+  expect((await ui.find({ key: 'cl-g-pedagogico' }))?.props?.label).toMatch(/▸ pedagogico · v3\.1\.0 · 2/)
+  expect(await ui.find({ key: 'cl-pedagogico:rubric' })).toBeUndefined() // recolhido: só os plugins aparecem
+  await ui.press({ key: 'cl-g-pedagogico' })
+  expect((await ui.find({ key: 'cl-g-pedagogico' }))?.props?.label).toMatch(/▾ pedagogico/)
   expect((await ui.find({ key: 'cl-pedagogico:rubric' }))?.props?.label).toMatch(/\/pedagogico:rubric · beta/)
   await ui.press({ key: 'cl-pedagogico:lesson-plan' })
   expect(filled).toBe('/pedagogico:lesson-plan ')
+  expect(await ui.find({ type: 'Text', text: /Plano de aula pronto\. Ex\.: plano de frações/ })).toBeDefined() // o Claudin diz o que a skill faz
+  await ui.unmount()
+})
+
+test('o mesmo botão do plugin abre e recolhe a lista', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, colaFiles(), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openCola(ui)
+  await ui.press({ key: 'cl-g-pedagogico' })
+  expect(await ui.find({ key: 'cl-pedagogico:rubric' })).toBeDefined()
+  await ui.press({ key: 'cl-g-pedagogico' })
+  expect(await ui.find({ key: 'cl-pedagogico:rubric' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('os scripts da oficina (oficina.py) são um grupo; clicar preenche o prompt com o comando', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  let filled = ''
+  on('prompt.fill', (_: any, e: any) => {
+    filled = e.text
+    return { isFilled: true }
+  })
+  await bootFs($, on, colaFiles(), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openCola(ui)
+  await ui.press({ key: 'cl-g-@scripts' })
+  await ui.press({ key: 'cl-s-0' })
+  expect(filled).toBe('python scripts/oficina.py lint ')
+  expect(await ui.find({ type: 'Text', text: /Confere o repositório\./ })).toBeDefined()
   await ui.unmount()
 })
 
