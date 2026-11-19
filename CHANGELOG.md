@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.8 — 2026-11-19
+
+- **Os ícones não pulam mais com a janela.** Eles eram postos por célula inteira, e o arredondamento mudava conforme a largura. Agora cada ícone fica preso por porcentagem ao ponto marcado do objeto (uma âncora sem tamanho, com o ícone numa caixa de 3 células centrada nela), e a altura de uma linha entra na conta para centrar na vertical.
+- **Ícones nas posições marcadas:** Sobre no meio da placa, luz no poste, Agenda no canto do calendário, ⚡ no alto do servidor; o 🔮 do neon em cima da ponta esquerda da mesa da direita, junto da coluna.
+- **Dois pontos novos:** ⚙️ na bancada de ferramentas abre Ajustes; 💬 nos livros deitados da prateleira da direita abre os Prompts.
+- **Relógio:** o ⏱ aparece acima do relógio quando o ponteiro passa pelo botão em branco sobre ele.
+- **Neon refinado:** ciano sob as duas prateleiras, magenta na borda das bancadas com vãos onde ficam as cadeiras, e faixas horizontais ciano no rack (no lugar do contorno).
+- **A lua saiu por ora:** o brilho cobria o desenho.
+- **Cola:** a busca ganhou uma linha de folga antes da lista no painel lateral.
+
 ## 0.7.7 — 2026-11-19
 
 - **Ícones inteiros.** A coluna de cada ícone passou de 3 para 4 células e fica centrada no ponto marcado: o botão do desktop precisa de folga além das 2 células do emoji, e cortava o 💡, o 🌙, o 🦀 e o ⚡.

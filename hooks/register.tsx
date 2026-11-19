@@ -5,7 +5,7 @@ import type { Action, CofreView, ColaView, FleetRow, Mode, ModeKind, Mood, Say, 
 import { tabLabel } from './abas'
 import { COLA_FILE, flattenCola, parseCatalogo, withClaudin } from './cola'
 import { QG_ART } from './cenario-arte'
-import { ICON_HALF_H, SPOTS, STATIONS, composeQg, pct, pomodoroOf, stationCol, withOutline, type Panel } from './cenario'
+import { SPOTS, STATIONS, composeQg, pct, pomodoroOf, stationCol, withOutline, type Panel } from './cenario'
 import { CONTEXT_PRESETS, DEFAULT_PRESET, contextLevel, contextLine, contextWarn, presetById, readPercent } from './contexto'
 import { CORAL, SKINS, lookFor, sprite } from './desenho'
 import { MINI_KINDS, parseFleetMap, pickMinis } from './minis'
@@ -55,7 +55,7 @@ const FLEET_CAT = 'frota' // a aba só aparece enquanto há agentes, para não a
 const COFRE_CAT = 'cofre' // a aba só aparece com o cofre ligado
 const SOBRE_CAT = 'sobre' // aba escondida: só a placa de madeira do QG abre
 const REPO_URL = 'https://github.com/two2dope/claud-in'
-const VERSION = '0.7.7' // igual ao plugin.json (um teste confere)
+const VERSION = '0.7.8' // igual ao plugin.json (um teste confere)
 const CAT_LABEL: Record<string, string> = { prompts: 'Prompts', acoes: 'Ações', comandos: 'Comandos', ajustes: 'Ajustes', tempo: 'Tempo', prazos: 'Agenda', frota: 'Frota', cofre: 'Cofre' }
 const SHORTCUTS: { label: string; text: string }[] = [
   { label: 'resumir', text: 'Resuma em poucas linhas o que você fez até agora.' },
@@ -70,19 +70,14 @@ const ROW_BG = '#242424'
 const ROW_HOVER = '#303030'
 // Recheio invisível de uma zona do QG: linhas de espaços duros, maiores que qualquer zona (a zona corta o excesso),
 // para o clique pegar em todo o retângulo do objeto e não só numa letra.
-// Os pontos do QG em ordem da esquerda para a direita, cada um numa coluna de ICON_COLS células no centro marcado.
-// Se dois centros caem perto demais, o da direita anda o que falta: as colunas nunca se cruzam.
-const ICON_COLS = 4 // um emoji ocupa 2 células; o botão do desktop ainda precisa de folga, senão corta
+// Pontos do QG, da esquerda para a direita. Cada um ganha uma coluna que vai do meio do caminho até o vizinho da
+// esquerda ao meio do caminho até o da direita (as colunas não se cruzam). Dentro dela o ícone é ancorado por
+// porcentagem no ponto marcado, e não por célula inteira: assim ele não pula de lugar quando a janela muda de largura.
 const ICONS = [...SPOTS].sort((a, b) => a.cx - b.cx)
-function iconCols(cols: number): { sp: (typeof SPOTS)[number]; gap: number }[] {
-  let end = 0
-  return ICONS.map(sp => {
-    const start = Math.max(end, Math.round(sp.cx * cols) - ICON_COLS / 2)
-    const gap = start - end
-    end = start + ICON_COLS
-    return { sp, gap }
-  })
-}
+const ICON_BOUNDS = ICONS.map((sp, i) => [i === 0 ? 0 : (ICONS[i - 1]!.cx + sp.cx) / 2, i === ICONS.length - 1 ? 1 : (sp.cx + ICONS[i + 1]!.cx) / 2] as [number, number])
+// Altura de uma linha do painel em fração da altura da faixa: a faixa tem 76/360 da largura, e uma linha mede ~2,2
+// células de largura. Serve para centrar o ícone na vertical no ponto marcado.
+const rowFrac = (cols: number) => (2.2 * 360) / (76 * Math.max(20, cols))
 const PAGE = 4
 const PAGE_CMD = 3
 const PANE_RANGE = 14
@@ -1358,7 +1353,7 @@ async function draw($: any, e: any, next: any) {
       )}
       {chips ? null : <Text dimColor>{line}</Text>}
       {cat === 'comandos' && Input ? (
-        <Box key="q-row" flexDirection="row" columnGap={1}>
+        <Box key="q-row" flexDirection="row" columnGap={1} marginBottom={chips ? 1 : 0}>
           {colaShown ? (
             <Input
               key="cl-q"
@@ -1517,29 +1512,65 @@ async function draw($: any, e: any, next: any) {
             <Svg source={withOutline(miniSprites[mm.kind] ?? '')} alt={`Agente: ${mm.role}`} width={miniPx} height={miniPx} />
           </Box>
         ))}
-        {/* Pontos do QG: o botão é o próprio ícone, numa camada só desenhada por último (nada por cima dele).
-            Cada ícone tem uma coluna de largura fixa em células, para o botão nunca encolher em "…"; as colunas
-            ficam lado a lado sem se cruzar. A luz e o 🦀 ficam acesos; os outros, apagados até o ponteiro passar. */}
+        {/* Pontos do QG: o botão é o próprio ícone, numa camada só desenhada por último. Cada coluna tem âncoras de
+            altura e largura zero no ponto marcado; o ícone fica numa caixa absoluta de 3 células presa à âncora
+            (uma célula para a esquerda, para centrar o emoji), então não encolhe nem pula com a janela. */}
         <Box key="qg-zones" position="absolute" top={0} left={0} right={0} bottom={0} flexDirection="row">
-          {iconCols(cols).flatMap(({ sp, gap }) => [
-            <Box key={`qg-gap-${sp.id}`} width={gap} />,
-            <Box key={`qg-col-${sp.id}`} flexDirection="column" width={ICON_COLS} flexShrink={0}>
-              <Box key={`qg-top-${sp.id}`} height={pct(Math.max(0, sp.cy - ICON_HALF_H))} />
-              <Box key={`zone-${sp.id}`} position="relative" flexDirection="row" flexShrink={0}>
-                {sp.id === 'tempo' ? (
-                  // O relógio fica limpo: o botão é em branco (U+2800, que não some como espaço) e o ⏱ só aparece sob o ponteiro.
-                  <>
-                    <Button key={`spot-${sp.id}`} plain label={'\u2800\u2800'} onPress={() => openSpot($, sp.id)} />
-                    <Box position="absolute" top={0} left={0} display="none" hover={{ display: 'flex' }}>
-                      <Text>{sp.pin}</Text>
-                    </Box>
-                  </>
-                ) : (
-                  <Button key={`spot-${sp.id}`} plain dimColor={!sp.always} label={sp.id === 'luz' && lightsOffNow ? '🌙' : sp.pin} onPress={() => openSpot($, sp.id)} />
-                )}
+          {ICONS.map((sp, i) => {
+            const [b0, b1] = ICON_BOUNDS[i]!
+            const half = rowFrac(cols) / 2
+            const tempo = sp.id === 'tempo'
+            const anchors: { y: number; x: number; node: any; key: string }[] = [
+              {
+                key: 'icon',
+                x: sp.cx,
+                y: sp.cy,
+                node: (
+                  <Box key={`zone-${sp.id}`} position="absolute" top={0} left={-1} width={3} hover={tempo ? { scope: 'qg-tempo' } : undefined}>
+                    {tempo ? (
+                      // O relógio fica limpo: botão em branco (U+2800 não some como espaço); o ⏱ aparece acima dele no hover.
+                      <Button key={`spot-${sp.id}`} plain label={'\u2800\u2800'} onPress={() => openSpot($, sp.id)} />
+                    ) : (
+                      <Button key={`spot-${sp.id}`} plain dimColor={!sp.always} label={sp.id === 'luz' && lightsOffNow ? '🌙' : sp.pin} onPress={() => openSpot($, sp.id)} />
+                    )}
+                  </Box>
+                ),
+              },
+              ...(sp.tag
+                ? [
+                    {
+                      key: 'tag',
+                      x: sp.tag[0],
+                      y: sp.tag[1],
+                      node: (
+                        <Box position="absolute" top={0} left={-1} display="none" hover={{ display: 'flex', scope: 'qg-tempo' }}>
+                          <Text>{sp.pin}</Text>
+                        </Box>
+                      ),
+                    },
+                  ]
+                : []),
+            ].sort((a, b) => a.y - b.y)
+            let used = 0
+            return (
+              <Box key={`qg-col-${sp.id}`} flexDirection="column" width={pct(b1 - b0)}>
+                {anchors.flatMap(a => {
+                  const top = Math.max(used, a.y - half)
+                  const gap = top - used
+                  used = top
+                  return [
+                    <Box key={`qg-sp-${sp.id}-${a.key}`} height={pct(gap)} />,
+                    <Box key={`qg-row-${sp.id}-${a.key}`} flexDirection="row" height={0}>
+                      <Box width={pct((a.x - b0) / (b1 - b0))} />
+                      <Box position="relative" width={0} height={0}>
+                        {a.node}
+                      </Box>
+                    </Box>,
+                  ]
+                })}
               </Box>
-            </Box>,
-          ])}
+            )
+          })}
         </Box>
       </Box>
     )
