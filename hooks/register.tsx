@@ -3,6 +3,7 @@ import type { Register } from 'claude-code'
 
 import type { Action, FleetRow, Mode, ModeKind, Mood, Say, TurnStats, Walk } from '../types'
 import { tabGap } from './abas'
+import { COFRE_FILE, HOT_FILE, PENDING_FILE, countPending, healthNotes, hotLine, mergeDeadlines, parseHot, parseHotDeadlines, resolveCofre } from './cofre'
 import { FLEET_MAX_ROWS, clip, failSay, finish, liveCount, orderRows, reconcile, revive, rowLine, shouldSaySpawn, spawnSay, summaryLine, upsert } from './frota'
 
 const say = atom({ plugin: 'claudin', key: 'say' } as const, {
@@ -60,6 +61,10 @@ const lastCmd = atom({ plugin: 'claudin', key: 'lastCmd' } as const, '')
 const lastFile = atom({ plugin: 'claudin', key: 'lastFile' } as const, '')
 const turn = atom({ plugin: 'claudin', key: 'turn' } as const, { files: [], cmds: 0, errors: 0, agents: 0 } as TurnStats)
 const fleet = atom({ plugin: 'claudin', key: 'fleet' } as const, [] as FleetRow[])
+// Caminho do cofre (só leitura), ou null com o recurso desligado.
+const cofre = atom({ plugin: 'claudin', key: 'cofre' } as const, null as string | null)
+// Prazos lidos do _hot do cofre: espelho só de leitura, sem gravar de volta (ids começam com "cofre:").
+const cofreDeadlines = atom({ plugin: 'claudin', key: 'cofreDeadlines' } as const, [] as Deadline[])
 
 // Comandos que merecem um aviso antes de rodar. Lista curta; não substitui as permissões do app.
 const RISKY = /\brm\s+(-[a-z]*r|-[a-z]*f)|git\s+push\b.*(--force|\s-f\b)|git\s+reset\s+--hard|git\s+clean\s+-[a-z]*f|drop\s+(table|database)|remove-item\b.*-recurse|\bdel\s+\/[sq]|\bformat\s+[a-z]:|mkfs|:\(\)\s*\{/i
@@ -534,6 +539,44 @@ async function removeReminder($: any, id: string) {
   await saveReminders($, cur.filter(r => r.id !== id))
 }
 
+async function loadCofreDeadlines($: any) {
+  try {
+    const root = await read($, cofre)
+    const file = root ? `${root}/${HOT_FILE}` : null
+    if (!file || !(await $.fs.exists(file))) {
+      await update($, cofreDeadlines, () => [])
+      return
+    }
+    const today = dayKey(new Date(await $.clock.now()))
+    const list = parseHotDeadlines(String(await $.fs.read(file)), today)
+    await update($, cofreDeadlines, () => list.map((d, i) => ({ id: `cofre:${d.date}:${i}`, date: d.date, title: d.title })))
+  } catch {
+    await update($, cofreDeadlines, () => [])
+  }
+}
+
+// Frase do cofre (só leitura): próximo passo e urgentes do Wiki/_hot.md, mais avisos de saúde (hot velho, fila grande).
+// Sem cofre, sem _hot.md ou sem o que dizer: nada, em silêncio.
+async function cofreHotLine($: any, today: string): Promise<string> {
+  try {
+    const root = await read($, cofre)
+    if (!root) return ''
+    const file = `${root}/${HOT_FILE}`
+    if (!(await $.fs.exists(file))) return ''
+    const hot = parseHot(String(await $.fs.read(file)))
+    let pending: number | null = null
+    try {
+      const pf = `${root}/${PENDING_FILE}`
+      if (await $.fs.exists(pf)) pending = countPending(String(await $.fs.read(pf)))
+    } catch {
+      pending = null
+    }
+    return hotLine(hot, healthNotes(hot, today, pending)) ?? ''
+  } catch {
+    return ''
+  }
+}
+
 // Saudação do dia: prazos atrasados, de hoje e de amanhã, lembretes de hoje e timers pausados. Uma vez por dia.
 async function greetToday($: any, force: boolean) {
   const now = await $.clock.now()
@@ -541,7 +584,7 @@ async function greetToday($: any, force: boolean) {
   const today = dayKey(d)
   if (!force && (await $.store.get('lastGreeting')) === today) return
   await $.store.set('lastGreeting', today)
-  const dl = await read($, deadlines)
+  const dl = mergeDeadlines(await read($, deadlines), await read($, cofreDeadlines))
   const rm = await read($, reminders)
   const tm = await read($, timers)
   const over = dl.filter(x => daysUntil(x.date, now) < 0)
@@ -556,6 +599,7 @@ async function greetToday($: any, force: boolean) {
     amanha.length ? `amanhã: ${names(amanha)}` : '',
     rToday.length ? `${rToday.length} lembrete${rToday.length > 1 ? 's' : ''} hoje` : '',
     paused.length ? `${paused.length} timer pausado` : '',
+    await cofreHotLine($, today),
   ].filter(Boolean)
   if (parts.length === 0) {
     if (force) await speak($, 'idle', 'Nada pendente na agenda.')
@@ -588,6 +632,23 @@ async function userDir($: any): Promise<string | null> {
 async function dataRoots($: any): Promise<string[]> {
   const user = await userDir($)
   return user ? [user, $.plugin.root] : [$.plugin.root]
+}
+
+// Cofre: caminho em <config>/claudin/cofre.json (arquivo pessoal, nunca do plugin). Sem ele, ou com a pasta
+// inexistente, o recurso fica desligado em silêncio.
+async function loadCofre($: any) {
+  const user = await userDir($)
+  let home: string | undefined
+  try {
+    home = (await $.env.get('USERPROFILE')) ?? (await $.env.get('HOME')) ?? undefined
+  } catch {
+    home = undefined
+  }
+  const file = user ? `${user}/${COFRE_FILE}` : null
+  const path = file
+    ? await resolveCofre(async () => ((await $.fs.exists(file)) ? await $.fs.read(file) : null), (p: string) => $.fs.exists(p), home)
+    : null
+  await update($, cofre, () => path)
 }
 
 async function loadSprites($: any) {
@@ -692,10 +753,11 @@ async function draw($: any, e: any, next: any) {
   const q = await read($, query)
   const favList = await read($, favs)
   const activeTimers = await read($, timers)
-  const dls = await read($, deadlines)
+  const dls = mergeDeadlines(await read($, deadlines), await read($, cofreDeadlines))
   const rems = await read($, reminders)
   const ddq = await read($, ddText)
   const nowDl = dls.length > 0 ? await $.clock.now() : 0
+  const cofreRoot = await read($, cofre)
   const fleetRows = await read($, fleet)
   const nowF = fleetRows.length > 0 ? await $.clock.now() : 0
   const fleetLine = summaryLine(fleetRows, nowF)
@@ -731,6 +793,7 @@ async function draw($: any, e: any, next: any) {
     await update($, boxPage, () => 0)
     await update($, boxCat, () => c)
     if (c === 'comandos') await loadCommands($)
+    if (c === 'prazos') await loadCofreDeadlines($)
   }
   const fill = (text: string) => () => $.prompt.fill({ text, mode: 'replace' })
 
@@ -767,6 +830,8 @@ async function draw($: any, e: any, next: any) {
                 await speak($, 'ok', 'Pasta aberta.')
               },
             },
+            // Só com o cofre ligado; preenche o prompt e quem envia é a pessoa.
+            ...(cofreRoot ? [{ key: 'a-cofre', label: 'próximo passo do cofre', onPress: fill(`Leia ${cofreRoot}/${HOT_FILE} e me ajude com o próximo passo.`) }] : []),
           ]
         : cat === 'ajustes'
           ? [
@@ -818,9 +883,12 @@ async function draw($: any, e: any, next: any) {
                       .sort((a, b) => a.date.localeCompare(b.date))
                       .map(d => {
                         const n = daysUntil(d.date, nowDl)
+                        const dot = n < 0 ? '🔴' : n <= 3 ? '🟡' : '🟢'
+                        // Prazo do cofre é espelho só de leitura: sem botão de apagar.
+                        if (d.id.startsWith('cofre:')) return { key: `dl-${d.id}`, label: `${dot} ${dayLabel(n)} · ${d.title} · do cofre`, text: true, onPress: () => {} }
                         return {
                           key: `dl-${d.id}`,
-                          label: `${n < 0 ? '🔴' : n <= 3 ? '🟡' : '🟢'} ${dayLabel(n)} · ${d.title}`,
+                          label: `${dot} ${dayLabel(n)} · ${d.title}`,
                           onPress: () => {},
                           onDelete: () => removeDeadline($, d.id),
                         }
@@ -945,14 +1013,16 @@ async function draw($: any, e: any, next: any) {
               {fleetLine ? <Text key="fleet-line" dimColor>{`◆ ${fleetLine}`}</Text> : null}
               {first ? timerRow(first, 'bt') : null}
               {act ? (
-                <Button
-                  key="act"
-                  label={act.label}
-                  onPress={async () => {
-                    await $.prompt.fill({ text: act.text, mode: 'replace' })
-                    await update($, action, () => null)
-                  }}
-                />
+                <Box key="act-row" marginTop={1}>
+                  <Button
+                    key="act"
+                    label={act.label}
+                    onPress={async () => {
+                      await $.prompt.fill({ text: act.text, mode: 'replace' })
+                      await update($, action, () => null)
+                    }}
+                  />
+                </Box>
               ) : null}
             </Box>
           )}
@@ -1147,6 +1217,8 @@ export const register: Register = on => {
     if (await read($, isSide)) await placeClaudin($, true)
     await loadSprites($)
     await loadShortcuts($)
+    await loadCofre($)
+    await loadCofreDeadlines($)
     await loadFavs($)
     await loadTimers($)
     await loadDeadlines($)

@@ -137,6 +137,7 @@ Os seus arquivos moram em `<config>/claudin/`, em que `<config>` é a pasta defi
 
 - **Sprites próprios:** `<config>/claudin/sprites/`, um arquivo por pose (`.svg` ou `.png`, PNG até cerca de 90 KB). As poses são `idle`, `think`, `read`, `code`, `run`, `search`, `ok`, `err`. Pose sem arquivo usa o desenho padrão.
 - **Atalhos de prompt:** `<config>/claudin/shortcuts.json`, uma lista de `{ "label", "text" }`.
+- **Cofre (opcional, só leitura):** `<config>/claudin/cofre.json`, no formato `{ "path": "~/Projetos/00_cofre" }`. É pessoal e nunca vai para o repositório. Com ele ligado, a saudação do dia mostra o próximo passo e a contagem de urgentes do `Wiki/_hot.md` e avisa quando o hot está velho ou a fila do `Raw/_pending.md` passa de 40 itens. O Claudin só lê. Na aba Ações aparece o botão `próximo passo do cofre`, que só preenche o prompt. Os prazos do `_hot` aparecem na Agenda como `do cofre`, só leitura.
 - **Favoritos iniciais:** `<config>/claudin/favorites-seed.json` entra na primeira vez; depois os favoritos ficam no armazenamento do próprio mod.
 
 Quem carrega o plugin por `--plugin-dir` também pode pôr esses arquivos na pasta clonada (`sprites/`, `shortcuts.json`, `favorites-seed.json`); eles valem quando não há versão sua na pasta de config.
