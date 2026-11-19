@@ -55,7 +55,7 @@ const FLEET_CAT = 'frota' // a aba só aparece enquanto há agentes, para não a
 const COFRE_CAT = 'cofre' // a aba só aparece com o cofre ligado
 const SOBRE_CAT = 'sobre' // aba escondida: só a placa de madeira do QG abre
 const REPO_URL = 'https://github.com/two2dope/claud-in'
-const VERSION = '0.7.6' // igual ao plugin.json (um teste confere)
+const VERSION = '0.7.7' // igual ao plugin.json (um teste confere)
 const CAT_LABEL: Record<string, string> = { prompts: 'Prompts', acoes: 'Ações', comandos: 'Comandos', ajustes: 'Ajustes', tempo: 'Tempo', prazos: 'Agenda', frota: 'Frota', cofre: 'Cofre' }
 const SHORTCUTS: { label: string; text: string }[] = [
   { label: 'resumir', text: 'Resuma em poucas linhas o que você fez até agora.' },
@@ -72,12 +72,12 @@ const ROW_HOVER = '#303030'
 // para o clique pegar em todo o retângulo do objeto e não só numa letra.
 // Os pontos do QG em ordem da esquerda para a direita, cada um numa coluna de ICON_COLS células no centro marcado.
 // Se dois centros caem perto demais, o da direita anda o que falta: as colunas nunca se cruzam.
-const ICON_COLS = 3
+const ICON_COLS = 4 // um emoji ocupa 2 células; o botão do desktop ainda precisa de folga, senão corta
 const ICONS = [...SPOTS].sort((a, b) => a.cx - b.cx)
 function iconCols(cols: number): { sp: (typeof SPOTS)[number]; gap: number }[] {
   let end = 0
   return ICONS.map(sp => {
-    const start = Math.max(end, Math.round(sp.cx * cols) - 1)
+    const start = Math.max(end, Math.round(sp.cx * cols) - ICON_COLS / 2)
     const gap = start - end
     end = start + ICON_COLS
     return { sp, gap }
@@ -112,6 +112,8 @@ const ctxPreset = atom({ plugin: 'claudin', key: 'ctxPreset' } as const, DEFAULT
 const cenario = atom({ plugin: 'claudin', key: 'cenario' } as const, false)
 // Interruptor da lanterna do QG: true apaga a luz da sala (guardado em $.store).
 const lightsOff = atom({ plugin: 'claudin', key: 'lightsOff' } as const, false)
+// Segundo interruptor do QG: o modo neon (guardado em $.store).
+const neonOn = atom({ plugin: 'claudin', key: 'neonOn' } as const, false)
 // O que os monitores mostram, lido do engine nos eventos (início, envio, fim de turno) e não a cada desenho.
 const panelInfo = atom({ plugin: 'claudin', key: 'panelInfo' } as const, null as Panel | null)
 // Skins: o padrão é a Mangue. 'classico' é o Claudin chapado de antes (e o único que usa os sprites soltos do usuário).
@@ -723,6 +725,15 @@ async function loadCenario($: any) {
   await update($, cenario, () => saved === true)
   const off = await $.store.get('lightsOff')
   await update($, lightsOff, () => off === true)
+  const neon = await $.store.get('neonOn')
+  await update($, neonOn, () => neon === true)
+}
+
+async function toggleNeon($: any) {
+  const next = !(await read($, neonOn))
+  await $.store.set('neonOn', next)
+  await update($, neonOn, () => next)
+  await speak($, 'idle', next ? 'Modo neon ligado.' : 'Modo neon desligado.')
 }
 
 async function toggleLights($: any) {
@@ -786,6 +797,7 @@ async function openSpot($: any, id: string) {
   const spot = SPOTS.find(s => s.id === id)
   if (!spot) return
   if (spot.id === 'luz') return toggleLights($)
+  if (spot.id === 'neon') return toggleNeon($)
   if (spot.id === 'sobre') {
     await update($, boxPage, () => 0)
     await update($, boxCat, () => SOBRE_CAT)
@@ -1490,6 +1502,7 @@ async function draw($: any, e: any, next: any) {
       minutes: clock.getHours() * 60 + clock.getMinutes(),
       pomo: pomodoroOf(activeTimers, nowQ),
       lightsOff: !!(await read($, lightsOff)),
+      neon: !!(await read($, neonOn)),
       panel,
       working: !!e.props?.isWorking,
     })
@@ -1512,8 +1525,18 @@ async function draw($: any, e: any, next: any) {
             <Box key={`qg-gap-${sp.id}`} width={gap} />,
             <Box key={`qg-col-${sp.id}`} flexDirection="column" width={ICON_COLS} flexShrink={0}>
               <Box key={`qg-top-${sp.id}`} height={pct(Math.max(0, sp.cy - ICON_HALF_H))} />
-              <Box key={`zone-${sp.id}`} flexDirection="row" flexShrink={0}>
-                <Button key={`spot-${sp.id}`} plain dimColor={!sp.always} label={sp.id === 'luz' && lightsOffNow ? '🌙' : sp.pin} onPress={() => openSpot($, sp.id)} />
+              <Box key={`zone-${sp.id}`} position="relative" flexDirection="row" flexShrink={0}>
+                {sp.id === 'tempo' ? (
+                  // O relógio fica limpo: o botão é em branco (U+2800, que não some como espaço) e o ⏱ só aparece sob o ponteiro.
+                  <>
+                    <Button key={`spot-${sp.id}`} plain label={'\u2800\u2800'} onPress={() => openSpot($, sp.id)} />
+                    <Box position="absolute" top={0} left={0} display="none" hover={{ display: 'flex' }}>
+                      <Text>{sp.pin}</Text>
+                    </Box>
+                  </>
+                ) : (
+                  <Button key={`spot-${sp.id}`} plain dimColor={!sp.always} label={sp.id === 'luz' && lightsOffNow ? '🌙' : sp.pin} onPress={() => openSpot($, sp.id)} />
+                )}
               </Box>
             </Box>,
           ])}

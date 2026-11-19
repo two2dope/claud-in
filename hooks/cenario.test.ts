@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { QG_ART } from './cenario-arte'
-import { QG_LIMIT, MONITORS, ambientSvg, fleetPulse, SPOTS, kTokens, modelShort, panelSvg, STATIONS, composeQg, pct, pomodoroOf, skyAt, stationCol, withOutline } from './cenario'
+import { QG_LIMIT, MONITORS, ambientSvg, fleetPulse, neonSvg, SPOTS, kTokens, modelShort, panelSvg, STATIONS, composeQg, pct, pomodoroOf, skyAt, stationCol, withOutline } from './cenario'
 
 const HORA = (h: number, m = 0) => h * 60 + m
 
@@ -22,8 +22,8 @@ describe('QG: a arte', () => {
 })
 
 describe('QG: pontos clicáveis e bancadas', () => {
-  test('oito zonas, cada uma com a aba que abre, dentro da imagem', () => {
-    expect(SPOTS.map(s => [s.id, s.tab])).toEqual([['sobre', 'sobre'], ['cola', 'comandos'], ['luz', ''], ['frota', 'frota'], ['cofre', 'cofre'], ['agenda', 'prazos'], ['servidor', 'acoes'], ['tempo', 'tempo']])
+  test('nove pontos, cada um com a aba que abre, dentro da imagem', () => {
+    expect(SPOTS.map(s => [s.id, s.tab])).toEqual([['sobre', 'sobre'], ['cola', 'comandos'], ['luz', ''], ['frota', 'frota'], ['neon', ''], ['cofre', 'cofre'], ['agenda', 'prazos'], ['servidor', 'acoes'], ['tempo', 'tempo']])
     for (const s of SPOTS) {
       expect(s.x0).toBeGreaterThanOrEqual(0)
       expect(s.x1).toBeLessThanOrEqual(1)
@@ -221,7 +221,7 @@ describe('QG: zonas sem sobreposição e painel dos monitores', () => {
     expect(vazio).not.toContain('<text')
     const cheio = panelSvg({ model: 'claude-opus-5-5', ctx: 42, tokens: 84_000, window: 200_000, usd: 1.75, limit5h: 30, limit7d: 12, agents: 2, tools: 7 }, true)
     for (const t of ['OPUS 5.5', 'CTX 42%', 'TOK 84k', '$1.75', '5H 30%', '7D 12%', 'AGT 2', 'CMD 7']) expect(cheio).toContain(t)
-    expect(cheio.match(/<text /g)?.length).toBe(5) // três linhas no painel, duas na tela laranja // quatro páginas que se revezam
+    expect(cheio.match(/<text /g)?.length).toBe(5) // dois em cima, dois no meio, um embaixo // quatro páginas que se revezam
     expect(cheio).toContain('<animate')
     expect(MONITORS.every(([x0, y0, x1, y1]) => x0 < x1 && y0 < y1 && x1 <= 1 && y1 <= 1)).toBe(true)
   })
@@ -253,5 +253,25 @@ describe('QG: ícones nos pontos marcados', () => {
   test('o monitor do caranguejo pulsa só com agentes', () => {
     expect(fleetPulse(0)).toBe('')
     expect(fleetPulse(2)).toContain('<animate')
+  })
+})
+
+describe('QG 0.7.7: neon, vaga-lumes e lua', () => {
+  test('neon tem as tiras e cabe no limite junto com tudo', () => {
+    expect(neonSvg()).toContain('#00f0ff')
+    const tudo = composeQg(QG_ART.svg, { w: QG_ART.w, h: QG_ART.h, minutes: HORA(23), pomo: { fraction: 0.3 }, lightsOff: true, neon: true, panel: { model: 'claude-opus-5-5', ctx: 99, tokens: 999_999, window: 1_000_000, usd: 999.99, limit5h: 99, limit7d: 99, agents: 9, tools: 99 }, working: true })
+    expect(tudo.length).toBeLessThanOrEqual(QG_LIMIT)
+    expect(tudo).toContain('class="neon"')
+  })
+
+  test('vaga-lumes verdes sempre; a lua só no escuro', () => {
+    expect(ambientSvg(360, 76, false)).toContain('#7dff4a')
+    expect(ambientSvg(360, 76, false)).not.toContain('class="lua"')
+    expect(ambientSvg(360, 76, true)).toContain('class="lua"')
+  })
+
+  test('a vida fica por cima da escuridão', () => {
+    const noite = composeQg(QG_ART.svg, { w: QG_ART.w, h: QG_ART.h, minutes: HORA(22), pomo: null })
+    expect(noite.indexOf('class="vida"')).toBeGreaterThan(noite.indexOf('<mask id="lit">'))
   })
 })
