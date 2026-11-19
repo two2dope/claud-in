@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0 — 2026-11-19
+
+- **Cola da Oficina (opcional, só leitura).** Com `<config>/claudin/cola.json` apontando para o `catalogo.json` da oficina de skills (`{ "path": "~/oficina-skills/catalogo.json" }`), a aba Comandos ganha o botão 📋 ao lado da busca: ele alterna para a lista da oficina, com as skills agrupadas por plugin (com a versão), busca própria, marca `beta` e, ao clicar, o prompt é preenchido com `/plugin:skill ` (quem envia é você). Trocar de aba volta para a lista normal de comandos. O catálogo é relido toda vez que a aba abre, então skill nova da oficina aparece sem reiniciar. Só entram as skills que rodam no Claude Code, e nome fora do padrão é ignorado. Sem o arquivo, ou com o caminho inexistente, o botão não existe. Nada do catálogo vive neste repositório.
+- **Conhecido:** a descrição de cada skill e os comandos do `oficina.py` ainda não estão na aba (o `catalogo.json` não traz a descrição); conferência visual no app desktop pendente; sem LICENSE.
+
 ## 0.3.2 — 2026-11-19
 
 - **Skins refeitas como variações do Claudin.** A arte parada do Flow saiu do pacote: Mangue, Maré e Malungo agora são o desenho do Claudin com outra paleta e luz de borda (realce claro em cima e à esquerda, sombra embaixo e à direita, fio escuro no canto, sombra no chão; o rosto fica limpo, sem faixa sob os olhos), e o Malungo ganha chapéu de palha. Mantêm o piscar, o olhar, o andar e todos os modos com adereço. O `padrão` continua o Claudin chapado. O código do desenho foi para `hooks/desenho.ts`; `scripts/previa-skins.mjs` gera uma página de conferência.

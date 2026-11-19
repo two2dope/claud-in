@@ -1141,3 +1141,89 @@ test('a miniatura diz o tipo e a quantidade no alt', async ($: any, on: any) => 
   expect(JSON.stringify(await ui.find({ key: 'mini-garca' }))).toContain('2 agentes: planejar')
   await ui.unmount()
 })
+
+// ── Cola da Oficina: o botão 📋 dentro de Comandos abre o catalogo.json em leitura, com busca e clique que só preenche o prompt ───────
+const COLA_CAT = JSON.stringify({
+  plugins: { pedagogico: { versao: '3.1.0', descricao: 'Ciclo pedagógico.' }, produtividade: { versao: '1.1.0', descricao: 'Método e qualidade.' } },
+  skills: { 'lesson-plan': { plugin: 'pedagogico', plataformas: ['claude-code'], status: 'estavel' }, rubric: { plugin: 'pedagogico', plataformas: ['claude-code'], status: 'beta' }, 'ar-board': { plugin: 'produtividade', plataformas: ['claude-code'], status: 'estavel' } },
+})
+const colaFiles = (extra: Record<string, string> = {}) => ({ 'C:/u/.claude/claudin/cola.json': JSON.stringify({ path: 'C:/oficina/catalogo.json' }), 'C:/oficina/catalogo.json': COLA_CAT, ...extra })
+const openCola = async (ui: any) => {
+  await ui.press({ key: 'tb' })
+  await ui.press({ key: 'cat-comandos' })
+  await ui.press({ key: 'cl-open' })
+}
+
+test('o botão 📋 aparece em Comandos só com o catálogo configurado, e não há aba Cola', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, colaFiles(), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'tb' })
+  expect(await ui.find({ key: 'cat-cola' })).toBeUndefined()
+  await ui.press({ key: 'cat-comandos' })
+  expect((await ui.find({ key: 'cl-open' }))?.props?.label).toBe('📋')
+  await ui.unmount()
+})
+
+test('sem cola.json, ou com catálogo inexistente, Comandos não tem o botão 📋', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, { 'C:/u/.claude/claudin/cola.json': JSON.stringify({ path: 'C:/oficina/catalogo.json' }) }, { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await ui.press({ key: 'tb' })
+  await ui.press({ key: 'cat-comandos' })
+  expect(await ui.find({ key: 'cl-open' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('a Cola agrupa por plugin; clicar numa skill só preenche o prompt', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  let filled = ''
+  on('prompt.fill', (_: any, e: any) => {
+    filled = e.text
+    return { isFilled: true }
+  })
+  await bootFs($, on, colaFiles(), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openCola(ui)
+  expect(await ui.find({ type: 'Text', text: /pedagogico · v3\.1\.0/ })).toBeDefined()
+  expect((await ui.find({ key: 'cl-pedagogico:rubric' }))?.props?.label).toMatch(/\/pedagogico:rubric · beta/)
+  await ui.press({ key: 'cl-pedagogico:lesson-plan' })
+  expect(filled).toBe('/pedagogico:lesson-plan ')
+  await ui.unmount()
+})
+
+test('a busca da Cola filtra as skills', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, colaFiles(), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openCola(ui)
+  await ui.input({ key: 'cl-q', text: 'rubric', kind: 'change' })
+  expect(await ui.find({ key: 'cl-pedagogico:lesson-plan' })).toBeUndefined()
+  expect(await ui.find({ key: 'cl-pedagogico:rubric' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('a Cola relê o catálogo ao abrir a aba: skill nova da oficina aparece sem reiniciar', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  const files: Record<string, string> = colaFiles()
+  await bootFs($, on, files, { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openCola(ui)
+  expect(await ui.find({ key: 'cl-produtividade:nova' })).toBeUndefined()
+  files['C:/oficina/catalogo.json'] = COLA_CAT.replace('"ar-board"', '"nova":{"plugin":"produtividade","plataformas":["claude-code"]},"ar-board"')
+  await ui.press({ key: 'cat-prompts' })
+  await ui.press({ key: 'cat-comandos' })
+  await ui.press({ key: 'cl-open' })
+  await ui.input({ key: 'cl-q', text: 'nova', kind: 'change' })
+  expect(await ui.find({ key: 'cl-produtividade:nova' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('catálogo ilegível mostra aviso em vez de lista vazia', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, colaFiles({ 'C:/oficina/catalogo.json': 'quebrado' }), { USERPROFILE: 'C:/u' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openCola(ui)
+  expect(await ui.find({ type: 'Text', text: /catálogo ilegível/ })).toBeDefined()
+  await ui.unmount()
+})
