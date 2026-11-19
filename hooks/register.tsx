@@ -4,7 +4,7 @@ import type { Register } from 'claude-code'
 import type { Action, CofreView, ColaView, FleetRow, Mode, ModeKind, Mood, Say, TurnStats, Walk } from '../types'
 import { tabLabel } from './abas'
 import { COLA_FILE, flattenCola, parseCatalogo, withClaudin } from './cola'
-import { contextLevel, contextLine, contextWarn, readPercent } from './contexto'
+import { CONTEXT_PRESETS, DEFAULT_PRESET, contextLevel, contextLine, contextWarn, presetById, readPercent } from './contexto'
 import { CORAL, SKINS, lookFor, sprite } from './desenho'
 import { MINI_KINDS, parseFleetMap, pickMinis } from './minis'
 import { miniSvg } from './minis-arte'
@@ -82,6 +82,8 @@ const colaGroup = atom({ plugin: 'claudin', key: 'colaGroup' } as const, '') // 
 // Janela de contexto: a última leitura (porcentagem) e o nível já avisado, para avisar uma vez por nível.
 const ctxPct = atom({ plugin: 'claudin', key: 'ctxPct' } as const, null as number | null)
 const ctxLevel = atom({ plugin: 'claudin', key: 'ctxLevel' } as const, 0)
+// Faixa dos avisos de contexto (id de CONTEXT_PRESETS), escolhida em Ajustes e guardada em $.store.
+const ctxPreset = atom({ plugin: 'claudin', key: 'ctxPreset' } as const, DEFAULT_PRESET)
 // Skins: o padrão é a Mangue. 'classico' é o Claudin chapado de antes (e o único que usa os sprites soltos do usuário).
 // Pastas sprites/<skin>/<pose>.svg do usuário viram skins de arte própria. A escolha fica em $.store.
 const DEFAULT_SKIN = 'mangue'
@@ -670,6 +672,22 @@ async function loadContext($: any): Promise<number | null> {
   return pct
 }
 
+async function loadCtxPreset($: any) {
+  const saved = await $.store.get('ctxPreset')
+  await update($, ctxPreset, () => presetById(saved).id)
+}
+
+async function cycleCtxPreset($: any) {
+  const current = presetById(await read($, ctxPreset)).id
+  const i = CONTEXT_PRESETS.findIndex(p => p.id === current)
+  const next = CONTEXT_PRESETS[(i + 1) % CONTEXT_PRESETS.length] ?? presetById(DEFAULT_PRESET)
+  await $.store.set('ctxPreset', next.id)
+  await update($, ctxPreset, () => next.id)
+  // O nível já avisado passa a valer pela faixa nova, para ela não disparar de imediato por um valor que a pessoa já viu.
+  const seen = await read($, ctxPct)
+  await update($, ctxLevel, () => contextLevel(seen, next.levels))
+}
+
 // Cola: mesmo formato do cofre.json ({ "path": "..." }), mas aponta para o arquivo catalogo.json.
 async function loadCola($: any) {
   const user = await userDir($)
@@ -905,6 +923,7 @@ async function draw($: any, e: any, next: any) {
   const colaQ = await read($, colaQuery)
   const colaG = await read($, colaGroup)
   const ctxP = await read($, ctxPct)
+  const ctxPre = presetById(await read($, ctxPreset))
   const colaShown = !!colaPath && (await read($, colaOpen))
   const skinSel = await read($, skin)
   const skinSprites = await read($, skinArt)
@@ -1022,7 +1041,7 @@ async function draw($: any, e: any, next: any) {
             // Só com o cofre ligado; preenche o prompt e quem envia é a pessoa.
             ...(cofreRoot ? [{ key: 'a-cofre', label: 'próximo passo do cofre', onPress: fill(`Leia ${cofreRoot}/${HOT_FILE} e me ajude com o próximo passo.`) }] : []),
             // Janela de contexto: só mostra e sugere; compactar e limpar preenchem o prompt e quem envia é a pessoa.
-            { key: 'a-ctx', label: contextLine(ctxP), text: true, onPress: () => {} },
+            { key: 'a-ctx', label: contextLine(ctxP, ctxPre.levels), text: true, onPress: () => {} },
             { key: 'a-compact', label: 'compactar (/compact)', onPress: fill('/compact ') },
             { key: 'a-clear', label: 'limpar contexto (/clear)', onPress: fill('/clear ') },
           ]
@@ -1037,6 +1056,7 @@ async function draw($: any, e: any, next: any) {
               { key: 'sep2', label: '', sep: true, onPress: () => {} },
               { key: 'greet', label: 'saudação do dia', onPress: async () => { await loadCofreDeadlines($); await greetToday($, true) } },
               { key: 'pet', label: 'afagar', onPress: () => speak($, 'ok', PETS[Math.floor(Math.random() * PETS.length)] ?? 'Presente.') },
+              { key: 'ctx', label: `contexto: ${ctxPre.label}`, onPress: () => cycleCtxPreset($) },
               {
                 key: 'side',
                 label: side ? '↔ prompt' : '↔ lateral',
@@ -1423,7 +1443,8 @@ export const register: Register = on => {
     try {
       // Janela nova: atualiza a leitura e rearma o aviso para quando ela encher de novo.
       const after = await loadContext($)
-      await update($, ctxLevel, () => contextLevel(after))
+      const lv = presetById(await read($, ctxPreset)).levels
+      await update($, ctxLevel, () => contextLevel(after, lv))
     } catch {
       // idem
     }
@@ -1453,8 +1474,9 @@ export const register: Register = on => {
     const summary = parts.length ? `Pronto: ${parts.join(', ')}.` : 'Pronto. Nada a reportar.'
     // Janela de contexto: avisa uma vez ao subir de nível; descer (depois de /compact ou /clear) rearma.
     const pct = await loadContext($)
-    const warn = pct === null ? null : contextWarn(await read($, ctxLevel), pct)
-    await update($, ctxLevel, () => contextLevel(pct))
+    const levels = presetById(await read($, ctxPreset)).levels
+    const warn = pct === null ? null : contextWarn(await read($, ctxLevel), pct, levels)
+    await update($, ctxLevel, () => contextLevel(pct, levels))
     const next1: Action | null =
       st.errors > 0
         ? { label: 'investigar falhas', text: 'Houve falhas neste turno. Resuma o que falhou e proponha como corrigir.' }
@@ -1512,6 +1534,7 @@ export const register: Register = on => {
     if (await read($, isSide)) await placeClaudin($, true)
     await loadSprites($)
     await loadSkin($)
+    await loadCtxPreset($)
     await loadMinis($)
     await loadShortcuts($)
     await loadCofre($)

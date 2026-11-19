@@ -1329,26 +1329,26 @@ const usageAt = (on: any, percent: number | (() => number)) => {
 }
 const doneTurn = ($: any) => $.turn.complete({ answer: '', reason: 'answer', durationMs: 1, isAborted: false, turnId: 'main' })
 
-test('com a janela em 72% o fim do turno avisa e oferece o botão compactar', async ($: any, on: any) => {
+test('com a janela em 55% o fim do turno avisa e oferece o botão compactar', async ($: any, on: any) => {
   mock.clock(on, { now: 3_000_000 })
   let filled = ''
   on('prompt.fill', (_: any, e: any) => {
     filled = e.text
     return { isFilled: true }
   })
-  usageAt(on, 72)
+  usageAt(on, 55)
   await doneTurn($)
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
-  expect(await ui.find({ type: 'Text', text: /Pronto\. Nada a reportar\. Contexto em 72%\. Se a conversa vai longe, vale um \/compact\./ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Pronto\. Nada a reportar\. Contexto em 55%\. Se a conversa vai longe, vale um \/compact\./ })).toBeDefined()
   expect((await ui.find({ key: 'act' }))?.props?.label).toBe('compactar')
   await ui.press({ key: 'act' })
   expect(filled).toBe('/compact ')
   await ui.unmount()
 })
 
-test('abaixo de 70% o balão não fala de contexto', async ($: any, on: any) => {
+test('abaixo de 50% o balão não fala de contexto', async ($: any, on: any) => {
   mock.clock(on, { now: 3_100_000 })
-  usageAt(on, 69)
+  usageAt(on, 49)
   await doneTurn($)
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
   expect(await ui.find({ type: 'Text', text: /Pronto\. Nada a reportar\./ })).toBeDefined()
@@ -1358,18 +1358,18 @@ test('abaixo de 70% o balão não fala de contexto', async ($: any, on: any) => 
 
 test('o aviso vem uma vez por nível: o segundo turno no mesmo nível fica calado, e o próximo nível avisa de novo', async ($: any, on: any) => {
   mock.clock(on, { now: 3_200_000 })
-  let pct = 72
+  let pct = 55
   usageAt(on, () => pct)
   await doneTurn($)
-  pct = 75
+  pct = 62
   await doneTurn($)
   let ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
   expect(await ui.find({ type: 'Text', text: /Contexto em/ })).toBeUndefined()
   await ui.unmount()
-  pct = 88
+  pct = 75
   await doneTurn($)
   ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
-  expect(await ui.find({ type: 'Text', text: /Contexto em 88%\. Compacte agora/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Contexto em 75%\. Compacte agora/ })).toBeDefined()
   await ui.unmount()
 })
 
@@ -1392,7 +1392,7 @@ test('no último nível o aviso lembra do /clear', async ($: any, on: any) => {
   usageAt(on, 97)
   await doneTurn($)
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
-  expect(await ui.find({ type: 'Text', text: /quase cheio\. \/compact agora, ou \/clear/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Hora de \/compact, ou \/clear/ })).toBeDefined()
   await ui.unmount()
 })
 
@@ -1455,5 +1455,60 @@ test('o mesmo prazo digitado duas vezes na Agenda fica uma só vez', async ($: a
   await ui.input({ key: 'dq', text: '25/11 Entrega do edital' })
   await ui.input({ key: 'dq', text: '25/11 entrega do edital' })
   expect(await ui.find({ type: 'Text', text: /Esse prazo já está na Agenda/ })).toBeDefined()
+  await ui.unmount()
+})
+
+// ── contexto: a faixa dos avisos se ajusta em Ajustes e fica guardada ───────
+test('o botão de contexto em Ajustes percorre as faixas e o desligado, e volta', async ($: any, on: any) => {
+  await bootSkins($, on)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openAjustes(ui)
+  await ui.press({ key: 'next' })
+  await ui.press({ key: 'next' }) // o botão de contexto fica na terceira página de Ajustes
+  const veja = async (label: RegExp) => {
+    await ui.press({ key: 'ctx' })
+    expect((await ui.find({ key: 'ctx' }))?.props?.label).toMatch(label)
+  }
+  expect((await ui.find({ key: 'ctx' }))?.props?.label).toMatch(/contexto: 50\/70\/85%/)
+  await veja(/60\/80\/90%/)
+  await veja(/70\/85\/95%/)
+  await veja(/desligado/)
+  await veja(/50\/70\/85%/)
+  await ui.unmount()
+})
+
+test('na faixa 70/85/95 a janela em 60% não avisa, e a escolha guardada volta na sessão seguinte', async ($: any, on: any) => {
+  usageAt(on, 60)
+  await bootSkins($, on, {}, [], { ctxPreset: 'tarde' })
+  await doneTurn($)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /Pronto\. Nada a reportar\./ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Contexto em/ })).toBeUndefined()
+  await openAjustes(ui)
+  await ui.press({ key: 'next' })
+  await ui.press({ key: 'next' }) // o botão de contexto fica na terceira página de Ajustes
+  expect((await ui.find({ key: 'ctx' }))?.props?.label).toMatch(/70\/85\/95%/)
+  await ui.unmount()
+})
+
+test('desligado, a janela em 99% não avisa, mas a aba Ações ainda mostra o número', async ($: any, on: any) => {
+  usageAt(on, 99)
+  await bootSkins($, on, {}, [], { ctxPreset: 'off' })
+  await doneTurn($)
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  expect(await ui.find({ type: 'Text', text: /Contexto em/ })).toBeUndefined()
+  await ui.press({ key: 'tb' })
+  await ui.press({ key: 'cat-acoes' })
+  expect(await ui.find({ type: 'Text', text: /contexto: 99% da janela$/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('faixa guardada que não existe mais cai na padrão', async ($: any, on: any) => {
+  await bootSkins($, on, {}, [], { ctxPreset: 'apagada' })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
+  await openAjustes(ui)
+  await ui.press({ key: 'next' })
+  await ui.press({ key: 'next' }) // o botão de contexto fica na terceira página de Ajustes
+  expect((await ui.find({ key: 'ctx' }))?.props?.label).toMatch(/50\/70\/85%/)
   await ui.unmount()
 })
