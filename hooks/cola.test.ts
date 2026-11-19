@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { COLA_FILE, SCRIPTS_ID, colaCommand, colaSay, filterCola, flattenCola, parseCatalogo } from './cola'
+import { CLAUDIN_GROUP, COLA_FILE, SCRIPTS_ID, colaCommand, colaSay, filterCola, flattenCola, parseCatalogo, withClaudin } from './cola'
 
 const CAT = JSON.stringify({
   _leia: 'fonte da verdade',
@@ -102,6 +102,38 @@ describe('cola: catálogo da oficina em leitura', () => {
     expect(colaSay('Plano de aula pronto.', 'plano de frações')).toBe('Plano de aula pronto. Ex.: plano de frações')
     expect(colaSay('Só descrição.', '')).toBe('Só descrição.')
     expect(colaSay('', '')).toBe('')
+  })
+})
+
+describe('cola: comandos do próprio Claudin', () => {
+  test('o grupo do Claudin traz /claudin e os três argumentos', () => {
+    expect(CLAUDIN_GROUP.plugin).toBe('claudin')
+    expect(CLAUDIN_GROUP.comandos.map(c => c.nome)).toEqual(['/claudin', '/claudin lateral', '/claudin prompt', '/claudin ocultar'])
+    for (const c of CLAUDIN_GROUP.comandos) expect(c.descricao.length).toBeGreaterThan(5)
+  })
+
+  test('withClaudin põe o grupo depois dos plugins do catálogo e não duplica', () => {
+    const cola = withClaudin(parsed())
+    expect(cola.groups.map(g => g.plugin)).toEqual(['pedagogico', 'produtividade', 'claudin'])
+    expect(withClaudin(cola).groups.length).toBe(3)
+    expect(cola.scripts.length).toBe(2)
+  })
+
+  test('comando com argumento simples preenche o prompt inteiro; o contador do grupo conta os comandos', () => {
+    const rows = flattenCola(withClaudin(parsed()), 'claudin', '')
+    expect(rows[0]).toMatchObject({ kind: 'group', label: '▾ Claudin · 4' })
+    expect(rows[1]).toMatchObject({ kind: 'item', key: 'cl-c-claudin:0', label: '/claudin', command: '/claudin ' })
+    expect(rows[2]).toMatchObject({ kind: 'item', label: '/claudin lateral', command: '/claudin lateral ' })
+  })
+
+  test('argumento com caractere estranho continua só texto', () => {
+    const cola = parseCatalogo(JSON.stringify({ plugins: { p: { versao: '1', comandos: [{ nome: '/x $(rm)' }, { nome: '/y; z' }] } }, skills: { s: { plugin: 'p' } } }))!
+    expect(flattenCola(cola, 'p', '').filter(r => r.kind === 'note').length).toBe(2)
+  })
+
+  test('a busca por "claudin" acha os comandos do mascote', () => {
+    const f = filterCola(withClaudin(parsed()), 'lateral')
+    expect(f.groups.map(g => [g.plugin, g.comandos.map(c => c.nome)])).toEqual([['claudin', ['/claudin lateral']]])
   })
 })
 

@@ -10,13 +10,20 @@ const slashes = (p: string) => p.split(BS).join('/').replace(/\/+$/, '')
 // Texto do cofre.json ({ "path": "..." }) vira o caminho com barras normais, ou null se não servir.
 // "~/" vale a pasta pessoal; sem ela conhecida, desliga.
 export function parseCofreConfig(text: string, home?: string): string | null {
+  const clean = text.replace(/^\uFEFF/, '') // o Bloco de Notas do Windows grava com BOM
   let data: unknown
   try {
-    data = JSON.parse(text)
+    data = JSON.parse(clean)
   } catch {
-    return null
+    data = undefined
   }
-  const raw = data && typeof data === 'object' && !Array.isArray(data) ? (data as { path?: unknown }).path : undefined
+  let raw = data && typeof data === 'object' && !Array.isArray(data) ? (data as { path?: unknown }).path : undefined
+  // Caminho do Windows colado sem escapar a barra ("C:\Users\...") não é JSON válido, ou vira quebra de linha
+  // ("C:\novo" lê "\n"). Quando é só { "path": "..." }, lê o texto como está.
+  if (raw === undefined || (typeof raw === 'string' && /[\u0000-\u001f]/.test(raw))) {
+    const m = /^\s*\{\s*"path"\s*:\s*"([^"\r\n]*)"\s*\}\s*$/.exec(clean)
+    if (m) raw = m[1]
+  }
   if (typeof raw !== 'string' || raw.trim() === '') return null
   const path = slashes(raw.trim())
   if (path === '~' || path.startsWith('~/')) {
@@ -95,11 +102,18 @@ export function daysBetween(from: string, to: string): number {
 }
 
 // Avisos sóbrios: hot velho e fila grande. today é AAAA-MM-DD; pending é null quando a fila não pôde ser lida.
+// Idade a partir da qual o hot avisa. O ciclo diário roda de segunda a sexta, então no sábado, no domingo e na
+// segunda (antes do ciclo) o hot da sexta é o esperado e não avisa.
+const staleFrom = (today: string): number => {
+  const dow = new Date(Date.UTC(Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1, Number(today.slice(8, 10)))).getUTCDay()
+  return HOT_STALE_DAYS + (dow === 6 ? 1 : dow === 0 ? 2 : dow === 1 ? 3 : 0)
+}
+
 export function healthNotes(hot: Hot, today: string, pending: number | null): string[] {
   const notes: string[] = []
   if (hot.date) {
     const age = daysBetween(hot.date, today)
-    if (age >= HOT_STALE_DAYS) notes.push(age === 1 ? 'o hot é de ontem' : `o hot tem ${age} dias`)
+    if (age >= staleFrom(today)) notes.push(age === 1 ? 'o hot é de ontem' : `o hot tem ${age} dias`)
   }
   if (pending !== null && pending > PENDING_MAX) notes.push(`fila com ${pending} itens`)
   return notes
@@ -122,6 +136,7 @@ function validDate(y: number, m: number, d: number): string | null {
 // O _hot é texto livre: linha sem data válida ou sem título é ignorada, nunca quebra.
 export function parseHotDeadlines(text: string, today: string): HotDeadline[] {
   const out: HotDeadline[] = []
+  const seen = new Set<string>() // a mesma data e o mesmo título aparecem uma vez
   let inSection = false
   for (const line of text.split(/\r?\n/)) {
     const h = /^##\s+(.*)$/.exec(line)
@@ -151,6 +166,9 @@ export function parseHotDeadlines(text: string, today: string): HotDeadline[] {
     if (!date) continue
     const [title, source] = (m[7] ?? '').split('·').map(x => x.trim()).filter(Boolean)
     if (!title) continue
+    const key = `${date}|${title.toLowerCase()}`
+    if (seen.has(key)) continue
+    seen.add(key)
     out.push(source ? { date, title, source } : { date, title })
     if (out.length >= DEADLINES_MAX) break
   }

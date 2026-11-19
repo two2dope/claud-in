@@ -11,9 +11,9 @@ const row = (over: Partial<FleetRow> = {}): FleetRow => ({
   startedAt: NOW - 5_000, seenAt: NOW - 1_000, tools: 0, lastTool: null, ...over,
 })
 
-const info = (over: Partial<AgentInfo> = {}): AgentInfo => ({
-  id: 'a1', type: 'Explore', description: 'mapear hooks', status: 'running', ...over,
-})
+// O motor preenche mais campos do que a frota lê; o teste só dá os que ela usa.
+const info = (over: Partial<AgentInfo> = {}): AgentInfo =>
+  ({ id: 'a1', type: 'Explore', description: 'mapear hooks', status: 'running', ...over }) as AgentInfo
 
 describe('upsert', () => {
   test('cria a linha quando o id é novo', () => {
@@ -48,13 +48,13 @@ describe('reconcile', () => {
 
   test('renova seenAt de quem está na lista', () => {
     const [r] = reconcile([row({ seenAt: NOW - 50_000 })], [info()], NOW)
-    expect(r.seenAt).toBe(NOW)
-    expect(r.state).toBe('running')
+    expect(r!.seenAt).toBe(NOW)
+    expect(r!.state).toBe('running')
   })
 
   test('linha viva já vista na lista que sumiu dela vira done só depois da tolerância', () => {
     const cedo = reconcile([row({ listed: true, seenAt: NOW - MISSING_GRACE_MS })], [], NOW)
-    expect(cedo[0].state).toBe('running')
+    expect(cedo[0]!.state).toBe('running')
     const tarde = reconcile([row({ listed: true, seenAt: NOW - MISSING_GRACE_MS - 1 })], [], NOW)
     expect(tarde[0]).toMatchObject({ state: 'done', endedAt: NOW })
   })
@@ -74,7 +74,7 @@ describe('finish', () => {
 
   test('não reescreve linha já terminada nem cria linha para id desconhecido', () => {
     const done = row({ state: 'done', endedAt: 5 })
-    expect(finish([done], 'a1', 'failed', NOW)[0]).toMatchObject({ state: 'done', endedAt: 5 })
+    expect(finish([done], 'a1', 'failed', NOW)[0]!).toMatchObject({ state: 'done', endedAt: 5 })
     expect(finish([done], 'nope', 'done', NOW)).toHaveLength(1)
   })
 })
@@ -186,25 +186,25 @@ describe('orderRows', () => {
 describe('agentes que a lista nunca nomeia (workflow)', () => {
   test('linha nunca vista na lista não vira done pela tolerância curta', () => {
     const [r] = reconcile([row({ seenAt: NOW - MISSING_GRACE_MS - 1 })], [], NOW)
-    expect(r.state).toBe('running')
+    expect(r!.state).toBe('running')
   })
 
   test('linha nunca vista na lista termina só depois de STALE_MS', () => {
-    expect(reconcile([row({ seenAt: NOW - STALE_MS })], [], NOW)[0].state).toBe('running')
-    expect(reconcile([row({ seenAt: NOW - STALE_MS - 1 })], [], NOW)[0]).toMatchObject({ state: 'done', endedAt: NOW })
+    expect(reconcile([row({ seenAt: NOW - STALE_MS })], [], NOW)[0]!.state).toBe('running')
+    expect(reconcile([row({ seenAt: NOW - STALE_MS - 1 })], [], NOW)[0]!).toMatchObject({ state: 'done', endedAt: NOW })
   })
 
   test('quem aparece na lista fica marcado como visto e passa à tolerância curta', () => {
     const [seen] = reconcile([row()], [info()], NOW)
-    expect(seen.listed).toBe(true)
-    const [gone] = reconcile([seen], [], NOW + MISSING_GRACE_MS + 1)
-    expect(gone.state).toBe('done')
+    expect(seen!.listed).toBe(true)
+    const [gone] = reconcile([seen!], [], NOW + MISSING_GRACE_MS + 1)
+    expect(gone!.state).toBe('done')
   })
 
   test('revive volta a linha a rodando e limpa endedAt', () => {
     const r = revive(row({ state: 'done', endedAt: NOW - 100 }), NOW)
-    expect(r.state).toBe('running')
-    expect(r.seenAt).toBe(NOW)
+    expect(r!.state).toBe('running')
+    expect(r!.seenAt).toBe(NOW)
     expect('endedAt' in r).toBe(false)
   })
 })
@@ -224,7 +224,7 @@ describe('lista com defeito', () => {
 
   test('status desconhecido da lista conta como rodando', () => {
     const [r] = reconcile([row()], [info({ status: 'inesperado' as any })], NOW)
-    expect(r.state).toBe('running')
+    expect(r!.state).toBe('running')
   })
 })
 

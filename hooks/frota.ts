@@ -92,7 +92,8 @@ export const summaryLine = (rows: readonly FleetRow[], now: number): string => {
   const live = rows.filter(isLive)
   if (!live.length) return ''
   const failed = rows.filter(r => r.state === 'failed' && r.endedAt !== undefined && now - r.endedAt <= LINGER_MS).length
-  const main = live.length === 1 ? `1 agente: ${shortType(live[0].type) || 'subagente'} ${span(now - live[0].startedAt)}` : `${live.length} agentes rodando`
+  const only = live[0]
+  const main = live.length === 1 && only ? `1 agente: ${shortType(only.type) || 'subagente'} ${span(now - only.startedAt)}` : `${live.length} agentes rodando`
   return failed ? `${main} · ${failed} falhou` : main
 }
 

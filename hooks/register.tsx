@@ -3,7 +3,8 @@ import type { Register } from 'claude-code'
 
 import type { Action, CofreView, ColaView, FleetRow, Mode, ModeKind, Mood, Say, TurnStats, Walk } from '../types'
 import { tabLabel } from './abas'
-import { COLA_FILE, flattenCola, parseCatalogo } from './cola'
+import { COLA_FILE, flattenCola, parseCatalogo, withClaudin } from './cola'
+import { contextLevel, contextLine, contextWarn, readPercent } from './contexto'
 import { CORAL, SKINS, lookFor, sprite } from './desenho'
 import { MINI_KINDS, parseFleetMap, pickMinis } from './minis'
 import { miniSvg } from './minis-arte'
@@ -78,6 +79,9 @@ const colaView = atom({ plugin: 'claudin', key: 'colaView' } as const, null as C
 const colaQuery = atom({ plugin: 'claudin', key: 'colaQuery' } as const, '')
 const colaOpen = atom({ plugin: 'claudin', key: 'colaOpen' } as const, false)
 const colaGroup = atom({ plugin: 'claudin', key: 'colaGroup' } as const, '') // plugin aberto na lista (um de cada vez)
+// Janela de contexto: a última leitura (porcentagem) e o nível já avisado, para avisar uma vez por nível.
+const ctxPct = atom({ plugin: 'claudin', key: 'ctxPct' } as const, null as number | null)
+const ctxLevel = atom({ plugin: 'claudin', key: 'ctxLevel' } as const, 0)
 // Skins: o padrão é a Mangue. 'classico' é o Claudin chapado de antes (e o único que usa os sprites soltos do usuário).
 // Pastas sprites/<skin>/<pose>.svg do usuário viram skins de arte própria. A escolha fica em $.store.
 const DEFAULT_SKIN = 'mangue'
@@ -407,6 +411,10 @@ async function addDeadline($: any, text: string) {
   const parsed = parseDeadline(text, now)
   if (!parsed) return speak($, 'idle', 'Não entendi a data. Use 05/11 título ou 2026-11-05 título.')
   const cur = await read($, deadlines)
+  if (cur.some(d => d.date === parsed.date && d.title.trim().toLowerCase() === parsed.title.trim().toLowerCase())) {
+    await update($, ddText, () => '')
+    return speak($, 'idle', 'Esse prazo já está na Agenda.')
+  }
   await saveDeadlines($, [...cur, { id: `${now}-${Math.floor(Math.random() * 1e6)}`, ...parsed }])
   await update($, ddText, () => '')
   await speak($, 'ok', `Prazo salvo: ${parsed.title} (${dayLabel(daysUntil(parsed.date, now))}).`)
@@ -650,6 +658,18 @@ async function loadCofre($: any) {
   await update($, cofre, () => path)
 }
 
+// Lê a ocupação da janela de contexto. Sem leitura (falha, ainda sem resposta) devolve null, sem lançar.
+async function loadContext($: any): Promise<number | null> {
+  let pct: number | null = null
+  try {
+    pct = readPercent(await $.session.usage())
+  } catch {
+    pct = null
+  }
+  await update($, ctxPct, () => pct)
+  return pct
+}
+
 // Cola: mesmo formato do cofre.json ({ "path": "..." }), mas aponta para o arquivo catalogo.json.
 async function loadCola($: any) {
   const user = await userDir($)
@@ -884,6 +904,7 @@ async function draw($: any, e: any, next: any) {
   const colaV = await read($, colaView)
   const colaQ = await read($, colaQuery)
   const colaG = await read($, colaGroup)
+  const ctxP = await read($, ctxPct)
   const colaShown = !!colaPath && (await read($, colaOpen))
   const skinSel = await read($, skin)
   const skinSprites = await read($, skinArt)
@@ -928,6 +949,7 @@ async function draw($: any, e: any, next: any) {
     await update($, boxCat, () => c)
     await update($, colaOpen, () => false)
     if (c === 'comandos') await loadCommands($)
+    if (c === 'acoes') await loadContext($)
     if (c === 'prazos') await loadCofreDeadlines($)
     if (c === COFRE_CAT) await loadCofreView($)
   }
@@ -942,7 +964,7 @@ async function draw($: any, e: any, next: any) {
   type Item = { key: string; label: string; onPress: (p: any) => void; sep?: boolean; text?: boolean; starred?: boolean; onStar?: () => void; onDelete?: () => void }
   const colaItems: Item[] =
     colaShown && colaV?.readable
-      ? flattenCola({ groups: colaV.groups, scripts: colaV.scripts }, colaG, colaQ).map((r): Item => {
+      ? flattenCola(withClaudin({ groups: colaV.groups, scripts: colaV.scripts }), colaG, colaQ).map((r): Item => {
           if (r.kind === 'head' || r.kind === 'note') return { key: r.key, label: r.kind === 'note' ? `  ${r.label}` : r.label, text: true, onPress: () => {} }
           if (r.kind === 'group') {
             return {
@@ -999,6 +1021,10 @@ async function draw($: any, e: any, next: any) {
             },
             // Só com o cofre ligado; preenche o prompt e quem envia é a pessoa.
             ...(cofreRoot ? [{ key: 'a-cofre', label: 'próximo passo do cofre', onPress: fill(`Leia ${cofreRoot}/${HOT_FILE} e me ajude com o próximo passo.`) }] : []),
+            // Janela de contexto: só mostra e sugere; compactar e limpar preenchem o prompt e quem envia é a pessoa.
+            { key: 'a-ctx', label: contextLine(ctxP), text: true, onPress: () => {} },
+            { key: 'a-compact', label: 'compactar (/compact)', onPress: fill('/compact ') },
+            { key: 'a-clear', label: 'limpar contexto (/clear)', onPress: fill('/clear ') },
           ]
         : cat === 'ajustes'
           ? [
@@ -1287,8 +1313,13 @@ async function hideRow($: any, e: any, next: any) {
 
 export const register: Register = on => {
   on('prompt.submit', async ($, e, next) => {
-    await update($, turn, () => ({ files: [], cmds: 0, errors: 0, agents: 0 }))
-    await speak($, 'think', 'Analisando.')
+    // O balão e a contagem nunca podem barrar o envio do prompt: o que falhar é engolido.
+    try {
+      await update($, turn, () => ({ files: [], cmds: 0, errors: 0, agents: 0 }))
+      await speak($, 'think', 'Analisando.')
+    } catch {
+      // idem
+    }
     return next(e)
   })
 
@@ -1344,37 +1375,59 @@ export const register: Register = on => {
       : ['run', `Usando ${t}.`]
     const target = t === 'Bash' ? short(e.command, 30) : base(e.file_path) || t
     const isRisky = t === 'Bash' && typeof e.command === 'string' && RISKY.test(e.command)
-    if (isRisky) {
-      await speak($, 'alert', `Cuidado: ${short(e.command, 40)} pode apagar ou sobrescrever coisas. Confira antes de aprovar.`)
-    } else {
-      await speak($, line[0], line[1])
-    }
-    if (t === 'Bash' && typeof e.command === 'string') await update($, lastCmd, () => e.command)
-    if ((t === 'Edit' || t === 'Write') && e.file_path) await update($, lastFile, () => e.file_path)
-    await update($, turn, (s: TurnStats) => ({
-      ...s,
-      files: (t === 'Edit' || t === 'Write') && e.file_path && !s.files.includes(e.file_path) ? [...s.files, e.file_path] : s.files,
-      cmds: t === 'Bash' ? s.cmds + 1 : s.cmds,
-      errors: s.errors,
-    }))
-    const slow = $.clock.after(SLOW_MS, () => {
-      speak($, 'run', `Ainda rodando: ${target} (${SLOW_MS / 1000} s+).`)
-    })
-    const ran: any = await next(e)
-    slow.cancel()
-    if (ran && (ran.isError === true || ran.deny !== undefined)) {
-      await update($, turn, (s: TurnStats) => ({ ...s, errors: s.errors + 1 }))
-      await speak($, 'err', `Falhou: ${t === 'Bash' ? short(e.command, 28) : `${t} ${target}`}. Quer que eu investigue?`, {
-        label: 'investigar',
-        text: `Investigue por que falhou: ${t === 'Bash' ? e.command : `${t} em ${e.file_path ?? ''}`}. Explique a causa e proponha o próximo passo.`,
+    let slow: { cancel: () => void } | null = null
+    try {
+      if (isRisky) {
+        await speak($, 'alert', `Cuidado: ${short(e.command, 40)} pode apagar ou sobrescrever coisas. Confira antes de aprovar.`)
+      } else {
+        await speak($, line[0], line[1])
+      }
+      if (t === 'Bash' && typeof e.command === 'string') await update($, lastCmd, () => e.command)
+      if ((t === 'Edit' || t === 'Write') && e.file_path) await update($, lastFile, () => e.file_path)
+      await update($, turn, (s: TurnStats) => ({
+        ...s,
+        files: (t === 'Edit' || t === 'Write') && e.file_path && !s.files.includes(e.file_path) ? [...s.files, e.file_path] : s.files,
+        cmds: t === 'Bash' ? s.cmds + 1 : s.cmds,
+        errors: s.errors,
+      }))
+      slow = $.clock.after(SLOW_MS, () => {
+        speak($, 'run', `Ainda rodando: ${target} (${SLOW_MS / 1000} s+).`)
       })
+    } catch {
+      // o balão não pode impedir a ferramenta
+    }
+    const ran: any = await next(e)
+    slow?.cancel()
+    try {
+      if (ran && (ran.isError === true || ran.deny !== undefined)) {
+        await update($, turn, (s: TurnStats) => ({ ...s, errors: s.errors + 1 }))
+        await speak($, 'err', `Falhou: ${t === 'Bash' ? short(e.command, 28) : `${t} ${target}`}. Quer que eu investigue?`, {
+          label: 'investigar',
+          text: `Investigue por que falhou: ${t === 'Bash' ? e.command : `${t} em ${e.file_path ?? ''}`}. Explique a causa e proponha o próximo passo.`,
+        })
+      }
+    } catch {
+      // idem
     }
     return ran
   })
 
   on('session.compact', async ($, e, next) => {
-    await speak($, 'think', 'Compactando a sessão.')
-    return next(e)
+    // Nada aqui pode impedir o /compact: o que falhar é engolido.
+    try {
+      await speak($, 'think', 'Compactando a sessão.')
+    } catch {
+      // idem
+    }
+    const result = await next(e)
+    try {
+      // Janela nova: atualiza a leitura e rearma o aviso para quando ela encher de novo.
+      const after = await loadContext($)
+      await update($, ctxLevel, () => contextLevel(after))
+    } catch {
+      // idem
+    }
+    return result
   })
 
   on('turn.complete', async ($, e: any, next) => {
@@ -1398,6 +1451,10 @@ export const register: Register = on => {
       st.agents ? `${st.agents} agente${st.agents > 1 ? 's' : ''}` : '',
     ].filter(Boolean)
     const summary = parts.length ? `Pronto: ${parts.join(', ')}.` : 'Pronto. Nada a reportar.'
+    // Janela de contexto: avisa uma vez ao subir de nível; descer (depois de /compact ou /clear) rearma.
+    const pct = await loadContext($)
+    const warn = pct === null ? null : contextWarn(await read($, ctxLevel), pct)
+    await update($, ctxLevel, () => contextLevel(pct))
     const next1: Action | null =
       st.errors > 0
         ? { label: 'investigar falhas', text: 'Houve falhas neste turno. Resuma o que falhou e proponha como corrigir.' }
@@ -1406,9 +1463,9 @@ export const register: Register = on => {
           : null
     await speak(
       $,
-      ok ? (st.errors ? 'err' : 'ok') : 'err',
-      ok ? summary : e.reason === 'aborted' ? 'Interrompido.' : 'O turno terminou com erro.',
-      ok ? next1 : null,
+      ok ? (st.errors ? 'err' : warn?.mood === 'alert' ? 'alert' : 'ok') : 'err',
+      ok ? (warn ? `${summary} ${warn.text}` : summary) : e.reason === 'aborted' ? 'Interrompido.' : 'O turno terminou com erro.',
+      ok ? (st.errors > 0 ? next1 : warn?.action ?? next1) : null,
     )
     const s = await read($, say)
     settle($, s.seq, 20000)

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0 — 2026-11-19
+
+- **Aviso de contexto.** Ao fim de cada turno o Claudin lê a ocupação da janela (`$.session.usage()`) e avisa uma vez ao passar de 70%, 85% e 95%, no mesmo balão do `Pronto:`, sugerindo `/compact` (e `/clear` no último nível). O botão `compactar` do balão só preenche o prompt; o aviso se rearma depois de compactar ou limpar. A aba Ações ganha `contexto: N% da janela` e os botões `compactar (/compact)` e `limpar contexto (/clear)`, que também só preenchem. O Claudin nunca compacta nem limpa sozinho.
+- **Comandos do Claudin na Cola.** O grupo `Claudin` aparece depois dos plugins do catálogo, com `/claudin`, `/claudin lateral`, `/claudin prompt` e `/claudin ocultar`; os comandos de uma Cola agora aceitam argumentos simples (`/claudin lateral`).
+- **Auditoria das pendências, o que deu para corrigir:**
+  - `cofre.json` e `cola.json` salvos com BOM (Bloco de Notas) ou com o caminho do Windows sem escapar a barra (`C:\Users\...`) agora valem, em vez de desligar o recurso em silêncio.
+  - O aviso de `_hot` velho não dispara mais no sábado, no domingo nem na segunda de manhã quando o hot é o da sexta (o ciclo diário roda de segunda a sexta); hot mais velho que isso ainda avisa.
+  - Prazo repetido (mesma data e título) aparece uma vez, no `_hot` e na Agenda local (`Esse prazo já está na Agenda.`).
+  - O balão e a contagem do Claudin não podem mais barrar `prompt.submit`, `tool.call` nem `session.compact`: qualquer falha ali é engolida.
+  - Ícone do plugin (`.claude-plugin/icon.png`, o Claudin Mangue em 1024 px) e tipagem dos testes: `claude plugin validate` passa sem avisos; resta só a LICENSE, que é escolha sua.
+  - Testes novos para leitura do cofre que falha, BOM, barra solta, fim de semana e prazo repetido (271 no total).
+- **Conhecido, sem correção:** o nome acessível das abas só com ícone (o motor só aceita o `label` do botão, e o nome completo desfaria o ganho de largura); a releitura do `_hot` na abertura da sessão (três leituras de arquivo pequeno, uma vez por sessão, não vale um cache); a conferência visual no app desktop; sem LICENSE.
+
 ## 0.5.0 — 2026-11-19
 
 - **A Mangue é o padrão.** O Claudin agora nasce com a luz de borda; o chapado de antes virou a skin `clássico`, a última do botão `skin:`. Quem tinha sprites soltos próprios em `<config>/claudin/sprites/` e nunca escolheu skin começa no clássico, para não perder os seus, e o `padrão` guardado vira Mangue.
