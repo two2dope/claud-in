@@ -8,6 +8,10 @@ Claudin é um mod do Claude Code Desktop: um mascote em pixel-art que vive acima
 
 O tom é o de um assistente sóbrio que avisa, não o de um bichinho que pede atenção.
 
+<p align="center">
+  <img src="assets/qg.svg" alt="O QG do Claudin no Mangue: cabana de palafita entre raízes de mangue, com prateleiras de livros, parede de monitores, cofre, calendário, servidor e relógio; o Claudin anda no chão e duas criaturas da frota trabalham nas bancadas" width="100%">
+</p>
+
 ## Por que ele existe
 
 O Claudin nasceu como assistente cognitivo de uso real, feito por uma cabeça com TDAH e para ela. Quem pensa rápido e em muitas direções costuma perder o fio de três coisas: o tempo que passou, o que ficou aberto e o que vem depois. Ele fica ao lado do trabalho para segurar essas três.
@@ -35,6 +39,24 @@ O Claudin é uma ferramenta de apoio pessoal. Não é tratamento e não substitu
 O banner é uma homenagem ao manifesto de mesmo nome, assinado por Fred Zero Quatro em Recife, em 1992, um dos textos fundadores do Mangue Beat, o movimento de Chico Science & Nação Zumbi. O manifesto vê o mangue como uma base fértil e põe uma antena parabólica enfiada na lama como imagem da ligação entre o que é local e o que circula pelo mundo.
 
 O Claudin toma emprestadas as duas imagens: um caranguejo que pensa, andando de lado entre muitas abas, e uma parabólica na lama que traz o sinal. O texto do manifesto não é reproduzido aqui. Ele está na [Wikisource](https://pt.wikisource.org/wiki/Caranguejos_com_c%C3%A9rebro), sob licença CC BY-SA 4.0.
+
+## O visual
+
+O Claudin é pixel art de 16x12 desenhada em código, retângulo por retângulo, sem imagem pronta. Por isso ele pisca, olha para onde vai, anda e troca de adereço em cada modo, e qualquer skin herda tudo isso de graça.
+
+<p align="center">
+  <img src="assets/skins.svg" alt="As skins do Claudin lado a lado (Mangue, Maré, Malungo com chapéu de palha, Lama com brotinho e o clássico) e as cinco criaturas da frota: siri, garça, guaiamum, aratu e caranguejinho" width="100%">
+</p>
+
+**As skins são variações do mesmo caranguejo**, com outra paleta e uma luz de borda fina: realce em cima e à esquerda, sombra embaixo e à direita, um fio escuro no canto e uma sombra no chão. O rosto fica limpo. A Mangue, coral, é o padrão; a Maré é o azul da água que sobe e desce; a Lama tem a cor do fundo do mangue e um brotinho nascendo da cabeça.
+
+**O Malungo é a homenagem a Chico Science.** Malungo é companheiro de travessia, e o chapéu de palha entre as antenas lembra o dele no palco. É uma referência, não um retrato: o Claudin nunca imita rosto nem franquia, e todas as skins são arte original.
+
+**A frota são os bichos do mangue.** Cada tipo de subagente vira uma criatura: o siri explora, a garça planeja, o guaiamum executa, o aratu revisa e o caranguejinho cuida do resto. Elas piscam, balançam meio pixel e, com o QG ligado, trabalham nas bancadas.
+
+**O QG é a base dos caranguejos com cérebro**, uma cabana de palafita entre as raízes do mangue. A arte nasceu no Google Flow, passou por três rodadas de curadoria (25 imagens, uma escolhida) e foi convertida por `scripts/qg-para-svg.py` numa faixa de 360x76 com 24 cores, porque o desktop aceita até 131072 caracteres por imagem. Por cima dela o código desenha a luz pela hora do computador, as lanternas à noite, os ponteiros do relógio, o pomodoro, o Claudin e a frota. O botão que abre o QG é a antena parabólica 📡 do manifesto.
+
+**As cores** vêm do coral do Claude (`#D97757`), do grafite do app e dos tons de lama, madeira e folha do mangue.
 
 ## O que ele faz
 
@@ -71,7 +93,7 @@ Uma ação sugerida só preenche o prompt. Quem decide enviar é você, então o
 | Aba | O que tem |
 |---|---|
 | Prompts | Atalhos como resumir, explicar erro, rodar testes e próximo passo, mais os seus em `shortcuts.json` |
-| Ações | Copiar o último comando, copiar o último caminho, abrir a pasta do projeto |
+| Ações | Copiar o último comando, copiar o último caminho, abrir a pasta do projeto, a ocupação da janela de contexto com `compactar` e `limpar` |
 | Comandos | Todos os comandos `/` da sessão, com busca e favoritos |
 | Ajustes | Modo, tamanho, ver ou ocultar tools, histórico, saudação do dia, afagar, painel lateral |
 | Tempo | Timers e pomodoro, com pausar, reiniciar e cancelar |
@@ -159,7 +181,7 @@ npx --yes -p typescript tsc -p . --noEmit
 
 O `tsc` usa tipos que o próprio Claude Code gera em `.claude-plugin/types/` na primeira vez que carrega o mod. Sem essa pasta, carregue o mod uma vez antes de checar os tipos.
 
-Para refazer o banner: `node assets/build-banner.mjs`. Para refazer as ilustrações: `node assets/build-assets.mjs`.
+Para refazer o banner: `node assets/build-banner.mjs`. Para refazer as ilustrações: `node assets/build-assets.mjs`. Para refazer a vitrine do QG e das skins: `node assets/build-vitrine.mjs`.
 
 | Caminho | Conteúdo |
 |---|---|
@@ -184,6 +206,10 @@ Todo caranguejo cresce largando o casco, e o Claudin cresceu do mesmo jeito: por
 | Caixa de ferramentas | 2026-10-19 | Menu paginado, atalhos de prompt, ações rápidas e o canivete de comandos `/` |
 | Tempo e agenda | 2026-10-19 | Timers, pomodoro, prazos, lembretes recorrentes e a saudação do dia |
 | `/claudin` e GitHub | 2026-10-22 | O comando que traz o mascote de volta, os tipos corrigidos e o repositório |
+| Frota e marketplace | 2026-11-17 | Subagentes em tempo real e a instalação pelo marketplace (0.2) |
+| Cofre e skins | 2026-11-18 | O cofre em leitura, as skins Mangue, Maré e Malungo e as criaturas da frota (0.2.1 a 0.3.2) |
+| Cola e contexto | 2026-11-19 | A Cola da Oficina, a skin Lama e o aviso da janela de contexto (0.4 a 0.6) |
+| QG no Mangue | 2026-11-19 | O cenário em pixel art, com zonas clicáveis, luz pela hora e a frota nas bancadas (0.7) |
 
 Antes de existir git, cada mudança grande deixou uma cópia de segurança: 14 cascos ao todo. Daqui em diante o histórico mora nos commits.
 
@@ -193,16 +219,21 @@ Antes de existir git, cada mudança grande deixou uma cópia de segurança: 14 c
 - O Claudin não flutua pela tela; ele vive na faixa ou no painel.
 - Os lembretes só disparam com o app aberto. A saudação do dia lista o que venceu enquanto ele estava fechado.
 - A ação `abrir pasta` usa o `explorer.exe`, então funciona só no Windows.
-- Sprites em PNG ainda não foram testados no desktop; SVG é a aposta segura.
-- A frota usa `agent.spawn`, `tool.call` e `turn.complete` com `agentId`, e `$.agent.list()`. O engine larga o agente da lista menos de 1 s depois de ele terminar, então o desfecho vem do `turn.complete`. Foi medido em sessão `claude -p`; o comportamento no app desktop ainda precisa de conferência com prints (ver `projeto/08-log.md`).
+- O app desktop não desenha PNG embutido em SVG; sprites próprios precisam ser SVG de retângulos (`scripts/png-para-svg.py` converte).
+- O QG só aparece no painel lateral, e as zonas clicáveis da 0.7.2 ainda não foram conferidas no desktop.
+- A frota usa `agent.spawn`, `tool.call` e `turn.complete` com `agentId`, e `$.agent.list()`. O engine larga o agente da lista menos de 1 s depois de ele terminar, então o desfecho vem do `turn.complete`. Foi medido em sessão `claude -p`; no app desktop já apareceu um agente trabalhando na bancada do QG, e vários ao mesmo tempo ainda precisam de conferência (ver `projeto/08-log.md`).
 
 ## Status
 
-Em uso real desde 2026-10-19, com revisão de riscos marcada para 2026-10-26. O histórico de decisões, riscos e testes está em [`projeto/08-log.md`](projeto/08-log.md).
+Em uso real desde 2026-10-19; versão atual 0.7.2. O histórico de decisões, riscos e testes está em [`projeto/08-log.md`](projeto/08-log.md).
 
 ## Créditos
 
 A ideia de mostrar a frota de agentes em tempo real vem do [legends-claude](https://github.com/leolegends/legends-claude), de leolegends (MIT), que desenha uma barra com um palco animado para cada agente. A conciliação das linhas com a lista do engine (`hooks/frota.ts`) é adaptada do `hooks/agents.ts` dele. O Claudin escolheu outro caminho, o de menos atenção: balões curtos e uma linha de resumo, sem palco.
+
+O agradecimento é de mão dupla. O legends-claude cita o Claudin como a origem da ideia de desenhar o mascote com os próprios elementos de imagem da tela, em vez de só caracteres. Ver o projeto dele crescer a partir disso foi o que nos motivou a levar o Claudin um patamar acima: a frota em tempo real, as criaturas do mangue e o QG vieram dessa conversa entre os dois projetos. Obrigado, leolegends.
+
+O Mangue Beat, o manifesto *Caranguejos com cérebro* e Chico Science & Nação Zumbi são a raiz visual de tudo isso. A arte do QG foi gerada no Google Flow e curada à mão; o Claudin, as skins e as criaturas são desenhados em código.
 
 ---
 
