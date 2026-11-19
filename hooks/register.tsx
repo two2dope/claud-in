@@ -1,8 +1,9 @@
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
-import type { Action, CofreView, FleetRow, Mode, ModeKind, Mood, Say, TurnStats, Walk } from '../types'
+import type { Action, CofreView, ColaView, FleetRow, Mode, ModeKind, Mood, Say, TurnStats, Walk } from '../types'
 import { tabLabel } from './abas'
+import { COLA_FILE, filterCola, flattenCola, parseCatalogo } from './cola'
 import { CORAL, SKINS, lookFor, sprite } from './desenho'
 import { MINI_KINDS, parseFleetMap, pickMinis } from './minis'
 import { miniSvg } from './minis-arte'
@@ -70,6 +71,12 @@ const cofre = atom({ plugin: 'claudin', key: 'cofre' } as const, null as string 
 // Prazos lidos do _hot do cofre: espelho só de leitura, sem gravar de volta (ids começam com "cofre:").
 // Vista da aba Cofre: o que o _hot diz hoje, já em texto curto. null até a primeira leitura.
 const cofreView = atom({ plugin: 'claudin', key: 'cofreView' } as const, null as CofreView | null)
+// Cola da Oficina (só leitura): caminho do catalogo.json em <config>/claudin/cola.json, ou null com a aba desligada.
+// Fica dentro de Comandos: o botão 📋 ao lado da busca alterna para a lista da oficina. A vista é relida toda vez que abre, então a oficina pode crescer sem reiniciar.
+const cola = atom({ plugin: 'claudin', key: 'cola' } as const, null as string | null)
+const colaView = atom({ plugin: 'claudin', key: 'colaView' } as const, null as ColaView | null)
+const colaQuery = atom({ plugin: 'claudin', key: 'colaQuery' } as const, '')
+const colaOpen = atom({ plugin: 'claudin', key: 'colaOpen' } as const, false)
 // Skins: pacote sprites/<skin>/<pose> (svg ou png). '' é o desenho padrão; a escolha fica em $.store.
 const skin = atom({ plugin: 'claudin', key: 'skin' } as const, '')
 const skinArt = atom({ plugin: 'claudin', key: 'skinArt' } as const, {} as Record<string, string>)
@@ -639,6 +646,33 @@ async function loadCofre($: any) {
   await update($, cofre, () => path)
 }
 
+// Cola: mesmo formato do cofre.json ({ "path": "..." }), mas aponta para o arquivo catalogo.json.
+async function loadCola($: any) {
+  const user = await userDir($)
+  let home: string | undefined
+  try {
+    home = (await $.env.get('USERPROFILE')) ?? (await $.env.get('HOME')) ?? undefined
+  } catch {
+    home = undefined
+  }
+  const file = user ? `${user}/${COLA_FILE}` : null
+  const path = file
+    ? await resolveCofre(async () => ((await $.fs.exists(file)) ? await $.fs.read(file) : null), (p: string) => $.fs.exists(p), home)
+    : null
+  await update($, cola, () => path)
+}
+
+async function loadColaView($: any) {
+  const path = await read($, cola)
+  if (!path) return update($, colaView, () => null)
+  try {
+    const parsed = parseCatalogo(await $.fs.read(path))
+    await update($, colaView, () => ({ readable: parsed !== null, groups: parsed?.groups ?? [] }))
+  } catch {
+    await update($, colaView, () => ({ readable: false, groups: [] }))
+  }
+}
+
 // Lê um sprite: SVG vale como está; PNG vira <image> dentro de um SVG de 64x48, pixelado.
 async function readSprite($: any, path: string, ext: string): Promise<string> {
   if (ext === 'svg') return await $.fs.read(path)
@@ -841,6 +875,10 @@ async function draw($: any, e: any, next: any) {
   const nowDl = dls.length > 0 ? await $.clock.now() : 0
   const cofreRoot = await read($, cofre)
   const cv = await read($, cofreView)
+  const colaPath = await read($, cola)
+  const colaV = await read($, colaView)
+  const colaQ = await read($, colaQuery)
+  const colaShown = !!colaPath && (await read($, colaOpen))
   const skinSel = await read($, skin)
   const skinSprites = await read($, skinArt)
   const skinDef = SKINS[skinSel]
@@ -882,13 +920,25 @@ async function draw($: any, e: any, next: any) {
   const pick = (c: string) => async () => {
     await update($, boxPage, () => 0)
     await update($, boxCat, () => c)
+    await update($, colaOpen, () => false)
     if (c === 'comandos') await loadCommands($)
     if (c === 'prazos') await loadCofreDeadlines($)
     if (c === COFRE_CAT) await loadCofreView($)
   }
+  const toggleCola = async () => {
+    await update($, boxPage, () => 0)
+    if (!colaShown) await loadColaView($)
+    await update($, colaOpen, () => !colaShown)
+  }
   const fill = (text: string) => () => $.prompt.fill({ text, mode: 'replace' })
 
   type Item = { key: string; label: string; onPress: (p: any) => void; sep?: boolean; text?: boolean; starred?: boolean; onStar?: () => void; onDelete?: () => void }
+  const colaItems: Item[] =
+    colaShown && colaV?.readable
+      ? flattenCola(filterCola({ groups: colaV.groups }, colaQ)).map(r =>
+          r.kind === 'head' ? { key: r.key, label: r.label, text: true, onPress: () => {} } : { key: r.key, label: r.label, onPress: fill(r.command ?? '') },
+        )
+      : []
   const items: Item[] =
     cat === 'prompts'
       ? [...SHORTCUTS, ...extras].map((x, i) => ({ key: `sc${i}`, label: x.label, onPress: fill(x.text) }))
@@ -944,7 +994,9 @@ async function draw($: any, e: any, next: any) {
                 },
               },
             ]
-          : cat === 'comandos'
+          : cat === 'comandos' && colaShown
+            ? colaItems
+            : cat === 'comandos'
             ? (() => {
                 const favRank = (n: string) => {
                   const i = favList.findIndex(f => f === n || baseName(f) === baseName(n))
@@ -1016,7 +1068,7 @@ async function draw($: any, e: any, next: any) {
                   : []
 
   const placeholder =
-    cat === 'comandos' && items.length === 0 ? 'Nenhum comando encontrado.' : cat === 'prazos' && items.length === 0 ? 'Vazia. Ex.: 05/11 prazo · 09:00 lembrete' : cat === FLEET_CAT && items.length === 0 ? 'Nenhum agente por aqui.' : cat === COFRE_CAT && items.length === 0 ? 'Sem Wiki/_hot.md ainda.' : ''
+    cat === 'comandos' && colaShown && items.length === 0 ? (colaV && !colaV.readable ? 'catálogo ilegível' : colaQ ? 'Nenhuma skill encontrada.' : 'Catálogo vazio.') : cat === 'comandos' && items.length === 0 ? 'Nenhum comando encontrado.' : cat === 'prazos' && items.length === 0 ? 'Vazia. Ex.: 05/11 prazo · 09:00 lembrete' : cat === FLEET_CAT && items.length === 0 ? 'Nenhum agente por aqui.' : cat === COFRE_CAT && items.length === 0 ? 'Sem Wiki/_hot.md ainda.' : ''
 
   // Menu em estilo mIRC: barra de menus em texto, divisória e lista vertical paginada, uma coluna.
   const size_ = cat === 'comandos' || cat === 'prazos' || cat === COFRE_CAT ? PAGE_CMD : PAGE
@@ -1034,16 +1086,32 @@ async function draw($: any, e: any, next: any) {
       </Box>
       <Text dimColor>{line}</Text>
       {cat === 'comandos' && Input ? (
-        <Input
-          key="q"
-          placeholder="buscar comando…"
-          value={q}
-          onSubmit={() => items[0]?.onPress?.({})}
-          onInput={(v: string) => {
-            update($, query, () => v)
-            update($, boxPage, () => 0)
-          }}
-        />
+        <Box key="q-row" flexDirection="row" columnGap={1}>
+          {colaShown ? (
+            <Input
+              key="cl-q"
+              placeholder="buscar skill…"
+              value={colaQ}
+              onSubmit={() => items.find(x => !x.text)?.onPress?.({})}
+              onInput={(v: string) => {
+                update($, colaQuery, () => v)
+                update($, boxPage, () => 0)
+              }}
+            />
+          ) : (
+            <Input
+              key="q"
+              placeholder="buscar comando…"
+              value={q}
+              onSubmit={() => items[0]?.onPress?.({})}
+              onInput={(v: string) => {
+                update($, query, () => v)
+                update($, boxPage, () => 0)
+              }}
+            />
+          )}
+          {colaPath ? <Button key="cl-open" plain label={colaShown ? '▸📋' : '📋'} onPress={toggleCola} /> : null}
+        </Box>
       ) : null}
       {cat === COFRE_CAT && Input ? (
         <Input
@@ -1366,6 +1434,7 @@ export const register: Register = on => {
     await loadCofre($)
     await loadCofreDeadlines($)
     await loadCofreView($)
+    await loadCola($)
     await loadFavs($)
     await loadTimers($)
     await loadDeadlines($)
