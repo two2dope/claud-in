@@ -1591,7 +1591,7 @@ test('à noite a faixa ganha a escuridão com luz nas lanternas; de dia não', a
   mock.clock(on, { now: NOV19 })
   await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
   const dia = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
-  expect(await qg(dia)).not.toContain('mask id=')
+  expect(await qg(dia)).not.toContain('mask id=\\"lit')
   await dia.unmount()
 })
 
@@ -1599,7 +1599,7 @@ test('à noite a faixa tem a máscara de luz', async ($: any, on: any) => {
   mock.clock(on, { now: NIGHT })
   await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
-  expect(await qg(ui)).toContain('mask id=')
+  expect(await qg(ui)).toContain('mask id=\\"lit')
   await ui.unmount()
 })
 
@@ -1745,7 +1745,7 @@ test('os monitores mostram o painel da sessão', async ($: any, on: any) => {
   await ui.unmount()
 })
 
-test('na linha do prompt a caixa continua com ícones; no painel, fichas com o nome', async ($: any, on: any) => {
+test('na linha do prompt a caixa continua com emojis; no painel, fichas com ícone em vetor e o nome da aberta', async ($: any, on: any) => {
   mock.clock(on, { now: NOV19 })
   await bootFs($, on, {}, { USERPROFILE: 'C:/u' })
   const band = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...BAND })
@@ -1754,9 +1754,17 @@ test('na linha do prompt a caixa continua com ícones; no painel, fichas com o n
   await band.unmount()
   const pane = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
   if (!(await pane.find({ key: 'cat-prompts' }))) await pane.press({ key: 'tb' })
-  expect((await pane.find({ key: 'cat-prompts' }))?.props?.label).toBe('💬 Prompts')
-  expect((await pane.find({ key: 'cat-acoes' }))?.props?.label).toBe('⚡')
+  // No painel o emoji vira ícone em vetor (SVG) com botão em branco por cima; só a ficha aberta mostra o nome.
+  const aberta = JSON.stringify(await pane.find({ key: 'chip-prompts' }))
+  expect(aberta).toContain('Prompts')
+  expect(aberta).toContain('<svg')
+  expect(aberta).not.toContain('💬')
+  expect((await pane.find({ key: 'cat-acoes' }))?.props?.label).toBe('⠀⠀⠀') // ícone de 22px: três células de botão
+  expect((await pane.find({ key: 'chip-acoes' }))?.text).toBe('⠀⠀⠀') // fechada: sem nome visível (o nome fica no alt)
   expect((await pane.find({ key: 'chip-prompts' }))?.props?.backgroundColor).toBe('#D97757')
+  await pane.press({ key: 'cat-acoes' })
+  expect((await pane.find({ key: 'chip-acoes' }))?.props?.backgroundColor).toBe('#D97757')
+  expect(JSON.stringify(await pane.find({ key: 'sc-w' }))).toContain('<svg')
   await pane.unmount()
 })
 
@@ -1779,7 +1787,7 @@ test('a placa de madeira abre o Sobre, com a versão e os links do projeto', asy
   await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
   await ui.press({ key: 'spot-sobre' })
-  expect(await ui.find({ type: 'Text', text: /Claudin 0\.8\.0/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Claudin \d+\.\d+\.\d+/ })).toBeDefined()
   expect(JSON.stringify(await ui.find({ key: 'sb-git' }))).toContain('https://github.com/two2dope/claud-in')
   await ui.unmount()
 })
@@ -1845,11 +1853,45 @@ test('a posição do ícone não depende de célula inteira: muda só a coluna e
   mock.clock(on, { now: NOV19 })
   await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
   const a = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
-  const colA = JSON.stringify(await a.find({ key: 'qg-col-cofre' }))
+  const colA = JSON.stringify(await a.find({ key: 'qg-col-luz' })) // o quadro da lua e o cofre dividem a coluna
   await a.unmount()
   const b = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', component: 'Pane', requestId: 'claudin', props: { ...BAND.props, bodyColumns: 140 } } as any)
-  const colB = JSON.stringify(await b.find({ key: 'qg-col-cofre' }))
+  const colB = JSON.stringify(await b.find({ key: 'qg-col-luz' }))
   await b.unmount()
   expect(colA).toMatch(/"width":"\d+%"/)
   expect(colA.match(/"width":"\d+%"/)?.[0]).toBe(colB.match(/"width":"\d+%"/)?.[0])
+})
+
+// ── QG 0.8.1: Claudin anda pela sala, ícones da rodada 2D, porta da frota ───────────────────────────
+const claudinLeft = async (ui: any) => (await ui.find({ key: 'qg-claudin' }))?.props?.left as number
+
+test('clicar num objeto do QG leva o Claudin andando até ele, passo a passo', async ($: any, on: any) => {
+  const clock = mock.clock(on, { now: NOV19 })
+  await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
+  let ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
+  const start = await claudinLeft(ui)
+  await ui.press({ key: 'spot-tempo' })
+  await ui.unmount()
+  await clock.advance(1_600)
+  ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
+  const step = await claudinLeft(ui)
+  await ui.unmount()
+  await clock.advance(30_000)
+  ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
+  const end = await claudinLeft(ui)
+  await ui.unmount()
+  expect(step).toBeGreaterThan(start)
+  expect(end).toBeGreaterThan(step)
+  expect(end).toBeGreaterThan(60) // o relógio fica perto da borda direita (100 colunas)
+})
+
+test('a porta da direita abre a frota e o raio do servidor brilha sem LEDs na gaveta de baixo', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
+  expect(await ui.find({ key: 'spot-frota' })).toBeDefined()
+  expect(await ui.find({ key: 'qg-col-tempo' })).toBeDefined() // relógio e porta dividem a coluna
+  expect(JSON.stringify(await ui.find({ key: 'qg-col-tempo' }))).toContain('spot-frota')
+  expect(await qg(ui)).toContain('href=\\"#i-servidor\\"')
+  await ui.unmount()
 })

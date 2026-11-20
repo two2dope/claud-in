@@ -9,6 +9,7 @@ import { SPOTS, STATIONS, composeQg, pct, pomodoroOf, stationCol, withOutline, t
 import { CONTEXT_PRESETS, DEFAULT_PRESET, contextLevel, contextLine, contextWarn, presetById, readPercent } from './contexto'
 import { CORAL, SKINS, lookFor, sprite } from './desenho'
 import { MINI_KINDS, parseFleetMap, pickMinis } from './minis'
+import { VECTOR_ICON, VECTOR_SIDE } from './icones-vetor'
 import { miniSvg } from './minis-arte'
 import { COFRE_FILE, HOT_FILE, NOTES_DIR, isSafeNoteName, PENDING_FILE, countPending, freeNoteName, noteFileStem, healthNotes, hotLine, mergeDeadlines, parseHot, parseHotDeadlines, parseHotLists, resolveCofre } from './cofre'
 import { FLEET_MAX_ROWS, clip, failSay, finish, liveCount, orderRows, reconcile, revive, rowLine, shouldSaySpawn, spawnSay, summaryLine, upsert } from './frota'
@@ -55,7 +56,7 @@ const FLEET_CAT = 'frota' // a aba só aparece enquanto há agentes, para não a
 const COFRE_CAT = 'cofre' // a aba só aparece com o cofre ligado
 const SOBRE_CAT = 'sobre' // aba escondida: só a placa de madeira do QG abre
 const REPO_URL = 'https://github.com/two2dope/claud-in'
-const VERSION = '0.8.0' // igual ao plugin.json (um teste confere)
+const VERSION = '0.8.1' // igual ao plugin.json (um teste confere)
 const CAT_LABEL: Record<string, string> = { prompts: 'Prompts', acoes: 'Ações', comandos: 'Comandos', ajustes: 'Ajustes', tempo: 'Tempo', prazos: 'Agenda', frota: 'Frota', cofre: 'Cofre' }
 const SHORTCUTS: { label: string; text: string }[] = [
   { label: 'resumir', text: 'Resuma em poucas linhas o que você fez até agora.' },
@@ -66,6 +67,12 @@ const SHORTCUTS: { label: string; text: string }[] = [
 const TOOLBOX_W = 56
 // Cores da caixa no painel lateral, como na ilustração do README.
 const CHIP_BG = '#2b2b2b'
+// Ícone em vetor (o mesmo desenho dos ícones do QG) das fichas da caixa e dos botões da antena e da caixa.
+const CHIP_ART: Record<string, string> = { comandos: 'cola' }
+const chipSvg = (id: string): string => {
+  const art = VECTOR_ICON[CHIP_ART[id] ?? id]
+  return art ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VECTOR_SIDE} ${VECTOR_SIDE}" width="22" height="22">${art}</svg>` : ''
+}
 const ROW_BG = '#242424'
 const ROW_HOVER = '#303030'
 // Recheio invisível de uma zona do QG: linhas de espaços duros, maiores que qualquer zona (a zona corta o excesso),
@@ -73,8 +80,19 @@ const ROW_HOVER = '#303030'
 // Pontos do QG, da esquerda para a direita. Cada um ganha uma coluna que vai do meio do caminho até o vizinho da
 // esquerda ao meio do caminho até o da direita (as colunas não se cruzam). Dentro dela o ícone é ancorado por
 // porcentagem no ponto marcado, e não por célula inteira: assim ele não pula de lugar quando a janela muda de largura.
-const ICONS = [...SPOTS].sort((a, b) => a.cx - b.cx)
-const ICON_BOUNDS = ICONS.map((sp, i) => [i === 0 ? 0 : (ICONS[i - 1]!.cx + sp.cx) / 2, i === ICONS.length - 1 ? 1 : (sp.cx + ICONS[i + 1]!.cx) / 2] as [number, number])
+// Pontos quase na mesma vertical (o relógio e a porta, o quadro da lua e o cofre) dividem uma coluna, com uma âncora
+// para cada: coluna estreita demais arredonda para 0% e o botão some.
+type IconCol = { id: string; spots: typeof SPOTS; cx: number; b: [number, number] }
+const ICON_COLS: IconCol[] = (() => {
+  const groups: (typeof SPOTS)[] = []
+  for (const sp of [...SPOTS].sort((a, b) => a.cx - b.cx)) {
+    const last = groups[groups.length - 1]
+    if (last && sp.cx - last[last.length - 1]!.cx < 0.02) last.push(sp)
+    else groups.push([sp])
+  }
+  const cx = groups.map(g => g.reduce((t, s) => t + s.cx, 0) / g.length)
+  return groups.map((g, i) => ({ id: g[0]!.id, spots: g, cx: cx[i]!, b: [i === 0 ? 0 : (cx[i - 1]! + cx[i]!) / 2, i === groups.length - 1 ? 1 : (cx[i]! + cx[i + 1]!) / 2] }))
+})()
 // Altura de uma linha do painel em fração da altura da faixa: a faixa tem 76/360 da largura, e uma linha mede ~2,2
 // células de largura. Serve para centrar o ícone na vertical no ponto marcado.
 const rowFrac = (cols: number) => (2.2 * 360) / (76 * Math.max(20, cols))
@@ -153,6 +171,11 @@ const base = (p: unknown) => short(typeof p === 'string' ? p.split(/[\\/]/).pop(
 
 const MOODS = ['idle', 'think', 'read', 'code', 'run', 'search', 'ok', 'err', 'alert']
 const MAX_X = 36
+// No QG o passeio cobre a sala inteira: walk.x (0 a MAX_X) vira a fração SCENE_X0 + SCENE_SPAN * x / MAX_X da faixa.
+const SCENE_X0 = 0.08
+const SCENE_SPAN = 0.84
+// Trabalhando, o Claudin vai até o canto da sala que combina com o que faz (fração da largura da faixa).
+const SCENE_AT: Partial<Record<Mood, number>> = { code: 0.44, run: 0.776, read: 0.27, search: 0.6, think: 0.66, alert: 0.84 }
 
 const PETS = ['Anotado. Continuo de olho.', 'Pode seguir, eu cuido do resto.', 'Presente.', 'Precisa de algo?', 'Tudo sob controle.']
 
@@ -269,11 +292,31 @@ async function stroll($: any) {
   }
   if (m.kind === 'meditar' || m.kind === 'cigarro') return
   const s = await read($, say)
+  // No QG o Claudin anda até um objetivo: o canto do que está fazendo ou o objeto clicado. Chegando, fica um pouco.
+  if (await read($, cenario)) {
+    const at = SCENE_AT[s.mood as Mood]
+    const workGoal = at === undefined ? undefined : Math.round(((at - SCENE_X0) / SCENE_SPAN) * MAX_X)
+    if (workGoal === undefined && s.mood !== 'idle' && s.mood !== 'ok') return
+    await update($, walk, (w: Walk): Walk => stepToward(w, workGoal ?? w.goal))
+    return
+  }
   if (s.mood !== 'idle' && s.mood !== 'ok') return
   await update($, walk, (w: Walk) => {
     const x = w.x + w.dir * 3
     return x >= MAX_X ? { x: MAX_X, dir: -1 } : x <= 0 ? { x: 0, dir: 1 } : { x, dir: w.dir }
   })
+}
+
+// Um passo no QG: rumo ao objetivo (mais ligeiro), parado um tempo ao chegar, ou passeando de borda a borda.
+function stepToward(w: Walk, goal: number | undefined): Walk {
+  if (goal !== undefined) {
+    const d = goal - w.x
+    if (Math.abs(d) <= 4) return { x: goal, dir: w.dir, rest: 6 } // chegou: fica uns 9 s de frente para o objeto
+    return { x: w.x + Math.sign(d) * 4, dir: Math.sign(d), goal }
+  }
+  if ((w.rest ?? 0) > 0) return { x: w.x, dir: w.dir, rest: (w.rest ?? 0) - 1 }
+  const x = w.x + w.dir * 2
+  return x >= MAX_X ? { x: MAX_X, dir: -1 } : x <= 0 ? { x: 0, dir: 1 } : { x, dir: w.dir }
 }
 
 // Timers: guardados em $.store com o instante de término, então sobrevivem a um recarregamento do mod.
@@ -791,6 +834,9 @@ async function toggleCenario($: any, inPane: boolean) {
 async function openSpot($: any, id: string) {
   const spot = SPOTS.find(s => s.id === id)
   if (!spot) return
+  // O Claudin anda até o objeto clicado (o passo acontece no passeio) e fica um pouco por lá.
+  const goal = Math.round(Math.max(0, Math.min(1, (spot.cx - SCENE_X0) / SCENE_SPAN)) * MAX_X)
+  await update($, walk, (w: Walk): Walk => ({ x: w.x, dir: goal >= w.x ? 1 : -1, goal }))
   if (spot.id === 'luz') return toggleLights($)
   if (spot.id === 'neon') return toggleNeon($)
   if (spot.id === 'sobre') {
@@ -1331,6 +1377,19 @@ async function draw($: any, e: any, next: any) {
   const pg = Math.min(page, pages - 1)
   const rows = items.slice(pg * size_, pg * size_ + size_)
   const line = '─'.repeat(TOOLBOX_W - 18)
+  // Ícone em vetor com um botão em branco por cima: U+2800 não some como espaço, e a caixa absoluta
+  // de largura 100% cobre o ícone e o nome, então a ficha inteira é o botão. `before` vem antes do ícone (o ▾ da
+  // antena), `name` depois (o nome da aba aberta).
+  const iconButton = (key: string, id: string, alt: string, onPress: () => void, before = '', name = '') => (
+    <Box key={`${key}-w`} position="relative" flexDirection="row" columnGap={name ? 1 : 0}>
+      {before ? <Text>{before}</Text> : null}
+      <Svg source={chipSvg(id)} alt={alt} width={22} height={22} />
+      {name ? <Text bold>{name}</Text> : null}
+      <Box position="absolute" top={0} left={0} width="100%">
+        <Button key={key} plain label={'⠀'.repeat(Math.max(3, before.length + 3 + (name ? name.length + 1 : 0)))} onPress={onPress} />
+      </Box>
+    </Box>
+  )
   const chips = isPane && !!Svg // superfície gráfica com espaço: fichas e linhas com fundo
   const body = (
     <Box flexDirection="column" alignItems="flex-start" width="100%">
@@ -1340,7 +1399,11 @@ async function draw($: any, e: any, next: any) {
         <Box flexDirection="row" flexWrap="wrap" columnGap={1} rowGap={1} marginTop={1} marginBottom={1}>
           {cats.map(c => (
             <Box key={`chip-${c}`} backgroundColor={c === cat ? CORAL : CHIP_BG} paddingX={1}>
-              <Button key={`cat-${c}`} plain label={tabLabel(c, CAT_LABEL[c] ?? c, c === cat).replace('▸', '').trim()} onPress={pick(c)} />
+              {chipSvg(c) ? (
+                iconButton(`cat-${c}`, c, CAT_LABEL[c] ?? c, pick(c), '', c === cat ? CAT_LABEL[c] ?? c : '')
+              ) : (
+                <Button key={`cat-${c}`} plain label={tabLabel(c, CAT_LABEL[c] ?? c, c === cat).replace('▸', '').trim()} onPress={pick(c)} />
+              )}
             </Box>
           ))}
         </Box>
@@ -1442,8 +1505,12 @@ async function draw($: any, e: any, next: any) {
   const toolbox = (
     <Box key="toolbox" flexDirection="column" alignItems="flex-end" {...(isPane ? { alignSelf: 'flex-end' } : { position: 'absolute', top: 0, right: 0, width: TOOLBOX_W })}>
       <Box flexDirection="row" columnGap={1}>
-        {Svg ? <Button key="sc" label={cenarioOn && isPane ? '▾📡' : '📡'} onPress={() => toggleCenario($, isPane)} /> : null}
-        <Button key="tb" label={open ? '✕' : '🧰'} onPress={() => update($, boxOpen, (v: boolean) => !v)} />
+        {Svg ? iconButton('sc', 'antena', 'antena: liga o QG', () => toggleCenario($, isPane), cenarioOn && isPane ? '▾' : '') : null}
+        {Svg && !open ? (
+          iconButton('tb', 'caixa', 'caixa de ferramentas', () => update($, boxOpen, (v: boolean) => !v))
+        ) : (
+          <Button key="tb" label={open ? '✕' : '🧰'} onPress={() => update($, boxOpen, (v: boolean) => !v)} />
+        )}
       </Box>
       {open ? (
         <Box flexDirection="column" borderStyle={isPane && Svg ? 'single' : 'round'} borderColor="subtle" marginTop={1} paddingX={1} paddingY={isPane && Svg ? 1 : 0} width={isPane ? undefined : TOOLBOX_W} height={isPane ? undefined : 10} overflow="hidden" alignItems="flex-start">
@@ -1486,6 +1553,11 @@ async function draw($: any, e: any, next: any) {
     ? picked.shown.flatMap(x => Array.from({ length: Math.min(x.count, STATIONS.length) }, (_, n) => ({ kind: x.kind, n, role: MINI_ROLE[x.kind] ?? '' }))).slice(0, STATIONS.length)
     : []
   let qgNode: any = null
+  // Posição do Claudin na faixa (o passeio leva ele até o canto do que está fazendo). O sprite mede ~size.w/8
+  // células; a conta centra ele no ponto e não deixa sair pelas bordas.
+  const spriteCells = Math.ceil(size.w / 8)
+  const sceneFrac = SCENE_X0 + (SCENE_SPAN * Math.max(0, Math.min(MAX_X, w.x))) / MAX_X
+  const sceneX = Math.max(0, Math.min(cols - spriteCells - 1, Math.round(sceneFrac * cols - spriteCells / 2)))
   const lightsOffNow = sceneOn && !!(await read($, lightsOff))
   if (sceneOn) {
     const nowQ = await $.clock.now()
@@ -1504,7 +1576,7 @@ async function draw($: any, e: any, next: any) {
     qgNode = (
       <Box key="qg" position="relative" width="100%">
         <Svg key="qg-art" source={art} alt="QG do Claudin: a base dos caranguejos com cérebro, em uma cabana de palafita no mangue" />
-        <Box key="qg-claudin" position="absolute" bottom={0} left={Math.max(0, Math.min(x, cols - 8))}>
+        <Box key="qg-claudin" position="absolute" bottom={0} left={sceneX}>
           {sceneSprite}
         </Box>
         {stationMinis.map((mm, i) => (
@@ -1516,23 +1588,24 @@ async function draw($: any, e: any, next: any) {
             altura e largura zero no ponto marcado; o ícone fica numa caixa absoluta de 3 células presa à âncora
             (uma célula para a esquerda, para centrar o emoji), então não encolhe nem pula com a janela. */}
         <Box key="qg-zones" position="absolute" top={0} left={0} right={0} bottom={0} flexDirection="row">
-          {ICONS.map((sp, i) => {
-            const [b0, b1] = ICON_BOUNDS[i]!
+          {ICON_COLS.map(col => {
+            const sp = col
+            const [b0, b1] = col.b
             const half = rowFrac(cols) / 2
-            const anchors: { y: number; x: number; node: any; key: string }[] = [
-              {
-                key: 'icon',
-                x: sp.cx,
-                y: sp.cy,
+            const anchors: { y: number; x: number; node: any; key: string }[] = col.spots
+              .map(s => ({
+                key: s.id,
+                x: s.cx,
+                y: s.cy,
                 node: (
-                  <Box key={`zone-${sp.id}`} position="absolute" top={0} left={-1} width={3}>
+                  <Box key={`zone-${s.id}`} position="absolute" top={0} left={-1} width={3}>
                     {/* O ícone é desenhado dentro da faixa; aqui fica só o botão em branco (U+2800 não some como
                         espaço), que acende ao passar o ponteiro. */}
-                    <Button key={`spot-${sp.id}`} plain label={'\u2800\u2800'} onPress={() => openSpot($, sp.id)} />
+                    <Button key={`spot-${s.id}`} plain label={'\u2800\u2800'} onPress={() => openSpot($, s.id)} />
                   </Box>
                 ),
-              },
-            ].sort((a, b) => a.y - b.y)
+              }))
+              .sort((a, b) => a.y - b.y)
             let used = 0
             return (
               <Box key={`qg-col-${sp.id}`} flexDirection="column" width={pct(b1 - b0)}>
