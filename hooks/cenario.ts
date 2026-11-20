@@ -3,6 +3,8 @@
 // A imagem e o que se acrescenta a ela vão num ÚNICO SVG: o desktop mede o layout em células, e dois elementos
 // empilhados deixam uma emenda.
 
+import { ICON_ART, ICON_SIDE } from './icones-arte'
+
 export const QG_LIMIT = 131072 // caracteres que o Svg do mod aceita
 
 // Ponto do QG: o retângulo do objeto na imagem (fração da largura e da altura), a aba que abre, o ícone que é o botão
@@ -12,7 +14,7 @@ export type Spot = { id: 'sobre' | 'cola' | 'ajustes' | 'prompts' | 'luz' | 'neo
 export const SPOTS: Spot[] = [
   { id: 'sobre', tab: 'sobre', label: 'Placa de madeira: sobre o Claudin', name: 'Sobre', pin: 'ℹ️', cx: 0.123, cy: 0.37, x0: 0.1, y0: 0.12, x1: 0.158, y1: 0.62 },
   { id: 'cola', tab: 'comandos', label: 'Livros e pastas de skills: a Cola da oficina', name: 'Cola', pin: '📚', cx: 0.254, cy: 0.127, x0: 0.16, y0: 0.113, x1: 0.27, y1: 0.279 },
-  { id: 'ajustes', tab: 'ajustes', label: 'Bancada de ferramentas: os ajustes do Claudin', name: 'Ajustes', pin: '⚙️', cx: 0.236, cy: 0.5, x0: 0.165, y0: 0.33, x1: 0.27, y1: 0.66 },
+  { id: 'ajustes', tab: 'ajustes', label: 'Bancada de ferramentas: os ajustes do Claudin', name: 'Ajustes', pin: '⚙️', cx: 0.178, cy: 0.62, x0: 0.165, y0: 0.33, x1: 0.27, y1: 0.66 },
   { id: 'luz', tab: '', label: 'Lanterna: acende e apaga a luz da sala', name: 'Luz', pin: '💡', cx: 0.293, cy: 0.585, always: true, x0: 0.278, y0: 0.02, x1: 0.32, y1: 0.75 },
   { id: 'frota', tab: 'frota', label: 'Monitores: a frota de agentes', name: 'Frota', pin: '🦀', cx: 0.35, cy: 0.234, always: true, x0: 0.326, y0: 0.108, x1: 0.521, y1: 0.69 },
   { id: 'neon', tab: '', label: 'Globo na ponta da mesa da direita: o modo neon', name: 'Neon', pin: '🔮', cx: 0.557, cy: 0.655, always: true, x0: 0.545, y0: 0.55, x1: 0.575, y1: 0.75 },
@@ -225,12 +227,19 @@ export function panelSvg(p: Panel, working = false, w = 360, h = 76): string {
 // ── a vida do cenário: tudo animado dentro do SVG, sem custo de redesenho ──
 // Desenhada por cima da escuridão: linhas de "código" nas telas da esquerda, LEDs do servidor e vaga-lumes verdes
 // piscando pelas raízes do mangue.
+// Classes de animação comuns: piscar em cinco ritmos (b0 a b4), crescer como linha de código (w) e pulsar (n).
+const ANIM_CSS =
+  '<style>@keyframes p{50%{opacity:.15}}@keyframes q{50%{opacity:1}}@keyframes s{0%{transform:scaleX(0)}60%,90%{transform:scaleX(1)}100%{transform:scaleX(0)}}' +
+  '.b0{animation:p .7s infinite}.b1{animation:p 1.1s infinite}.b2{animation:p 1.5s infinite}.b3{animation:p 1.9s infinite}.b4{animation:p 2.4s infinite}' +
+  '.w{transform-box:fill-box;transform-origin:left;animation:s 3s infinite}.n{opacity:.65;animation:q 2.2s infinite}' +
+  '@keyframes v{0%,60%,100%{opacity:0}15%,45%{opacity:1}}.f0{animation:v 2s infinite}.f1{animation:v 2.7s infinite}.f2{animation:v 3.4s infinite}.f3{animation:v 4.1s infinite}</style>'
+
 const SMALL_SCREENS = [MONITORS[1]!, MONITORS[5]!]
 const SERVER = [0.737, 0.3, 0.785, 0.88] // área dos LEDs no rack
 
 export function ambientSvg(w = 360, h = 76, night = false): string {
   const f = (n: number) => n.toFixed(1)
-  let out = '<g class="vida" shape-rendering="auto"><defs><filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="0.9"/></filter></defs>'
+  let out = '<g class="vida" shape-rendering="auto"><defs><filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="0.9"/></filter></defs>' + ANIM_CSS
   SMALL_SCREENS.forEach(([x0, y0, x1, y1], i) => {
     const X = x0 * w + 1.5
     const W = (x1 - x0) * w - 3
@@ -239,7 +248,7 @@ export function ambientSvg(w = 360, h = 76, night = false): string {
       const y = y0 * h + H * (0.28 + l * 0.22)
       const dur = 2.2 + ((i * 3 + l * 5) % 7) * 0.45
       const full = f(W * (0.45 + ((i + l) % 3) * 0.2))
-      out += `<rect x="${f(X)}" y="${f(y)}" height="0.9" width="0" fill="#9dffb5" opacity=".75"><animate attributeName="width" values="0;${full};${full};0" keyTimes="0;.6;.9;1" dur="${dur.toFixed(2)}s" repeatCount="indefinite"/></rect>`
+      out += `<rect class="w" style="animation-duration:${dur.toFixed(1)}s" x="${f(X)}" y="${f(y)}" height="0.9" width="${full}" fill="#9dffb5" opacity=".75"/>`
     }
   })
   const [sx0, sy0, sx1, sy1] = SERVER as [number, number, number, number]
@@ -248,8 +257,7 @@ export function ambientSvg(w = 360, h = 76, night = false): string {
       const x = (sx0 + ((sx1 - sx0) * (c + 0.5)) / 3) * w
       const y = (sy0 + ((sy1 - sy0) * (r + 0.5)) / 7) * h
       const color = (r + c) % 4 === 0 ? '#ffb347' : '#5dff8a'
-      const dur = 0.6 + ((r * 7 + c * 3) % 9) * 0.23
-      out += `<rect x="${f(x)}" y="${f(y)}" width="0.9" height="0.9" fill="${color}"><animate attributeName="opacity" values="1;.15;1" dur="${dur.toFixed(2)}s" repeatCount="indefinite"/></rect>`
+      out += `<rect class="b${(r * 7 + c * 3) % 5}" x="${f(x)}" y="${f(y)}" width=".9" height=".9" fill="${color}"/>`
     }
   }
   // Vaga-lumes verdes: um halo borrado e um ponto, piscando fora de compasso; de dia, mais discretos.
@@ -258,19 +266,17 @@ export function ambientSvg(w = 360, h = 76, night = false): string {
     'M20 50 q10 -8 16 2 t-4 12 t-14 -6z',
     'M6 36 q6 -10 12 -2 t4 10 t-12 -2z',
     'M28 10 q6 4 2 10 t-10 2 t8 -12z',
-    'M14 64 q8 -6 14 0 t-4 8 t-10 -8z',
     'M335 18 q-8 8 -14 0 t-8 10 t12 8 t10 -18z',
     'M345 46 q-10 6 -16 -2 t2 -10 t14 12z',
     'M352 30 q-6 -8 -12 -2 t-2 10 t14 -8z',
     'M326 58 q8 -4 12 2 t-4 8 t-8 -10z',
-    'M340 66 q-8 -6 -14 0 t4 8 t10 -8z',
   ]
-  const peak = night ? 1 : 0.7
+  // O piscar vem das classes f0 a f3 (CSS); de dia o grupo fica um pouco mais discreto.
+  out += `<g opacity="${night ? 1 : 0.7}">`
   paths.forEach((d, i) => {
-    const dur = 9 + i * 2.1
-    const blink = `<animate attributeName="opacity" values="0;${peak};${peak};0;0" keyTimes="0;.15;.45;.6;1" dur="${(2 + (i % 4) * 0.7).toFixed(1)}s" begin="${(i * 0.37).toFixed(2)}s" repeatCount="indefinite"/>`
-    out += `<g opacity="0"><animateMotion path="${d}" dur="${dur.toFixed(1)}s" repeatCount="indefinite"/>${blink}<circle r="2" fill="#7dff4a" opacity=".55" filter="url(#glow)"/><circle r="0.75" fill="#e2ffb0"/></g>`
+    out += `<g class="f${i % 4}" style="animation-delay:${(i * 0.37).toFixed(1)}s"><animateMotion path="${d}" dur="${(9 + i * 2.1).toFixed(1)}s" repeatCount="indefinite"/><circle r="2" fill="#7dff4a" opacity=".55" filter="url(#glow)"/><circle r=".75" fill="#e2ffb0"/></g>`
   })
+  out += '</g>'
   return out + '</g>'
 }
 
@@ -288,11 +294,13 @@ export const NEON_DESK: [number, number][] = [
 
 export function neonSvg(w = 360, h = 76): string {
   const f = (n: number) => n.toFixed(1)
-  const strip = (x0: number, y: number, x1: number, color: string, dur: number) =>
-    `<line x1="${f(x0 * w)}" y1="${f(y * h)}" x2="${f(x1 * w)}" y2="${f(y * h)}" stroke="${color}" stroke-width="0.9" stroke-linecap="round"><animate attributeName="opacity" values=".6;1;.6" dur="${dur}s" repeatCount="indefinite"/></line>` +
-    `<line x1="${f(x0 * w)}" y1="${f(y * h)}" x2="${f(x1 * w)}" y2="${f(y * h)}" stroke="${color}" stroke-width="3" opacity=".45" filter="url(#neonglow)"/>`
-  let out = `<g class="neon" shape-rendering="auto"><defs><filter id="neonglow" x="-20%" y="-300%" width="140%" height="700%"><feGaussianBlur stdDeviation="1.4"/></filter></defs>`
-  out += `<rect width="${w}" height="${h}" fill="#3b0a6e" opacity=".22"/>`
+  const strip = (x0: number, y: number, x1: number, color: string, _dur: number) => {
+    const a = `x1="${f(x0 * w)}" y1="${f(y * h)}" x2="${f(x1 * w)}" y2="${f(y * h)}" stroke="${color}"`
+    return `<line ${a} stroke-width="5" opacity=".55" filter="url(#ng)"/><line class="n" ${a} stroke-width="1" stroke-linecap="round"/>`
+  }
+  let out = `<g class="neon" shape-rendering="auto"><defs><filter id="ng" x="-20%" y="-400%" width="140%" height="900%"><feGaussianBlur stdDeviation="2"/></filter></defs>`
+  // Um tom roxo leve e uma luz rosada clara por cima: a sala fica colorida, não escura.
+  out += `<rect width="${w}" height="${h}" fill="#3b0a6e" opacity=".14"/><rect width="${w}" height="${h}" fill="#ff9be8" opacity=".07"/>`
   // Sob as duas prateleiras.
   out += strip(0.159, 0.33, 0.274, '#00f0ff', 2.6)
   out += strip(0.55, 0.28, 0.7, '#00f0ff', 2.4)
@@ -302,6 +310,22 @@ export function neonSvg(w = 360, h = 76): string {
   for (const y of [0.47, 0.56, 0.655, 0.75, 0.85]) out += strip(0.743, y, 0.786, '#00f0ff', 1.8)
   // Rodapé.
   out += strip(0.03, 0.965, 0.97, '#a84bff', 3.3)
+  return out + '</g>'
+}
+
+// Ícones do QG: arte de ICON_SIDE x ICON_SIDE (hooks/icones-arte.ts), desenhada com ICON_UNITS de lado no centro
+// marcado de cada ponto. A luz troca a lâmpada pela lua quando apagada. O relógio não tem ícone: ele é o próprio.
+export const ICON_UNITS = 9
+export function iconsSvg(w = 360, h = 76, lightsOff = false): string {
+  const k = ICON_UNITS / ICON_SIDE
+  let out = '<g class="icones" shape-rendering="crispEdges">'
+  for (const sp of SPOTS) {
+    const art = ICON_ART[sp.id === 'luz' && lightsOff ? 'luz-off' : sp.id]
+    if (!art) continue
+    const x = sp.cx * w - ICON_UNITS / 2
+    const y = sp.cy * h - ICON_UNITS / 2
+    out += `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${k.toFixed(4)})">${art}</g>`
+  }
   return out + '</g>'
 }
 
@@ -338,17 +362,25 @@ function lightBody(w: number, h: number, sky0: Sky, lightsOff = false): string {
 
 // A imagem com o véu, a luz da hora e o relógio (fatia do pomodoro ou ponteiros) dentro do mesmo SVG.
 export function composeQg(base: string, s: QgState): string {
-  const veil = `<rect width="${s.w}" height="${s.h}" fill="#140b05" opacity="${VEIL}"/>`
-  const night = skyAt(s.minutes).dark >= 0.3 || !!s.lightsOff
-  const body = veil + lightBody(s.w, s.h, skyAt(s.minutes), s.lightsOff) + (s.neon ? neonSvg(s.w, s.h) : '') + ambientSvg(s.w, s.h, night) + (s.panel ? panelSvg(s.panel, s.working, s.w, s.h) + fleetPulse(s.panel.agents ?? 0, s.w, s.h) : '') + (s.pomo ? wedge(s.w, s.h, s.pomo.fraction) : hands(s.w, s.h, s.minutes))
   const end = base.lastIndexOf('</svg>')
   if (end < 0) return base
-  const out = base.slice(0, end) + body + base.slice(end)
-  if (out.length <= QG_LIMIT) return out
-  // Arte grande demais para a luz: fica só o relógio, e se nem assim couber, a imagem como está.
-  const clock = (s.panel ? panelSvg(s.panel, s.working, s.w, s.h) : '') + (s.pomo ? wedge(s.w, s.h, s.pomo.fraction) : hands(s.w, s.h, s.minutes))
-  const light = base.slice(0, end) + clock + base.slice(end)
-  return light.length <= QG_LIMIT ? light : base
+  const veil = `<rect width="${s.w}" height="${s.h}" fill="#140b05" opacity="${VEIL}"/>`
+  const night = skyAt(s.minutes).dark >= 0.3 || !!s.lightsOff
+  const clock = s.pomo ? wedge(s.w, s.h, s.pomo.fraction) : hands(s.w, s.h, s.minutes)
+  const panel = s.panel ? panelSvg(s.panel, s.working, s.w, s.h) + fleetPulse(s.panel.agents ?? 0, s.w, s.h) : ''
+  const icons = iconsSvg(s.w, s.h, s.lightsOff)
+  // Em camadas, da mais necessária para a mais enfeite: o que não couber no limite do motor fica de fora, a começar
+  // pela vida do cenário e depois o neon; os ícones, o painel e o relógio sempre entram.
+  const essential = veil + lightBody(s.w, s.h, skyAt(s.minutes), s.lightsOff)
+  const neon = s.neon ? neonSvg(s.w, s.h) : ''
+  const life = ambientSvg(s.w, s.h, night)
+  const make = (extra: string) => base.slice(0, end) + essential + extra + panel + clock + icons + base.slice(end)
+  for (const extra of [neon + life, neon, '']) {
+    const out = make(extra)
+    if (out.length <= QG_LIMIT) return out
+  }
+  const bare = base.slice(0, end) + panel + clock + icons + base.slice(end)
+  return bare.length <= QG_LIMIT ? bare : base
 }
 
 // Contorno escuro e sombra num personagem (o Claudin, uma miniatura) para ele saltar do cenário. O viewBox ganha

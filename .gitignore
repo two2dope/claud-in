@@ -15,6 +15,7 @@ node_modules/
 # Arte bruta do Flow e referências: ficam só na máquina; o repositório leva o SVG gerado.
 assets/qg/
 assets/skins/
+assets/icones/
 assets/*.jpg
 assets/*.jpeg
 assets/*.png

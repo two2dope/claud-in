@@ -1765,9 +1765,9 @@ test('o botão de cada ponto é o próprio ícone, sem rótulo de texto', async 
   mock.clock(on, { now: NOV19 })
   await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
-  expect((await ui.find({ key: 'spot-cofre' }))?.props?.label).toBe('🔐')
+  expect((await ui.find({ key: 'spot-cofre' }))?.props?.label).toBe('⠀⠀')
+  expect(await qg(ui)).toContain('class=\\"icones')
   const zona = JSON.stringify(await ui.find({ key: 'qg-col-tempo' }))
-  expect(zona).toContain('⏱')
   expect(zona).not.toContain('Relógio')
   await ui.press({ key: 'spot-tempo' })
   expect((await ui.find({ key: 'chip-tempo' }))?.props?.backgroundColor).toBe('#D97757')
@@ -1779,7 +1779,7 @@ test('a placa de madeira abre o Sobre, com a versão e os links do projeto', asy
   await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
   await ui.press({ key: 'spot-sobre' })
-  expect(await ui.find({ type: 'Text', text: /Claudin 0\.7\.8/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Claudin 0\.8\.0/ })).toBeDefined()
   expect(JSON.stringify(await ui.find({ key: 'sb-git' }))).toContain('https://github.com/two2dope/claud-in')
   await ui.unmount()
 })
@@ -1792,13 +1792,13 @@ test('o tamanho cresceu: médio é o antigo grande e o grande passou dele', asyn
   await ui.unmount()
 })
 
-test('a luz e o caranguejo ficam acesos, os outros apagados; cada ícone tem coluna fixa e nada interativo por cima', async ($: any, on: any) => {
+test('a luz troca o ícone dentro da faixa; cada botão tem caixa fixa e nada interativo por cima', async ($: any, on: any) => {
   mock.clock(on, { now: NOV19 })
   await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
-  expect((await ui.find({ key: 'spot-luz' }))?.props?.dimColor).toBeFalsy()
-  expect((await ui.find({ key: 'spot-frota' }))?.props?.dimColor).toBeFalsy()
-  expect((await ui.find({ key: 'spot-cofre' }))?.props?.dimColor).toBe(true)
+  const antes = await qg(ui)
+  await ui.press({ key: 'spot-luz' })
+  expect(await qg(ui)).not.toBe(antes) // a lâmpada vira lua dentro da faixa
   const col = JSON.stringify(await ui.find({ key: 'zone-cofre' }))
   expect(col).toContain('"width":3')
   expect(JSON.stringify(await ui.find({ key: 'qg-claudin' }))).not.toContain('isInteractive')
@@ -1819,12 +1819,11 @@ test('o segundo interruptor liga e desliga o modo neon', async ($: any, on: any)
   await ui.unmount()
 })
 
-test('o relógio não tem ícone por cima: o botão é em branco e o ⏱ só aparece no hover', async ($: any, on: any) => {
+test('o relógio não tem ícone por cima: o botão é em branco e abre o Tempo', async ($: any, on: any) => {
   mock.clock(on, { now: NOV19 })
   await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
   const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
   expect((await ui.find({ key: 'spot-tempo' }))?.props?.label).toBe('\u2800\u2800')
-  expect(JSON.stringify(await ui.find({ key: 'qg-col-tempo' }))).toContain('"display":"none"')
   await ui.press({ key: 'spot-tempo' })
   expect((await ui.find({ key: 'chip-tempo' }))?.props?.backgroundColor).toBe('#D97757')
   await ui.unmount()
