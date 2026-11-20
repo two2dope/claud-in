@@ -1,0 +1,132 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; overflow: hidden; background: #1e1e1e; }
+    .w { position: absolute; inset: 0; overflow: hidden; }
+    .t { position: absolute; left: 96px; top: 300px; width: 888px; font-family: 'Archivo Black'; font-size: 80px; line-height: 0.98; letter-spacing: -0.01em; color: #fff1d6; }
+    .t span { display: block; overflow: hidden; padding-bottom: 6px; }
+    .t b { display: inline-block; font-weight: 400; }
+    .acc { color: #D97757; }
+    /* mundo 1: o prompt */
+    #w1 { background: #1e1e1e; }
+    #w1-bal { position: absolute; left: 90px; top: 540px; width: 900px; height: 150px; border: 5px solid #2b1a10; border-radius: 36px; background: #fff1d6; font-family: 'Space Mono'; font-weight: 700; font-size: 44px; color: #2b1a10; }
+    .w1-say { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+    #w1-say2 { opacity: 0; }
+    #w1-claudin { position: absolute; left: 300px; top: 730px; width: 480px; height: 360px; }
+    #w1-claudin img { width: 480px; height: 360px; }
+    #w1-prompt { position: absolute; left: 96px; top: 1130px; width: 888px; height: 140px; border: 4px solid #4a4a4a; border-radius: 22px; padding: 0 36px; display: flex; align-items: center; font-family: 'Space Mono'; font-weight: 700; font-size: 42px; color: #f2f2f2; }
+    #w1-prompt i { font-style: normal; color: #D97757; margin-right: 22px; }
+    /* mundo 2: o QG de manhã */
+    #w2 { background: #2b1a10; opacity: 0; }
+    #w2-water { position: absolute; left: 0; top: 1420px; width: 1080px; height: 500px; background: #1d3b36; }
+    #w2-qg { position: absolute; left: -1346px; top: 520px; width: 4263px; height: 900px; }
+    /* mundo 3: os monitores */
+    #w3 { background: #2b1a10; opacity: 0; }
+    #w3-qg { position: absolute; left: -2478px; top: 359px; width: 6821px; height: 1440px; }
+    #w3-band { position: absolute; left: 0; top: 0; width: 1080px; height: 430px; background: #2b1a10; }
+    /* mundo 4: a caixa de ferramentas */
+    #w4 { background: #24453c; opacity: 0; }
+    #w4-claudin { position: absolute; left: 380px; top: 670px; width: 320px; height: 240px; }
+    #w4-claudin img { width: 320px; height: 240px; }
+    .w4-ic { position: absolute; width: 200px; margin-left: -100px; text-align: center; }
+    .w4-ic img { width: 120px; height: 120px; display: block; margin: 0 auto; }
+    .w4-ic em { display: block; margin-top: 4px; font-style: normal; font-family: 'Space Mono'; font-weight: 700; font-size: 32px; color: #fff1d6; }
+    /* mundo 5: o QG no neon */
+    #w5 { background: #160d08; opacity: 0; }
+    #w5-qg { position: absolute; left: -2391px; top: 225px; width: 5329px; height: 1125px; }
+    #w5-band { position: absolute; left: 0; top: 0; width: 1080px; height: 430px; background: #160d08; }
+    #w5 .acc { color: #ff5ce1; }
+  </style>
+  <div id="root" data-composition-id="mergulho" data-width="1080" data-height="1920">
+    <div id="w1" class="w">
+      <div id="w1-t" class="t"><span><b>Tudo começa</b></span><span><b>no <i class="acc" style="font-style: normal">prompt</i></b></span></div>
+      <div id="w1-bal">
+        <div id="w1-say1" class="w1-say">Bora entrar aqui?</div>
+        <div id="w1-say2" class="w1-say">De volta ao prompt!</div>
+      </div>
+      <div id="w1-claudin"><img src="assets/claudin-think.svg" alt="Claudin pensando" /></div>
+      <div id="w1-prompt"><i>&gt;</i>me mostra o teu QG</div>
+    </div>
+    <div id="w2" class="w">
+      <div id="w2-water"></div>
+      <img id="w2-qg" src="assets/qg-manha.svg" alt="QG do Claudin de manhã" />
+      <div id="w2-t" class="t"><span><b>Dentro do balão,</b></span><span><b>o <i class="acc" style="font-style: normal">QG</i> no mangue</b></span></div>
+    </div>
+    <div id="w3" class="w">
+      <img id="w3-qg" src="assets/qg-dia.svg" alt="Monitores do QG com o painel da sessão" />
+      <div id="w3-band"></div>
+      <div id="w3-t" class="t"><span><b>Dentro do QG,</b></span><span><b>a <i class="acc" style="font-style: normal">sessão</i> ao vivo</b></span></div>
+    </div>
+    <div id="w4" class="w">
+      <div id="w4-t" class="t"><span><b>Dentro do painel,</b></span><span><b>tudo à <i class="acc" style="font-style: normal; color: #ff9a74">mão</i></b></span></div>
+      <div id="w4-claudin"><img src="assets/claudin-ok.svg" alt="Claudin" /></div>
+      <div id="w4-i1" class="w4-ic"><img src="assets/icone-acoes.svg" alt="" /><em>Ações</em></div>
+      <div id="w4-i2" class="w4-ic"><img src="assets/icone-prompts.svg" alt="" /><em>Prompts</em></div>
+      <div id="w4-i3" class="w4-ic"><img src="assets/icone-cola.svg" alt="" /><em>Cola</em></div>
+      <div id="w4-i4" class="w4-ic"><img src="assets/icone-tempo.svg" alt="" /><em>Timer</em></div>
+      <div id="w4-i5" class="w4-ic"><img src="assets/icone-prazos.svg" alt="" /><em>Agenda</em></div>
+      <div id="w4-i6" class="w4-ic"><img src="assets/icone-frota.svg" alt="" /><em>Frota</em></div>
+      <div id="w4-i7" class="w4-ic"><img src="assets/icone-cofre.svg" alt="" /><em>Cofre</em></div>
+      <div id="w4-i8" class="w4-ic"><img src="assets/icone-ajustes.svg" alt="" /><em>Ajustes</em></div>
+    </div>
+    <div id="w5" class="w">
+      <img id="w5-qg" src="assets/qg-neon-limpo.svg" alt="QG no modo neon" />
+      <div id="w5-band"></div>
+      <div id="w5-t" class="t"><span><b>E quando a noite</b></span><span><b>cai, <i class="acc" style="font-style: normal">neon</i></b></span></div>
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const B = 2 / 3, BAR = 8 / 3;
+    // Mergulho: o mundo atual cresce em direção ao ponto (ox, oy) e some; o próximo nasce pequeno do centro.
+    const dive = (from, to, t, ox, oy) => {
+      tl.to(from, { scale: 9, transformOrigin: `${ox}px ${oy}px`, duration: 0.6, ease: 'power3.in' }, t - 0.6);
+      tl.set(from, { opacity: 0 }, t);
+      tl.fromTo(to, { opacity: 0, scale: 0.15, transformOrigin: '540px 900px' }, { opacity: 1, scale: 1, duration: 0.55, ease: 'power3.out', immediateRender: false }, t - 0.12);
+    };
+    const title = (id, t) => tl.fromTo(`${id} b`, { yPercent: 110 }, { yPercent: 0, duration: 0.3, ease: 'power4.out', stagger: 0.08 }, t);
+
+    // Mundo 1: o prompt. O título já está na tela no quadro 0; o balão pulsa nas batidas e a câmera mergulha nele.
+    tl.set('#w1', { scale: 1, opacity: 1 }, 0);
+    tl.set('#w1-t b', { yPercent: 0 }, 0);
+    for (let b = 0; b < 7; b++) tl.fromTo('#w1-bal', { scale: 1.05, transformOrigin: '50% 100%' }, { scale: 1, duration: 0.25, ease: 'power3.out' }, b * B);
+    tl.fromTo('#w1-claudin', { y: 0 }, { y: -40, duration: 0.2, ease: 'power3.out', yoyo: true, repeat: 1 }, 2 * B);
+    tl.fromTo('#w1-claudin', { y: 0 }, { y: -40, duration: 0.2, ease: 'power3.out', yoyo: true, repeat: 1 }, 6 * B);
+    dive('#w1', '#w2', 2 * BAR, 540, 615);
+
+    // Mundo 2: o QG de manhã, a câmera desliza até os monitores e mergulha neles.
+    title('#w2-t', 2 * BAR + 0.2);
+    tl.fromTo('#w2-qg', { x: 0 }, { x: -100, duration: 2 * BAR - 0.6, ease: 'power1.inOut' }, 2 * BAR);
+    dive('#w2', '#w3', 4 * BAR, 440, 858);
+
+    // Mundo 3: o painel da sessão nos monitores.
+    title('#w3-t', 4 * BAR + 0.2);
+    tl.fromTo('#w3-qg', { scale: 1, transformOrigin: '50% 37%' }, { scale: 1.06, duration: 2 * BAR - 0.6, ease: 'none' }, 4 * BAR);
+    dive('#w3', '#w4', 6 * BAR, 540, 900);
+
+    // Mundo 4: a caixa de ferramentas; uma ferramenta salta a cada batida, em volta do Claudin.
+    title('#w4-t', 6 * BAR + 0.2);
+    const cx = 540, cy = 830, rx = 360, ry = 300;
+    for (let i = 0; i < 8; i++) {
+      const a = (-90 + i * 45) * Math.PI / 180;
+      const x = cx + rx * Math.cos(a), y = cy + ry * Math.sin(a) - 80;
+      tl.set(`#w4-i${i + 1}`, { left: x, top: y }, 0);
+      tl.fromTo(`#w4-i${i + 1}`, { scale: 0, x: 540 - x, y: 790 - y }, { scale: 1, x: 0, y: 0, duration: 0.4, ease: 'back.out(1.7)', immediateRender: false }, 6 * BAR + 0.3 + i * B * 0.5);
+    }
+    dive('#w4', '#w5', 8 * BAR, 540, 790);
+
+    // Mundo 5: o QG no neon.
+    title('#w5-t', 8 * BAR + 0.2);
+    tl.fromTo('#w5-qg', { x: 0 }, { x: 120, duration: 2 * BAR - 0.6, ease: 'power1.inOut' }, 8 * BAR);
+
+    // Volta: tudo encolhe para dentro do balão e a câmera recua até o prompt.
+    const back = 10 * BAR;
+    tl.to('#w5', { scale: 0.06, transformOrigin: '540px 615px', duration: 1.2, ease: 'power3.in' }, back);
+    tl.set('#w5', { opacity: 0 }, back + 1.2);
+    tl.set('#w1', { opacity: 1 }, back);
+    tl.fromTo('#w1', { scale: 9, transformOrigin: '540px 615px' }, { scale: 1, duration: 1.2, ease: 'power3.out', immediateRender: false }, back);
+    tl.set('#w1-say1', { opacity: 0 }, back + 1.2);
+    tl.set('#w1-say2', { opacity: 1 }, back + 1.2);
+    tl.fromTo('#w1-bal', { scale: 1.15, transformOrigin: '50% 100%' }, { scale: 1, duration: 0.3, ease: 'back.out(2)' }, back + 1.2);
+    window.__timelines['mergulho'] = tl;
+  </script>
+</template>
