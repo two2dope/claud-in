@@ -93,5 +93,5 @@ gates:
 - 07-plano.md: ok
 - 08-log.md: ok
 - 09-criterios-ar-board.md: ok (decisões do AR Board do cofre e das skins)
-- 10-qg-mangue-roteiro-de-arte.md: ok (roteiro e curadoria da arte do QG)
-- skins-ar-board/: ok (painéis da curadoria das skins; a arte do Flow saiu do pacote na 0.3.2)
+- 10-qg-mangue-roteiro-de-arte.md e 11-qg-icones-flow.md: movidos em 2026-11-20 para `prompts/` de `06_meios-midias/claudin-mascote-claude-code`, junto com a arte do Flow, os prompts e a série de Reels
+- skins-ar-board/: movida para `prompts/skins-ar-board/` de `06_meios-midias/claudin-mascote-claude-code`

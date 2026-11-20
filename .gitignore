@@ -12,7 +12,7 @@ node_modules/
 # Estado local do plugin Navigator.
 .agent/
 
-# Arte bruta do Flow e referências: ficam só na máquina; o repositório leva o SVG gerado.
+# Arte bruta do Flow e referências: moram em 06_meios-midias/claudin-mascote-claude-code; se voltarem para cá por engano, ficam fora do git.
 assets/qg/
 assets/skins/
 assets/icones/
@@ -24,11 +24,3 @@ assets/*.zip
 assets/flow-assets-bundle*.json
 captura-de-tela-*.png
 
-# Divulgação: os MP4 e MP3 ficam só na máquina; o repositório guarda os projetos dos vídeos.
-divulgacao/reels/
-divulgacao/trilhas/*.mp3
-divulgacao/serie-claudin/*/renders/
-divulgacao/serie-claudin/*/assets/audio/
-divulgacao/serie-claudin/*/.hyperframes/
-divulgacao/serie-claudin/*/.thumbnails/
-divulgacao/serie-claudin/*/node_modules/
