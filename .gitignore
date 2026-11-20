@@ -30,4 +30,5 @@ divulgacao/trilhas/*.mp3
 divulgacao/serie-claudin/*/renders/
 divulgacao/serie-claudin/*/assets/audio/
 divulgacao/serie-claudin/*/.hyperframes/
+divulgacao/serie-claudin/*/.thumbnails/
 divulgacao/serie-claudin/*/node_modules/
