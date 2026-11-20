@@ -1895,3 +1895,32 @@ test('a porta da direita abre a frota e o raio do servidor brilha sem LEDs na ga
   expect(await qg(ui)).toContain('href=\\"#i-servidor\\"')
   await ui.unmount()
 })
+
+// ── 0.8.2: ordem das abas, Sobre no rodapé, segundo clique fecha ───────────────────────────────────────
+test('as abas seguem a ordem Ações, Prompts, Comandos, Timer, Agenda e Ajustes por último', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
+  if (!(await ui.find({ key: 'cat-acoes' }))) await ui.press({ key: 'tb' })
+  const tree = JSON.stringify(await ui.find({ key: 'toolbox' }))
+  const pos = ['cat-acoes', 'cat-prompts', 'cat-comandos', 'cat-tempo', 'cat-prazos', 'cat-ajustes'].map(k => tree.indexOf(`"key":"${k}"`))
+  expect(pos.every(p => p >= 0)).toBe(true)
+  expect([...pos].sort((a, b) => a - b)).toEqual(pos)
+  // O ícone Sobre fica no rodapé e abre a aba do projeto.
+  await ui.press({ key: 'sb-open' })
+  expect(await ui.find({ key: 'sb-git' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('no QG, o segundo clique no mesmo objeto fecha o menu', async ($: any, on: any) => {
+  mock.clock(on, { now: NOV19 })
+  await bootFs($, on, {}, { USERPROFILE: 'C:/u' }, { cenario: true })
+  const ui = await $.ui.mount({ plugin: 'claudin', surface: 'desktop', ...PANE })
+  await ui.press({ key: 'spot-agenda' })
+  expect((await ui.find({ key: 'chip-prazos' }))?.props?.backgroundColor).toBe('#D97757')
+  await ui.press({ key: 'spot-agenda' })
+  expect(await ui.find({ key: 'chip-prazos' })).toBeUndefined()
+  await ui.press({ key: 'spot-agenda' })
+  expect(await ui.find({ key: 'chip-prazos' })).toBeDefined()
+  await ui.unmount()
+})
