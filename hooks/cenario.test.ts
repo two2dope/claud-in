@@ -23,7 +23,7 @@ describe('QG: a arte', () => {
 
 describe('QG: pontos clicáveis e bancadas', () => {
   test('onze pontos, cada um com a aba que abre, dentro da imagem', () => {
-    expect(SPOTS.map(s => [s.id, s.tab])).toEqual([['sobre', 'sobre'], ['cola', 'comandos'], ['ajustes', 'ajustes'], ['luz', ''], ['frota', 'frota'], ['neon', ''], ['cofre', 'cofre'], ['agenda', 'prazos'], ['prompts', 'prompts'], ['servidor', 'acoes'], ['tempo', 'tempo']])
+    expect(SPOTS.map(s => [s.id, s.tab])).toEqual([['sobre', 'sobre'], ['ajustes', 'ajustes'], ['cola', 'comandos'], ['neon', ''], ['luz', ''], ['cofre', 'cofre'], ['prompts', 'prompts'], ['agenda', 'prazos'], ['servidor', 'acoes'], ['tempo', 'tempo'], ['frota', 'frota']])
     for (const s of SPOTS) {
       expect(s.x0).toBeGreaterThanOrEqual(0)
       expect(s.x1).toBeLessThanOrEqual(1)
@@ -235,7 +235,7 @@ describe('QG: a vida do cenário', () => {
     const v = ambientSvg(360, 76, true)
     expect(v).toContain('animateMotion')
     expect(v).toContain('<style>')
-    expect(v.match(/class="b\d"/g)!.length).toBeGreaterThan(15)
+    expect(v.match(/class="b\d"/g)!.length).toBeGreaterThan(12) // a gaveta de baixo do rack fica sem LED
     const noite = composeQg(QG_ART.svg, { w: QG_ART.w, h: QG_ART.h, minutes: HORA(22), pomo: { fraction: 0.5 }, panel: { model: 'claude-opus-5-5', ctx: 99, tokens: 999_999, window: 1_000_000, usd: 999.99, limit5h: 99, limit7d: 99, agents: 9, tools: 99 }, working: true })
     expect(noite.length).toBeLessThanOrEqual(QG_LIMIT)
     expect(noite).toContain('class="vida"')
@@ -278,11 +278,13 @@ describe('QG 0.7.7: neon, vaga-lumes e lua', () => {
 })
 
 describe('QG 0.8.0: ícones próprios dentro da faixa', () => {
-  test('cada ponto com arte vira um grupo na faixa; a luz troca de lâmpada para lua', () => {
+  test('cada ponto com arte vira um grupo na faixa; o raio brilha sempre e a lua só com a luz apagada', () => {
     const acesa = iconsSvg(360, 76, false)
     const apagada = iconsSvg(360, 76, true)
-    expect(acesa.match(/<g transform=/g)!.length).toBe(10)
-    expect(acesa).not.toBe(apagada)
+    expect(acesa.match(/transform="translate/g)!.length).toBe(10)
+    expect(acesa.match(/<use /g)!.length).toBe(1)
+    expect(apagada.match(/<use /g)!.length).toBe(2)
+    expect(apagada).toContain('href="#i-luz"')
   })
 
   test('o pior caso cabe no limite com ícones, painel, neon e vaga-lumes', () => {

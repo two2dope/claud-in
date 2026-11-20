@@ -184,8 +184,9 @@ export const sprite = (mood: Mood, kind: ModeKind = 'normal', look: Look = 'cent
         ? px(14, 3, 2, 2, '#f5f4ed') + px(14, 3, 2, 0.7, '#6b4423') +
           `<rect x="14.7" y="1.6" width="0.6" height="1" fill="#cfcfcf">${fade('1.2s', 0.2, 0.9)}</rect>`
         : kind === 'cigarro'
-          ? px(0, 4, 2, 0.6, '#f5f4ed') + px(0, 4, 0.6, 0.6, '#ff6a3d') +
-            `<rect x="0.2" y="2.6" width="0.6" height="1" fill="#9a9a9a">${fade('1.6s', 0.1, 0.8)}</rect>`
+          ? // No canto da boca, abaixo do olho direito, saindo pela lateral do corpo (antes ficava na altura da orelha).
+            px(11, 6.6, 4, 0.6, '#f5f4ed') + px(14.4, 6.6, 0.6, 0.6, '#ff6a3d') +
+            `<rect x="15.3" y="3.8" width="0.5" height="1" fill="#9a9a9a">${fade('1.6s', 0.1, 0.8)}</rect>`
           : kind === 'meditar'
             ? px(12.5, 0.2, 3, 1.2, '#d64545') + px(13.2, 0.4, 0.6, 0.6, '#f5f4ed') + px(14.4, 0.6, 0.5, 0.5, '#f5f4ed') + px(13.2, 1.4, 1.1, 1.3, '#f5f4ed')
             : ''

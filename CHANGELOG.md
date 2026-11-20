@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.1 — 2026-11-20
+
+- **Ícones em vetor.** Os ícones do QG e da caixa de ferramentas foram redesenhados em vetor (`hooks/icones-vetor.ts`), no traço do globo de plasma: contorno escuro fino, degradê, brilho no alto e animações discretas (pontinhos do balão, ponteiro do cronômetro, dia marcado do calendário, caranguejo balançando, estrela da lua, sinal da antena, raios do globo). Ficam nítidos em qualquer tamanho e pesam menos que a pixel art; a conversão de pixel art (`hooks/icones-arte.ts`, `scripts/icones-para-svg.py`) saiu.
+- **Fichas da caixa com ícone.** No painel lateral os emojis das abas, da antena e da caixa de ferramentas viraram ícones de 22 px com botão em branco por cima; a aba aberta mostra o nome. Na linha do prompt e no terminal continuam os emojis.
+- **Ícones nos pontos novos do QG.** Cola em cima das pastas, Ajustes nas gavetas da bancada, a luz no quadro da lua (que brilha com a luz apagada), o neon num globo de plasma ao lado da terceira cadeira, o cadeado no centro do cofre, o calendário sobre os quadradinhos do canto, Ações na gaveta de baixo do servidor (o raio fica aceso, sem LEDs piscando ali) e a frota na porta da direita. Pontos quase na mesma vertical dividem uma coluna de cliques.
+- **Claudin anda pela sala.** Com o QG ligado ele passeia pela faixa inteira, anda até o objeto clicado e fica um pouco por lá, e trabalhando vai até o canto da tarefa: monitores ao programar, prateleira ao ler, servidor ao rodar, cofre ao buscar, relógio no alerta.
+- **Cigarro na boca.** No modo cigarro ele sai da altura da orelha e fica no canto da boca, com a fumaça na ponta.
+- **Monitor de baixo** do painel subiu e não encosta mais no encosto das cadeiras.
+- **Neon restrito:** nas prateleiras só entre as mãos-francesas, no rack uma tira a mais em cima (e nenhuma na gaveta do raio), e no piso só no assoalho do deck, sem passar pela rampa nem pelas margens do mangue.
+
 ## 0.8.0 — 2026-11-19
 
 - **Ícones próprios do QG.** Os emojis saíram: placa de informação, livros, engrenagem, balão, lâmpada (lua com a luz apagada), globo místico, caranguejinho, cadeado, calendário e raio são pixel art gerada no Google Flow com a arte do QG como referência, convertida por `scripts/icones-para-svg.py` (fundo magenta recortado por preenchimento a partir da borda, 16x16, 7 cores) para `hooks/icones-arte.ts`.

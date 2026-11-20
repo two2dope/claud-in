@@ -3,7 +3,8 @@ export type Action = { label: string; text: string }
 export type TurnStats = { files: string[]; cmds: number; errors: number; agents: number }
 export type ModeKind = 'normal' | 'cafe' | 'cigarro' | 'meditar' | 'thuglife'
 export type Mode = { kind: ModeKind; until: number }
-export type Walk = { x: number; dir: number }
+// goal: para onde o Claudin está indo no QG (em unidades de x); rest: passos parado antes de voltar a passear.
+export type Walk = { x: number; dir: number; goal?: number; rest?: number }
 export type Say = { mood: Mood; text: string; seq: number }
 export type ColaCmd = { nome: string; descricao: string; exemplo: string }
 export type ColaView = { readable: boolean; groups: { plugin: string; titulo: string; versao: string; lead: string; descricao: string; comandos: ColaCmd[]; skills: { name: string; status: string; descricao: string; exemplo: string }[] }[]; scripts: ColaCmd[] }

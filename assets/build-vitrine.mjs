@@ -13,7 +13,7 @@ const out = nome => join(raiz, 'assets', nome)
 
 // O código do plugin importa "./desenho" sem extensão; o Node exige ".ts". Copia os módulos puros com a extensão.
 const tmp = mkdtempSync(join(tmpdir(), 'claudin-vitrine-'))
-for (const nome of ['desenho', 'minis', 'minis-arte', 'cenario', 'cenario-arte', 'icones-arte']) {
+for (const nome of ['desenho', 'minis', 'minis-arte', 'cenario', 'cenario-arte', 'icones-vetor']) {
   const fonte = readFileSync(join(raiz, 'hooks', `${nome}.ts`), 'utf8').replace(/from '(\.\/[a-z-]+)'/g, "from '$1.ts'")
   writeFileSync(join(tmp, `${nome}.ts`), fonte)
 }
