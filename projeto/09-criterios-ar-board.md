@@ -46,7 +46,7 @@ Lote `claudin-cofre-skins-2026-11-17`. Veredito de Thomáz: 14 aprovados, 3 reje
 5. **Validação visual da frota** continua pendente com Thomáz (prints do app).
 
 ## Lote de skins 1 (2026-11-18): 9 aprovados, 1 rejeitado, 2 em standby
-Painel em `projeto/skins-ar-board/`. Previews em SVG provisório; a arte final vai pelo Flow (D3).
+Painel em `prompts/skins-ar-board/` de `06_meios-midias/claudin-mascote-claude-code` (mídia e prompts saíram do repositório em 2026-11-20). Previews em SVG provisório; a arte final vai pelo Flow (D3).
 
 ### Aprovar quando
 - **Pacotes de skin (D4, com ajuste):** Mangue (padrão, a atual), Maré (azul-esverdeado) e **Malungo**, que substitui a Parabólica. No Malungo, o prato da parabólica sai e entra o chapéu icônico de Chico Science (M4).
@@ -70,11 +70,11 @@ Painel em `projeto/skins-ar-board/`. Previews em SVG provisório; a arte final v
 
 ### Decisões de 2026-11-18 (mapa e Flow)
 - **Mapa aprovado:** Explorar = siri azul; Planejar = garça lilás; Executar = guaiamum âmbar; Revisar = aratu verde; outros = caranguejinho cinza. Uma miniatura por tipo, os 2 tipos com mais agentes vivos (empate: o mais antigo), `×n` quando há vários e `+N` nos agentes sem miniatura. Opcional: `fleet-map.json` em `<config>/claudin/`.
-- **Arte:** só as âncoras no Nano Banana, em separado; o lote inteiro (32 imagens) de uma vez no Flow, com as âncoras como referência. Prompts em `projeto/skins-ar-board/flow-skins-prompts.md`. Correção: são 9 poses por skin (`MOODS` inclui `alert`), não 8.
+- **Arte:** só as âncoras no Nano Banana, em separado; o lote inteiro (32 imagens) de uma vez no Flow, com as âncoras como referência. Prompts em `prompts/skins-ar-board/flow-skins-prompts.md` de `06_meios-midias/claudin-mascote-claude-code`. Correção: são 9 poses por skin (`MOODS` inclui `alert`), não 8.
 
 
 ## Arte das skins (2026-11-18): 6 aprovados, 1 rejeitado
-Painel `projeto/skins-ar-board/ar-board-skins-arte.html`. PNGs finais em `assets/skins/` (poses 64x48, minis 24x24, até 1 KB cada, alfa de 1 bit, paleta travada por skin).
+Painel `prompts/skins-ar-board/ar-board-skins-arte.html` e PNGs finais em `arte-flow/skins/`, ambos em `06_meios-midias/claudin-mascote-claude-code` (poses 64x48, minis 24x24, até 1 KB cada, alfa de 1 bit, paleta travada por skin).
 - **Mangue (S1):** "perfeita". Fica como o desenho padrão.
 - **Maré (S2) rejeitada como gerada:** agora é troca de paleta a partir do Mangue (mesma silhueta, antenas claras). Os 9 cards da Maré saem do lote do Flow.
 - **Malungo (S3) aprovado, mas "singela":** rodada 2 feita no Flow em 2026-11-19 e reingerida (9 poses). O chapéu de palha trançado tem 489x153 px em todas as poses (a `search` inclina, como o Mangue). Na `alert` e na `run` as antenas finas saem do chapéu; nas outras ficam escondidas.
