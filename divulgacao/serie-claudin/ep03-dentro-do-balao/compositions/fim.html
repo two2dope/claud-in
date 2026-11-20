@@ -1,0 +1,30 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; overflow: hidden; background: #c2502f; }
+    #fim-claudin { position: absolute; left: 300px; top: 290px; width: 480px; height: 360px; }
+    #fim-claudin img { width: 480px; height: 360px; }
+    #fim-name { position: absolute; left: 100px; top: 670px; width: 840px; text-align: center; font-family: 'Archivo Black'; font-size: 156px; line-height: 1; letter-spacing: -0.02em; color: #fff1d6; }
+    #fim-name span { display: inline-block; }
+    #fim-sub { position: absolute; left: 100px; top: 850px; width: 840px; text-align: center; font-family: 'Archivo Black'; font-size: 48px; line-height: 1.1; color: #2b1a10; }
+    #fim-url { position: absolute; left: 100px; top: 1000px; width: 840px; padding: 22px 0; text-align: center; background: #2b1a10; border-radius: 22px; font-family: 'Space Mono'; font-weight: 700; font-size: 40px; color: #fff1d6; }
+    #fim-mit { position: absolute; left: 100px; top: 1120px; width: 840px; text-align: center; font-family: 'Space Mono'; font-weight: 700; font-size: 32px; color: #2b1a10; }
+  </style>
+  <div id="root" data-composition-id="fim" data-width="1080" data-height="1920">
+    <div id="fim-claudin"><img src="assets/claudin-ok.svg" alt="Claudin comemorando" /></div>
+    <div id="fim-name"><span>C</span><span>l</span><span>a</span><span>u</span><span>d</span><span>i</span><span>n</span></div>
+    <div id="fim-sub">um mundo inteiro<br />no seu Claude Code</div>
+    <div id="fim-url">github.com/two2dope/claud-in</div>
+    <div id="fim-mit">código aberto · licença MIT</div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const B = 2 / 3;
+    tl.fromTo('#fim-claudin', { y: -700 }, { y: 0, duration: 0.35, ease: 'power2.in' }, 0);
+    tl.fromTo('#fim-claudin', { scaleX: 1.18, scaleY: 0.82, transformOrigin: '50% 100%' }, { scaleX: 1, scaleY: 1, duration: 0.35, ease: 'back.out(2.5)' }, 0.35);
+    tl.fromTo('#fim-name span', { yPercent: 120, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.3, ease: 'back.out(2)', stagger: 0.05 }, B);
+    tl.fromTo('#fim-sub', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power3.out' }, 2 * B);
+    tl.fromTo('#fim-url', { scaleX: 0, transformOrigin: '50% 50%' }, { scaleX: 1, duration: 0.35, ease: 'power4.out' }, 3 * B);
+    tl.fromTo('#fim-mit', { opacity: 0 }, { opacity: 1, duration: 0.3 }, 4 * B);
+    window.__timelines['fim'] = tl;
+  </script>
+</template>

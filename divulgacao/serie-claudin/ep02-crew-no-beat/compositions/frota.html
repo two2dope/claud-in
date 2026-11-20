@@ -1,0 +1,56 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; overflow: hidden; background: #2b1a10; }
+    .fr-p { position: absolute; inset: 0; }
+    .fr-top { position: absolute; left: 96px; top: 300px; font-family: 'Space Mono'; font-weight: 700; font-size: 44px; color: #D97757; }
+    .fr-name { position: absolute; left: 96px; top: 360px; width: 888px; font-family: 'Archivo Black'; font-size: 180px; line-height: 1; letter-spacing: -0.02em; }
+    .fr-name span { display: inline-block; }
+    .fr-spr { position: absolute; left: 270px; top: 620px; width: 540px; height: 540px; }
+    .fr-spr img { width: 540px; height: 540px; }
+    .fr-role { position: absolute; left: 96px; top: 1180px; width: 888px; font-family: 'Archivo Black'; font-size: 96px; line-height: 1; color: #D97757; }
+    .fr-role span { display: inline-block; }
+  </style>
+  <div id="root" data-composition-id="frota" data-width="1080" data-height="1920">
+    <div id="fr-1" class="fr-p" style="background: #2b1a10">
+      <div class="fr-top">subagente 1</div>
+      <div class="fr-name" style="color: #fff1d6"><span id="fr-n1">SIRI</span></div>
+      <div id="fr-s1" class="fr-spr"><img src="assets/mini-siri.svg" alt="siri" /></div>
+      <div class="fr-role"><span id="fr-r1">explora</span></div>
+    </div>
+    <div id="fr-2" class="fr-p" style="background: #fff1d6; opacity: 0">
+      <div class="fr-top" style="color: #b8482c">subagente 2</div>
+      <div class="fr-name" style="color: #2b1a10"><span id="fr-n2" style="font-size: 170px">GARÇA</span></div>
+      <div id="fr-s2" class="fr-spr"><img src="assets/mini-garca.svg" alt="garça" /></div>
+      <div class="fr-role" style="color: #b8482c"><span id="fr-r2">planeja</span></div>
+    </div>
+    <div id="fr-3" class="fr-p" style="background: #3f6b3a; opacity: 0">
+      <div class="fr-top" style="color: #fff1d6">subagente 3</div>
+      <div class="fr-name" style="color: #fff1d6"><span id="fr-n3" style="font-size: 124px">GUAIAMUM</span></div>
+      <div id="fr-s3" class="fr-spr"><img src="assets/mini-guaiamum.svg" alt="guaiamum" /></div>
+      <div class="fr-role" style="color: #ffd36a"><span id="fr-r3">executa</span></div>
+    </div>
+    <div id="fr-4" class="fr-p" style="background: #2f9e9a; opacity: 0">
+      <div class="fr-top" style="color: #2b1a10">subagente 4</div>
+      <div class="fr-name" style="color: #2b1a10"><span id="fr-n4" style="font-size: 170px">ARATU</span></div>
+      <div id="fr-s4" class="fr-spr"><img src="assets/mini-aratu.svg" alt="aratu" /></div>
+      <div class="fr-role" style="color: #fff1d6"><span id="fr-r4">revisa</span></div>
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const B = 0.5735, BAR = 2.294;
+    for (let i = 1; i <= 4; i++) {
+      const t = (i - 1) * BAR;
+      if (i > 1) {
+        tl.set(`#fr-${i - 1}`, { opacity: 0 }, t);
+        tl.set(`#fr-${i}`, { opacity: 1 }, t);
+      }
+      // A criatura cai no tempo 1 e assenta; o nome dá o soco; o papel entra no tempo 3.
+      tl.fromTo(`#fr-s${i}`, { y: -500 }, { y: 0, duration: 0.22, ease: 'power2.in' }, t);
+      tl.fromTo(`#fr-s${i}`, { scaleX: 1.2, scaleY: 0.82, transformOrigin: '50% 100%' }, { scaleX: 1, scaleY: 1, duration: 0.3, ease: 'back.out(2.4)' }, t + 0.22);
+      tl.fromTo(`#fr-n${i}`, { scale: 1.15, transformOrigin: '0% 70%' }, { scale: 1, duration: 0.16, ease: 'power3.out' }, t);
+      tl.fromTo(`#fr-r${i}`, { yPercent: 100, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.2, ease: 'power3.out' }, t + 2 * B);
+    }
+    window.__timelines['frota'] = tl;
+  </script>
+</template>

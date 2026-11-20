@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pt-BR" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #1e1e1e; }
+      #root { width: 100%; height: 100%; position: relative; }
+    </style>
+  </head>
+  <body>
+    <!-- 90 BPM (batida 0,667 s, compasso 2,667 s), 13 compassos. Trilha "Thought Bubble Recursive Dive" entrando no tempo
+         forte de 110,23 s da faixa; a queda natural dela cai na tela final. -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="34.667" data-width="1080" data-height="1920">
+      <audio id="trilha" src="assets/audio/trilha.mp3" data-start="0" data-duration="34.667" data-media-start="110.23" data-volume="0.841395" data-fade-out="1.5" data-track-index="2"></audio>
+      <div id="mergulho" class="clip" data-composition-id="mergulho" data-composition-src="compositions/mergulho.html" data-start="0" data-duration="29.333" data-track-index="1" data-track-kind="graphics" data-width="1080" data-height="1920"></div>
+      <div id="fim" class="clip" data-composition-id="fim" data-composition-src="compositions/fim.html" data-start="29.333" data-duration="5.334" data-track-index="1" data-track-kind="graphics" data-width="1080" data-height="1920"></div>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>
