@@ -101,7 +101,7 @@ Uma ação sugerida só preenche o prompt. Quem decide enviar é você, então o
 | Frota | Só aparece com subagentes: estado, tipo, tarefa, tempo e ferramentas de cada um (até seis; o resto vira `+N agentes`) |
 | Cofre | Só aparece com o cofre ligado (veja abaixo): próximo passo, urgentes, fios ativos e avisos do `_hot`, o botão que preenche o prompt e um campo para capturar uma nota |
 
-**Barra de abas.** Cada aba mostra só o ícone (💬 Prompts, ⚡ Ações, ⌘ Comandos, ⚙ Ajustes, ⏱ Tempo, 📅 Agenda, 🦀 Frota, 🔐 Cofre); a aba aberta mostra também o nome. No painel lateral do app os emojis viram fichas com ícones em vetor, os mesmos do QG, e a antena e a caixa de ferramentas também ganham desenho próprio.
+**Barra de abas.** Cada aba mostra só o ícone, na ordem ⚡ Ações, 💬 Prompts, ⌘ Comandos, ⏱ Timer, 📅 Agenda, 🦀 Frota, 🔐 Cofre e ⚙ Ajustes por último; a aba aberta mostra também o nome. No painel, o ícone Sobre fica no rodapé do menu, ao lado da paginação. No painel lateral do app os emojis viram fichas com ícones em vetor, os mesmos do QG, e a antena e a caixa de ferramentas também ganham desenho próprio.
 **Tempo e agenda.** Timers, prazos e lembretes são gravados entre sessões. A saudação do dia resume o que vence hoje e o que venceu.
 
 **Modos.** O ciclo fica em Ajustes.

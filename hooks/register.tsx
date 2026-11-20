@@ -51,13 +51,14 @@ const idOf = (t: Timer) => t.id ?? String(t.endsAt)
 const timers = atom({ plugin: 'claudin', key: 'timers' } as const, [] as Timer[])
 const tick = atom({ plugin: 'claudin', key: 'tick' } as const, 0)
 const boxCat = atom({ plugin: 'claudin', key: 'boxCat' } as const, 'prompts')
-const CATS = ['prompts', 'acoes', 'comandos', 'ajustes', 'tempo', 'prazos']
+// Ordem das abas: Ações, Prompts, Comandos, Timer, Agenda, (Frota), (Cofre) e Ajustes por último.
+const CATS = ['acoes', 'prompts', 'comandos', 'tempo', 'prazos']
 const FLEET_CAT = 'frota' // a aba só aparece enquanto há agentes, para não alargar o menu à toa
 const COFRE_CAT = 'cofre' // a aba só aparece com o cofre ligado
 const SOBRE_CAT = 'sobre' // aba escondida: só a placa de madeira do QG abre
 const REPO_URL = 'https://github.com/two2dope/claud-in'
-const VERSION = '0.8.1' // igual ao plugin.json (um teste confere)
-const CAT_LABEL: Record<string, string> = { prompts: 'Prompts', acoes: 'Ações', comandos: 'Comandos', ajustes: 'Ajustes', tempo: 'Tempo', prazos: 'Agenda', frota: 'Frota', cofre: 'Cofre' }
+const VERSION = '0.8.2' // igual ao plugin.json (um teste confere)
+const CAT_LABEL: Record<string, string> = { prompts: 'Prompts', acoes: 'Ações', comandos: 'Comandos', ajustes: 'Ajustes', tempo: 'Timer', prazos: 'Agenda', frota: 'Frota', cofre: 'Cofre' }
 const SHORTCUTS: { label: string; text: string }[] = [
   { label: 'resumir', text: 'Resuma em poucas linhas o que você fez até agora.' },
   { label: 'explicar erro', text: 'Explique o último erro que apareceu e proponha o próximo passo.' },
@@ -297,7 +298,10 @@ async function stroll($: any) {
     const at = SCENE_AT[s.mood as Mood]
     const workGoal = at === undefined ? undefined : Math.round(((at - SCENE_X0) / SCENE_SPAN) * MAX_X)
     if (workGoal === undefined && s.mood !== 'idle' && s.mood !== 'ok') return
-    await update($, walk, (w: Walk): Walk => stepToward(w, workGoal ?? w.goal))
+    // Só grava quando a posição muda: cada gravação redesenha o painel inteiro, com a faixa do QG.
+    const w0 = await read($, walk)
+    const w1 = stepToward(w0, workGoal ?? w0.goal)
+    if (w1.x !== w0.x || w1.dir !== w0.dir || w1.goal !== w0.goal) await update($, walk, () => w1)
     return
   }
   if (s.mood !== 'idle' && s.mood !== 'ok') return
@@ -308,13 +312,21 @@ async function stroll($: any) {
 }
 
 // Um passo no QG: rumo ao objetivo (mais ligeiro), parado um tempo ao chegar, ou passeando de borda a borda.
+// A pausa ao chegar conta fora do estado (restLeft): contar no estado redesenharia o painel a cada passo parado.
+let restLeft = 0
 function stepToward(w: Walk, goal: number | undefined): Walk {
   if (goal !== undefined) {
     const d = goal - w.x
-    if (Math.abs(d) <= 4) return { x: goal, dir: w.dir, rest: 6 } // chegou: fica uns 9 s de frente para o objeto
+    if (Math.abs(d) <= 4) {
+      restLeft = 6 // chegou: fica uns 9 s de frente para o objeto
+      return { x: goal, dir: w.dir }
+    }
     return { x: w.x + Math.sign(d) * 4, dir: Math.sign(d), goal }
   }
-  if ((w.rest ?? 0) > 0) return { x: w.x, dir: w.dir, rest: (w.rest ?? 0) - 1 }
+  if (restLeft > 0) {
+    restLeft--
+    return w
+  }
   const x = w.x + w.dir * 2
   return x >= MAX_X ? { x: MAX_X, dir: -1 } : x <= 0 ? { x: 0, dir: 1 } : { x, dir: w.dir }
 }
@@ -831,27 +843,40 @@ async function toggleCenario($: any, inPane: boolean) {
 }
 
 // Uma zona do QG abre a aba do que o objeto representa; sem o que abrir (frota vazia, cofre desligado) só o Claudin avisa.
+// Os menus gravam só o que muda: cada gravação redesenha o painel inteiro (com a faixa do QG).
 async function openSpot($: any, id: string) {
   const spot = SPOTS.find(s => s.id === id)
   if (!spot) return
-  // O Claudin anda até o objeto clicado (o passo acontece no passeio) e fica um pouco por lá.
-  const goal = Math.round(Math.max(0, Math.min(1, (spot.cx - SCENE_X0) / SCENE_SPAN)) * MAX_X)
-  await update($, walk, (w: Walk): Walk => ({ x: w.x, dir: goal >= w.x ? 1 : -1, goal }))
+  // O Claudin anda até o objeto clicado (o passo acontece no passeio) e fica um pouco por lá. Vai por último, depois
+  // da resposta do menu, para o clique não esperar o redesenho da caminhada.
+  const walkThere = async () => {
+    const goal = Math.round(Math.max(0, Math.min(1, (spot.cx - SCENE_X0) / SCENE_SPAN)) * MAX_X)
+    const w = await read($, walk)
+    if (w.goal !== goal && w.x !== goal) await update($, walk, (): Walk => ({ x: w.x, dir: goal >= w.x ? 1 : -1, goal }))
+  }
   if (spot.id === 'luz') return toggleLights($)
   if (spot.id === 'neon') return toggleNeon($)
+  // Segundo clique no mesmo objeto com a aba dele aberta: fecha o menu.
+  const tab = spot.id === 'sobre' ? SOBRE_CAT : spot.tab
+  if ((await read($, boxOpen)) && (await read($, boxCat)) === tab) {
+    await update($, boxOpen, () => false)
+    return
+  }
   if (spot.id === 'sobre') {
-    await update($, boxPage, () => 0)
-    await update($, boxCat, () => SOBRE_CAT)
-    await update($, colaOpen, () => false)
-    await update($, boxOpen, () => true)
+    if ((await read($, boxPage)) !== 0) await update($, boxPage, () => 0)
+    if ((await read($, colaOpen)) !== false) await update($, colaOpen, () => false)
+    if ((await read($, boxCat)) !== SOBRE_CAT) await update($, boxCat, () => SOBRE_CAT)
+    if ((await read($, boxOpen)) !== true) await update($, boxOpen, () => true)
+    await walkThere()
     return
   }
   if (spot.id === 'frota' && (await read($, fleet)).length === 0) return speak($, 'idle', 'Nenhum agente por aqui. Os monitores acendem quando a frota trabalha.')
   if (spot.id === 'cofre' && !(await read($, cofre))) return speak($, 'idle', 'O cofre não está ligado: falta o cofre.json em <config>/claudin.')
-  await update($, boxPage, () => 0)
-  await update($, boxCat, () => spot.tab)
-  await update($, colaOpen, () => false)
-  await update($, boxOpen, () => true)
+  if ((await read($, boxPage)) !== 0) await update($, boxPage, () => 0)
+  if ((await read($, colaOpen)) !== false) await update($, colaOpen, () => false)
+  if ((await read($, boxCat)) !== spot.tab) await update($, boxCat, () => spot.tab)
+  if ((await read($, boxOpen)) !== true) await update($, boxOpen, () => true)
+  await walkThere()
   if (spot.tab === 'comandos') {
     await loadCommands($)
     if (await read($, cola)) {
@@ -1154,7 +1179,7 @@ async function draw($: any, e: any, next: any) {
   const fleetRows = await read($, fleet)
   const nowF = fleetRows.length > 0 ? await $.clock.now() : 0
   const fleetLine = summaryLine(fleetRows, nowF)
-  const cats = [...CATS, ...(fleetRows.length > 0 ? [FLEET_CAT] : []), ...(cofreRoot ? [COFRE_CAT] : [])]
+  const cats = [...CATS, ...(fleetRows.length > 0 ? [FLEET_CAT] : []), ...(cofreRoot ? [COFRE_CAT] : []), 'ajustes']
   const cat = cats.includes(catRaw) || catRaw === SOBRE_CAT ? catRaw : 'prompts' // aba que sumiu (frota vazia, cofre desligado) não prende a caixa
   const nowT = activeTimers.length > 0 ? (await read($, tick)) || (await $.clock.now()) : 0
   const extras = await read($, extraShortcuts)
@@ -1184,9 +1209,9 @@ async function draw($: any, e: any, next: any) {
   const glyph = { idle: '(•ᴗ•)', think: '(•_•?)', read: '(•‿•)📖', code: '⌨(•̀ᴗ•́)', run: '(•̀ᴗ•́)⚙', search: '(•ᴗ•)🔍', ok: '\\(^ᴗ^)/', err: '(x_x)', alert: '(•o•)!' }[s.mood as Mood]
 
   const pick = (c: string) => async () => {
-    await update($, boxPage, () => 0)
-    await update($, boxCat, () => c)
-    await update($, colaOpen, () => false)
+    if ((await read($, boxPage)) !== 0) await update($, boxPage, () => 0)
+    if ((await read($, colaOpen)) !== false) await update($, colaOpen, () => false)
+    if ((await read($, boxCat)) !== c) await update($, boxCat, () => c)
     if (c === 'comandos') await loadCommands($)
     if (c === 'acoes') await loadContext($)
     if (c === 'prazos') await loadCofreDeadlines($)
@@ -1492,11 +1517,19 @@ async function draw($: any, e: any, next: any) {
           <Button key={x.key} plain label={`  ${x.label}`} onPress={x.onPress} />
         ),
       )}
-      {pages > 1 ? (
-        <Box key="pager" flexDirection="row" columnGap={2}>
-          {pg > 0 ? <Button key="prev" plain label="‹ anterior" onPress={() => update($, boxPage, () => pg - 1)} /> : <Text dimColor>‹ anterior</Text>}
-          <Text dimColor>{pg + 1}/{pages}</Text>
-          {pg < pages - 1 ? <Button key="next" plain label="próxima ›" onPress={() => update($, boxPage, () => pg + 1)} /> : <Text dimColor>próxima ›</Text>}
+      {pages > 1 || chips ? (
+        // Rodapé: a paginação à esquerda e, no painel, o ícone Sobre à direita (versão e links do projeto).
+        <Box key="pager-row" flexDirection="row" justifyContent="space-between" alignItems="center" width="100%">
+          {pages > 1 ? (
+            <Box key="pager" flexDirection="row" columnGap={2}>
+              {pg > 0 ? <Button key="prev" plain label="‹ anterior" onPress={() => update($, boxPage, () => pg - 1)} /> : <Text dimColor>‹ anterior</Text>}
+              <Text dimColor>{pg + 1}/{pages}</Text>
+              {pg < pages - 1 ? <Button key="next" plain label="próxima ›" onPress={() => update($, boxPage, () => pg + 1)} /> : <Text dimColor>próxima ›</Text>}
+            </Box>
+          ) : (
+            <Box key="pager-gap" />
+          )}
+          {chips ? iconButton('sb-open', 'sobre', 'Sobre o Claudin', () => openSpot($, 'sobre')) : null}
         </Box>
       ) : null}
     </Box>

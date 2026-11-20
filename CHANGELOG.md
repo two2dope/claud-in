@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.2 — 2026-11-20
+
+- **Nova ordem das abas:** Ações, Prompts, Comandos, Timer (antes "Tempo"), Agenda, Frota e Cofre quando existem, e Ajustes por último.
+- **Sobre no rodapé:** no painel, o ícone da placa fica à direita da paginação e abre a versão e os links do projeto.
+- **Segundo clique fecha:** no QG, clicar de novo no objeto com a aba dele aberta fecha o menu.
+- **Menos redesenho, menos demora:** os cliques do QG e das abas gravam só o estado que muda (antes eram quatro ou cinco gravações por clique, cada uma redesenhando o painel inteiro com a faixa do QG), a caminhada do Claudin vem depois da resposta do menu, e a pausa dele num objeto conta fora do estado, sem redesenhar o painel a cada passo parado.
+
 ## 0.8.1 — 2026-11-20
 
 - **Ícones em vetor.** Os ícones do QG e da caixa de ferramentas foram redesenhados em vetor (`hooks/icones-vetor.ts`), no traço do globo de plasma: contorno escuro fino, degradê, brilho no alto e animações discretas (pontinhos do balão, ponteiro do cronômetro, dia marcado do calendário, caranguejo balançando, estrela da lua, sinal da antena, raios do globo). Ficam nítidos em qualquer tamanho e pesam menos que a pixel art; a conversão de pixel art (`hooks/icones-arte.ts`, `scripts/icones-para-svg.py`) saiu.
