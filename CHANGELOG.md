@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0 — 2026-11-19
+
+- **Ícones próprios do QG.** Os emojis saíram: placa de informação, livros, engrenagem, balão, lâmpada (lua com a luz apagada), globo místico, caranguejinho, cadeado, calendário e raio são pixel art gerada no Google Flow com a arte do QG como referência, convertida por `scripts/icones-para-svg.py` (fundo magenta recortado por preenchimento a partir da borda, 16x16, 7 cores) para `hooks/icones-arte.ts`.
+- **Desenhados dentro da própria faixa.** Cada ícone faz parte da imagem do QG, no ponto marcado: não corta, não escorrega e não muda de lugar com a largura da janela. Por cima de cada um fica um botão em branco (como o do relógio, que já se provou clicável), que acende sob o ponteiro.
+- **Engrenagem** no canto de baixo à esquerda do painel da bancada, abaixo do martelo. O relógio continua sem ícone: ele mesmo é o botão.
+- **Neon mais brilhante:** tiras com halo maior e a sala com uma luz rosada clara por cima, em vez de escurecer.
+- **Mais coisa no mesmo limite.** As animações repetidas (LEDs, linhas de código, neon e vaga-lumes) viraram classes CSS, e a faixa entra em camadas: se algo não couber nos 131072 caracteres, sai primeiro a vida do cenário, depois o neon; ícones, painel e relógio sempre entram. O pior caso (noite, luz apagada, neon, painel cheio) cabe com tudo.
+
 ## 0.7.8 — 2026-11-19
 
 - **Os ícones não pulam mais com a janela.** Eles eram postos por célula inteira, e o arredondamento mudava conforme a largura. Agora cada ícone fica preso por porcentagem ao ponto marcado do objeto (uma âncora sem tamanho, com o ícone numa caixa de 3 células centrada nela), e a altura de uma linha entra na conta para centrar na vertical.

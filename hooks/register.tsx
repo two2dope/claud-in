@@ -55,7 +55,7 @@ const FLEET_CAT = 'frota' // a aba só aparece enquanto há agentes, para não a
 const COFRE_CAT = 'cofre' // a aba só aparece com o cofre ligado
 const SOBRE_CAT = 'sobre' // aba escondida: só a placa de madeira do QG abre
 const REPO_URL = 'https://github.com/two2dope/claud-in'
-const VERSION = '0.7.8' // igual ao plugin.json (um teste confere)
+const VERSION = '0.8.0' // igual ao plugin.json (um teste confere)
 const CAT_LABEL: Record<string, string> = { prompts: 'Prompts', acoes: 'Ações', comandos: 'Comandos', ajustes: 'Ajustes', tempo: 'Tempo', prazos: 'Agenda', frota: 'Frota', cofre: 'Cofre' }
 const SHORTCUTS: { label: string; text: string }[] = [
   { label: 'resumir', text: 'Resuma em poucas linhas o que você fez até agora.' },
@@ -1519,37 +1519,19 @@ async function draw($: any, e: any, next: any) {
           {ICONS.map((sp, i) => {
             const [b0, b1] = ICON_BOUNDS[i]!
             const half = rowFrac(cols) / 2
-            const tempo = sp.id === 'tempo'
             const anchors: { y: number; x: number; node: any; key: string }[] = [
               {
                 key: 'icon',
                 x: sp.cx,
                 y: sp.cy,
                 node: (
-                  <Box key={`zone-${sp.id}`} position="absolute" top={0} left={-1} width={3} hover={tempo ? { scope: 'qg-tempo' } : undefined}>
-                    {tempo ? (
-                      // O relógio fica limpo: botão em branco (U+2800 não some como espaço); o ⏱ aparece acima dele no hover.
-                      <Button key={`spot-${sp.id}`} plain label={'\u2800\u2800'} onPress={() => openSpot($, sp.id)} />
-                    ) : (
-                      <Button key={`spot-${sp.id}`} plain dimColor={!sp.always} label={sp.id === 'luz' && lightsOffNow ? '🌙' : sp.pin} onPress={() => openSpot($, sp.id)} />
-                    )}
+                  <Box key={`zone-${sp.id}`} position="absolute" top={0} left={-1} width={3}>
+                    {/* O ícone é desenhado dentro da faixa; aqui fica só o botão em branco (U+2800 não some como
+                        espaço), que acende ao passar o ponteiro. */}
+                    <Button key={`spot-${sp.id}`} plain label={'\u2800\u2800'} onPress={() => openSpot($, sp.id)} />
                   </Box>
                 ),
               },
-              ...(sp.tag
-                ? [
-                    {
-                      key: 'tag',
-                      x: sp.tag[0],
-                      y: sp.tag[1],
-                      node: (
-                        <Box position="absolute" top={0} left={-1} display="none" hover={{ display: 'flex', scope: 'qg-tempo' }}>
-                          <Text>{sp.pin}</Text>
-                        </Box>
-                      ),
-                    },
-                  ]
-                : []),
             ].sort((a, b) => a.y - b.y)
             let used = 0
             return (

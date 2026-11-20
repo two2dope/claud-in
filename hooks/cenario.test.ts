@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { QG_ART } from './cenario-arte'
-import { NEON_DESK, QG_LIMIT, MONITORS, ambientSvg, fleetPulse, neonSvg, SPOTS, kTokens, modelShort, panelSvg, STATIONS, composeQg, pct, pomodoroOf, skyAt, stationCol, withOutline } from './cenario'
+import { NEON_DESK, QG_LIMIT, iconsSvg, MONITORS, ambientSvg, fleetPulse, neonSvg, SPOTS, kTokens, modelShort, panelSvg, STATIONS, composeQg, pct, pomodoroOf, skyAt, stationCol, withOutline } from './cenario'
 
 const HORA = (h: number, m = 0) => h * 60 + m
 
@@ -234,7 +234,8 @@ describe('QG: a vida do cenário', () => {
   test('telas, LEDs, lua e bichinhos animados, e tudo cabe no limite', () => {
     const v = ambientSvg(360, 76, true)
     expect(v).toContain('animateMotion')
-    expect(v.match(/<animate /g)!.length).toBeGreaterThan(20)
+    expect(v).toContain('<style>')
+    expect(v.match(/class="b\d"/g)!.length).toBeGreaterThan(15)
     const noite = composeQg(QG_ART.svg, { w: QG_ART.w, h: QG_ART.h, minutes: HORA(22), pomo: { fraction: 0.5 }, panel: { model: 'claude-opus-5-5', ctx: 99, tokens: 999_999, window: 1_000_000, usd: 999.99, limit5h: 99, limit7d: 99, agents: 9, tools: 99 }, working: true })
     expect(noite.length).toBeLessThanOrEqual(QG_LIMIT)
     expect(noite).toContain('class="vida"')
@@ -273,5 +274,21 @@ describe('QG 0.7.7: neon, vaga-lumes e lua', () => {
   test('a vida fica por cima da escuridão', () => {
     const noite = composeQg(QG_ART.svg, { w: QG_ART.w, h: QG_ART.h, minutes: HORA(22), pomo: null })
     expect(noite.indexOf('class="vida"')).toBeGreaterThan(noite.indexOf('<mask id="lit">'))
+  })
+})
+
+describe('QG 0.8.0: ícones próprios dentro da faixa', () => {
+  test('cada ponto com arte vira um grupo na faixa; a luz troca de lâmpada para lua', () => {
+    const acesa = iconsSvg(360, 76, false)
+    const apagada = iconsSvg(360, 76, true)
+    expect(acesa.match(/<g transform=/g)!.length).toBe(10)
+    expect(acesa).not.toBe(apagada)
+  })
+
+  test('o pior caso cabe no limite com ícones, painel, neon e vaga-lumes', () => {
+    const tudo = composeQg(QG_ART.svg, { w: QG_ART.w, h: QG_ART.h, minutes: HORA(23), pomo: { fraction: 0.4 }, lightsOff: true, neon: true, panel: { model: 'claude-opus-5-5', ctx: 99, tokens: 999_999, window: 1_000_000, usd: 999.99, limit5h: 99, limit7d: 99, agents: 9, tools: 99 }, working: true })
+    expect(tudo.length).toBeLessThanOrEqual(QG_LIMIT)
+    expect(tudo).toContain('class="icones"')
+    expect(tudo).toContain('class="vida"')
   })
 })
